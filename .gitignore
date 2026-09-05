@@ -1,0 +1,35 @@
+# --- API (.NET) ---
+api/bin/
+api/obj/
+api/appsettings.Development.json
+api/appsettings.Production.json
+api/publish/
+
+# --- Web (React/Vite) ---
+web/node_modules/
+web/dist/
+web/.env
+web/.env.local
+
+# --- Mobile (Android) ---
+mobile/.gradle/
+mobile/.idea/
+mobile/local.properties
+mobile/*/build/
+mobile/build/
+mobile/captures/
+mobile/.cxx/
+*.apk
+*.aab
+*.jks
+*.keystore
+
+# --- Docker ---
+.env
+
+# --- IDE / OS ---
+.vs/
+.vscode/
+*.user
+.DS_Store
+Thumbs.db

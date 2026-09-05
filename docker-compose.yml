@@ -1,0 +1,42 @@
+services:
+  mongo:
+    image: mongo:8
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
+  api:
+    build:
+      context: ./api
+    restart: unless-stopped
+    depends_on:
+      - mongo
+    environment:
+      MongoDbSettings__ConnectionString: mongodb://${MONGO_ROOT_USERNAME}:${MONGO_ROOT_PASSWORD}@mongo:27017/?authSource=admin
+      MongoDbSettings__DatabaseName: ${MONGO_DATABASE_NAME}
+      JwtSettings__Secret: ${JWT_SECRET}
+      JwtSettings__Issuer: ${JWT_ISSUER}
+      JwtSettings__Audience: ${JWT_AUDIENCE}
+      JwtSettings__ExpiryMinutes: ${JWT_EXPIRY_MINUTES}
+      Cors__AllowedOrigins__0: ${WEB_ORIGIN}
+    ports:
+      - "5000:8080"
+
+  web:
+    build:
+      context: ./web
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - "5173:8080"
+
+volumes:
+  mongo-data:
