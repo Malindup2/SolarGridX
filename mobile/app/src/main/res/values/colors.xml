@@ -2,4 +2,33 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Primitives -->
+    <color name="green_600">#FF49B02D</color>
+    <color name="green_800">#FF3A8D24</color>
+    <color name="accent_blue">#FF0C8CE9</color>
+    <color name="amber_500">#FFF59E0B</color>
+    <color name="red_600">#FFDC2626</color>
+    <color name="neutral_900">#FF2C2C2C</color>
+    <color name="neutral_700">#FF3B3B3B</color>
+    <color name="neutral_200">#FFE2E8F0</color>
+    <color name="neutral_50">#FFF8FAFC</color>
+
+    <!-- Semantic — build UI against these, not the primitives above -->
+    <color name="color_primary">@color/green_600</color>
+    <color name="color_primary_hover">@color/green_800</color>
+    <color name="color_secondary">@color/neutral_900</color>
+    <color name="color_accent">@color/accent_blue</color>
+    <color name="color_background">@color/neutral_50</color>
+    <color name="color_surface">@color/white</color>
+    <color name="color_ink">@color/neutral_900</color>
+    <color name="color_muted">@color/neutral_700</color>
+    <color name="color_border">@color/neutral_200</color>
+    <color name="color_disabled">@color/neutral_200</color>
+
+    <color name="status_pending">@color/amber_500</color>
+    <color name="status_approved">@color/green_600</color>
+    <color name="status_completed">@color/accent_blue</color>
+    <color name="status_rejected">@color/red_600</color>
+    <color name="status_cancelled">@color/neutral_700</color>
 </resources>
