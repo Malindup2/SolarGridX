@@ -1,8 +1,24 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <!-- Base application theme. -->
     <style name="Base.Theme.Solargridx" parent="Theme.Material3.DayNight.NoActionBar">
-        <!-- Customize your light theme here. -->
-        <!-- <item name="colorPrimary">@color/my_light_primary</item> -->
+        <item name="colorPrimary">@color/color_primary</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorPrimaryContainer">@color/color_primary_hover</item>
+        <item name="colorOnPrimaryContainer">@color/white</item>
+
+        <item name="colorSecondary">@color/color_secondary</item>
+        <item name="colorOnSecondary">@color/white</item>
+        <item name="colorTertiary">@color/color_accent</item>
+        <item name="colorOnTertiary">@color/white</item>
+
+        <item name="colorError">@color/status_rejected</item>
+        <item name="colorOnError">@color/white</item>
+
+        <item name="android:colorBackground">@color/color_background</item>
+        <item name="colorSurface">@color/color_surface</item>
+        <item name="colorOnSurface">@color/color_ink</item>
+        <item name="colorOnSurfaceVariant">@color/color_muted</item>
+        <item name="colorOutline">@color/color_border</item>
     </style>
 
     <style name="Theme.Solargridx" parent="Base.Theme.Solargridx" />

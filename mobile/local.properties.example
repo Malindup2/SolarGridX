@@ -1,0 +1,5 @@
+sdk.dir=/path/to/your/Android/Sdk
+API_BASE_URL=http://10.0.2.2:5001/api/
+
+# Added later, once the Maps/QR-scanning work starts:
+# MAPS_API_KEY=your-google-maps-api-key

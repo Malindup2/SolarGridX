@@ -1,15 +1,53 @@
 using System.Text;
+using FluentValidation;
+using MicrogridApi.Common;
 using MicrogridApi.Configuration;
+using MicrogridApi.Middleware;
+using MicrogridApi.Models;
+using MicrogridApi.Repositories;
+using MicrogridApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddControllers();
+builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true);
+
+builder.Services.AddRouting(options => options.LowercaseUrls = true);
+
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var details = context.ModelState
+                .Where(kvp => kvp.Value?.Errors.Count > 0)
+                .SelectMany(kvp => kvp.Value!.Errors.Select(e => $"{kvp.Key}: {e.ErrorMessage}"))
+                .ToArray();
+
+            var response = new ErrorResponse("VALIDATION_FAILED", "One or more validation errors occurred.", details);
+            return new BadRequestObjectResult(response);
+        };
+    });
 
 builder.Services.Configure<MongoDbSettings>(builder.Configuration.GetSection("MongoDbSettings"));
 builder.Services.AddSingleton<MongoDbContext>();
+
+builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
+builder.Services.AddSingleton<JwtTokenService>();
+builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<AuthService>();
+
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
+builder.Services.AddScoped<EmailService>();
+
+builder.Services.AddValidatorsFromAssemblyContaining<Program>();
+
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+builder.Services.AddProblemDetails();
 
 builder.Services.AddHealthChecks();
 
@@ -60,6 +98,25 @@ builder.Services.AddAuthentication(options =>
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
     };
+
+    options.Events = new JwtBearerEvents
+    {
+        OnChallenge = async context =>
+        {
+            context.HandleResponse();
+            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+            context.Response.ContentType = "application/json";
+            var response = new ErrorResponse("UNAUTHORIZED", "Missing or invalid token.", null);
+            await context.Response.WriteAsJsonAsync(response, JsonDefaults.CamelCase);
+        },
+        OnForbidden = async context =>
+        {
+            context.Response.StatusCode = StatusCodes.Status403Forbidden;
+            context.Response.ContentType = "application/json";
+            var response = new ErrorResponse("FORBIDDEN", "You do not have permission to perform this action.", null);
+            await context.Response.WriteAsJsonAsync(response, JsonDefaults.CamelCase);
+        }
+    };
 });
 
 builder.Services.AddAuthorization();
@@ -76,6 +133,23 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var mongoContext = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
+    var users = mongoContext.GetCollection<User>("Users");
+    await users.Indexes.CreateManyAsync(new[]
+    {
+        new CreateIndexModel<User>(
+            Builders<User>.IndexKeys.Ascending(u => u.Nic),
+            new CreateIndexOptions { Unique = true, Sparse = true }),
+        new CreateIndexModel<User>(
+            Builders<User>.IndexKeys.Ascending(u => u.Username),
+            new CreateIndexOptions { Unique = true, Sparse = true })
+    });
+}
+
+app.UseExceptionHandler();
 
 if (app.Environment.IsDevelopment())
 {
