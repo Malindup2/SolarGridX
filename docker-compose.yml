@@ -23,6 +23,10 @@ services:
       JwtSettings__Issuer: ${JWT_ISSUER}
       JwtSettings__Audience: ${JWT_AUDIENCE}
       JwtSettings__ExpiryMinutes: ${JWT_EXPIRY_MINUTES}
+      EmailSettings__Host: ${EMAIL_HOST}
+      EmailSettings__Port: ${EMAIL_PORT}
+      EmailSettings__User: ${EMAIL_USER}
+      EmailSettings__Pass: ${EMAIL_PASS}
       Cors__AllowedOrigins__0: ${WEB_ORIGIN}
     ports:
       - "5000:8080"

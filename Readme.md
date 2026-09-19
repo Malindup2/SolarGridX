@@ -380,7 +380,7 @@ cp .env.example .env
 Edit `.env`:
 
 ```
-VITE_API_BASE_URL=https://localhost:7001/api/v1
+VITE_API_BASE_URL=https://localhost:7001/api
 ```
 
 Run the development server:
@@ -405,12 +405,12 @@ npm run build
 ```properties
 sdk.dir=C\:\\Users\\<user>\\AppData\\Local\\Android\\Sdk
 MAPS_API_KEY=<your-google-maps-api-key>
-API_BASE_URL="http://10.0.2.2:5001/api/v1/"
+API_BASE_URL="http://10.0.2.2:5001/api/"
 ```
 
 3. Let Gradle sync, then run on an emulator or device.
 
-> **Base URL note.** `10.0.2.2` is the Android emulator's alias for the host machine's `localhost`. On a physical device, use the host machine's LAN IP (for example `http://192.168.1.10:5001/api/v1/`) and ensure both devices are on the same network. For cleartext HTTP during development, `android:usesCleartextTraffic="true"` is set in the manifest.
+> **Base URL note.** `10.0.2.2` is the Android emulator's alias for the host machine's `localhost`. On a physical device, use the host machine's LAN IP (for example `http://192.168.1.10:5001/api/`) and ensure both devices are on the same network. For cleartext HTTP during development, `android:usesCleartextTraffic="true"` is set in the manifest.
 
 ### 7.6 Google Maps API key
 
@@ -562,7 +562,7 @@ References are document references, not relational foreign keys. Referential con
 
 ## 10. API Reference
 
-**Base URL:** `/api/v1`
+**Base URL:** `/api`
 **Authentication:** `Authorization: Bearer <token>` on all endpoints except `/auth/login` and `/auth/register`
 **Content type:** `application/json`
 **Timestamps:** ISO-8601, UTC
@@ -624,7 +624,7 @@ All errors are returned by the global exception handler in a consistent shape:
 | `PATCH` | `/reservations/{id}/reschedule` | Prosumer | Move to a different slot; revalidates both rules |
 | `PATCH` | `/reservations/{id}/approve` | GridOperator | `Pending` → `Approved`; triggers QR issue |
 | `PATCH` | `/reservations/{id}/reject` | GridOperator | `Pending` → `Rejected` with reason |
-| `DELETE` | `/reservations/{id}` | Prosumer / Backoffice | Cancel (12-hour rule enforced); releases slot |
+| `PATCH` | `/reservations/{id}/cancel` | Prosumer / Backoffice | Cancel (12-hour rule enforced); releases slot |
 | `GET` | `/reservations/validate` | All | Pre-flight rule check `?slotId=&date=` |
 | `GET` | `/stations/{id}/has-active-reservations` | Internal | Guard for node deactivation |
 
@@ -805,38 +805,44 @@ docs(<area>): <what was documented>
 
 | Member | IT Number | Component | Branch |
 |---|---|---|---|
-| *(Name)* | IT23391390 | Reservation lifecycle, authentication, shared architecture, IIS deployment | `feat/m1-reservations` |
+| *(Name)* | IT23391390 | Reservation lifecycle, dashboards, shared architecture, IIS deployment | `feat/m1-reservations` |
 | *(Name)* | *(IT number)* | Identity and account management | `feat/m2-identity` |
 | *(Name)* | *(IT number)* | Microgrid nodes, Google Maps, QR verification | `feat/m3-stations` |
-| *(Name)* | *(IT number)* | Booking slots, availability engine, QR issuance, dashboards | `feat/m4-slots` |
+| *(Name)* | *(IT number)* | Booking slots, availability engine, QR issuance | `feat/m4-slots` |
 
-### Member 1 — Reservation Lifecycle and System Architecture
+### Member 1 — Reservations and Booking Views
 
-**Web service:** `AuthController`, `ReservationController`, `ReservationService`, `MongoDbContext`, JWT middleware, global exception handler, FluentValidation rules for BR-01 to BR-03, BR-10.
-**Web application:** Layout shell and navigation, home/index page, reservation list, create form, edit form, cancel confirmation, post-action summary.
-**Mobile application:** Station picker, slot picker, booking confirmation, modify booking, reschedule, cancel confirmation, summary screen.
+**Web service:** `AuthController` (shared Sprint-0), `ReservationController`, `ReservationService`, `DashboardService`, `MongoDbContext`, JWT middleware, global exception handler, FluentValidation rules for BR-01 to BR-03, BR-10.
+**Endpoints:** `POST/GET /reservations`, `GET /reservations/{id}`, `PUT /reservations/{id}`, `PATCH /reservations/{id}/reschedule`, `PATCH /reservations/{id}/approve`, `PATCH /reservations/{id}/reject`, `PATCH /reservations/{id}/cancel`, `GET /reservations/validate`, `GET /bookings/search`, `GET /dashboard/prosumer/{nic}`, `GET /dashboard/operator/{stationId}`.
+**Web application:** Layout shell and navigation, reservation list, reservation details, create reservation, edit reservation, approve/reject, reschedule, cancel, operator dashboard, prosumer dashboard, completion/summary.
+**Mobile application:** Prosumer home, operator home, booking flow, booking confirmation, my bookings, booking details, reschedule, cancel, booking summary, operator reservation review, transfer completion.
 **Infrastructure:** Project scaffolding across all three codebases, MongoDB schema design for all four collections, shared component library, IIS deployment and documentation.
+
+> Completion is never a separate client-facing endpoint — a reservation only moves `Approved` → `Completed` as a side effect of Member 3's `POST /qr/verify`, never by a direct call. This keeps the "scan to finalise" requirement from being bypassable.
 
 ### Member 2 — Identity and Account Management
 
 **Web service:** `UserController`, `ProsumerController`, `UserService`, `ProsumerService`, NIC uniqueness enforcement, BR-05 and BR-06.
-**Web application:** Login page, user list, user create/edit form, prosumer list, prosumer create/edit form, pending activations queue.
-**Mobile application:** Splash and login, NIC registration, prosumer home, operator home, profile view and edit, deactivation request.
-**Signature capability:** Role-based routing across both clients, SQLite session persistence on Android.
+**Endpoints:** `GET/POST /users`, `PUT/DELETE /users/{id}`, `GET /prosumers`, `GET /prosumers/pending`, `GET /prosumers/{nic}`, `PUT /prosumers/{nic}`, `PATCH /prosumers/{nic}/activate`, `PATCH /prosumers/{nic}/deactivate`.
+**Web application:** Login, user list, create user, edit user, prosumer list, prosumer details/edit, pending prosumer queue, activate prosumer, deactivate prosumer.
+**Mobile application:** Splash, login, registration, pending account, profile, edit profile, account status, logout.
+**Signature capability:** Role-based routing across both clients (routes into Member 1's home screens after login), SQLite session persistence on Android.
 
 ### Member 3 — Microgrid Nodes, Maps and Operator Verification
 
 **Web service:** `StationController`, `QrVerificationController`, `StationService`, deactivation guard (BR-04), QR verification and expiry (BR-08).
-**Web application:** Node list, create form with map picker, edit form, node detail with schedule, deactivation confirmation with block reason, station map overview.
-**Mobile application:** Google Map with node markers, station detail sheet, station list, QR scanner, verification result, finalise-job confirmation.
-**Signature capability:** Google Maps integration on both clients, operator QR verification flow.
+**Endpoints:** `POST/GET /stations`, `GET /stations/nearby`, `GET /stations/{id}`, `PUT /stations/{id}`, `PATCH /stations/{id}/schedule`, `PATCH /stations/{id}/activate`, `PATCH /stations/{id}/deactivate`, `DELETE /stations/{id}`, `POST /qr/verify`.
+**Web application:** Station list, create station, edit station, station details, schedule management, activate/deactivate, station map overview.
+**Mobile application:** Nearby stations, station map, station list, station details, QR scanner, QR verification result, invalid/expired/used QR states.
+**Signature capability:** Google Maps integration on both clients, operator QR verification flow — the only place a reservation is moved to `Completed`.
 
-### Member 4 — Booking Slots, Availability and Operational Views
+### Member 4 — Booking Slots and QR Issuance
 
-**Web service:** `SlotController`, `QrIssueController`, `SlotService`, `DashboardService`, slot generation from station schedule, capacity conflict detection (BR-09), QR issuance (BR-07).
-**Web application:** Slot management, availability grid, bulk availability tool, booking monitor with filters, booking history, operator dashboard.
-**Mobile application:** Slot availability view, operator slot update, prosumer dashboard with counts, booking history, search and filter, booking detail with QR display.
-**Signature capability:** Slot generation and availability engine, QR code generation, live dashboard counts.
+**Web service:** `SlotController`, `QrIssueController`, `SlotService`, slot generation from station schedule, capacity conflict detection (BR-09), QR issuance (BR-07).
+**Endpoints:** `POST /stations/{id}/slots`, `POST /stations/{id}/slots/generate`, `GET /stations/{id}/slots`, `GET /slots`, `PUT /slots/{id}`, `PATCH /slots/{id}/availability`, `PATCH /slots/bulk-availability`, `DELETE /slots/{id}`, `POST /qr/issue/{reservationId}`, `GET /qr/{reservationId}`.
+**Web application:** Slot management, slot generation, availability grid, bulk availability, slot edit/update.
+**Mobile application:** Slot availability, slot selection, operator slot update, QR display, QR status (valid/expired/used).
+**Signature capability:** Slot generation and availability engine, QR code generation.
 
 ---
 
