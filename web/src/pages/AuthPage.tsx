@@ -43,8 +43,6 @@ export default function AuthPage({ initialTab = 'login' }: AuthPageProps) {
   const [showRegPassword, setShowRegPassword] = useState(false)
 
   const [isLoading, setIsLoading] = useState(false)
-  const [errorMessage, setErrorMessage] = useState('')
-  const [validationErrors, setValidationErrors] = useState<string[]>([])
 
   const nicInputId = useId()
   const fullNameInputId = useId()
@@ -56,8 +54,6 @@ export default function AuthPage({ initialTab = 'login' }: AuthPageProps) {
 
   const handleTabSwitch = (tab: 'login' | 'register') => {
     setActiveTab(tab)
-    setErrorMessage('')
-    setValidationErrors([])
     setSearchParams(tab === 'register' ? { mode: 'register' } : {})
   }
 
@@ -66,13 +62,9 @@ export default function AuthPage({ initialTab = 'login' }: AuthPageProps) {
 
   const handleLoginSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setErrorMessage('')
-    setValidationErrors([])
 
     if (!loginEmail.trim() || !password) {
-      const msg = 'Please enter both your email and password.'
-      setErrorMessage(msg)
-      toast.error(msg)
+      toast.error('Please enter both your email and password.')
       return
     }
 
@@ -98,21 +90,14 @@ export default function AuthPage({ initialTab = 'login' }: AuthPageProps) {
       if (isAxiosError<ApiErrorResponse>(err)) {
         const resp = err.response?.data
         if (resp?.code === 'INVALID_CREDENTIALS') {
-          const msg = 'Invalid email or password. Please verify your credentials.'
-          setErrorMessage(msg)
-          toast.error(msg)
+          toast.error('Invalid email or password. Please verify your credentials.')
         } else if (resp?.details && resp.details.length > 0) {
-          setValidationErrors(resp.details)
           resp.details.forEach((d) => toast.error(d))
         } else {
-          const msg = resp?.message || 'Authentication failed. Please check your credentials.'
-          setErrorMessage(msg)
-          toast.error(msg)
+          toast.error(resp?.message || 'Authentication failed. Please check your credentials.')
         }
       } else {
-        const msg = 'An unexpected error occurred during authentication.'
-        setErrorMessage(msg)
-        toast.error(msg)
+        toast.error('An unexpected error occurred during authentication.')
       }
     } finally {
       setIsLoading(false)
@@ -121,8 +106,6 @@ export default function AuthPage({ initialTab = 'login' }: AuthPageProps) {
 
   const handleRegisterSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
-    setErrorMessage('')
-    setValidationErrors([])
 
     const errors: string[] = []
     if (!validateNic(regNic)) {
@@ -142,7 +125,6 @@ export default function AuthPage({ initialTab = 'login' }: AuthPageProps) {
     }
 
     if (errors.length > 0) {
-      setValidationErrors(errors)
       errors.forEach((err) => toast.error(err))
       return
     }
@@ -175,25 +157,16 @@ export default function AuthPage({ initialTab = 'login' }: AuthPageProps) {
       if (isAxiosError<ApiErrorResponse>(err)) {
         const resp = err.response?.data
         if (resp?.code === 'NIC_ALREADY_REGISTERED') {
-          const msg = 'This NIC is already registered in the system. Please sign in instead.'
-          setErrorMessage(msg)
-          toast.error(msg)
+          toast.error('This NIC is already registered in the system. Please sign in instead.')
         } else if (resp?.code === 'EMAIL_ALREADY_REGISTERED') {
-          const msg = 'This email is already registered. Please sign in instead.'
-          setErrorMessage(msg)
-          toast.error(msg)
+          toast.error('This email is already registered. Please sign in instead.')
         } else if (resp?.details && resp.details.length > 0) {
-          setValidationErrors(resp.details)
           resp.details.forEach((d) => toast.error(d))
         } else {
-          const msg = resp?.message || 'Registration failed. Please verify your inputs.'
-          setErrorMessage(msg)
-          toast.error(msg)
+          toast.error(resp?.message || 'Registration failed. Please verify your inputs.')
         }
       } else {
-        const msg = 'Registration request failed. Please verify your connection.'
-        setErrorMessage(msg)
-        toast.error(msg)
+        toast.error('Registration request failed. Please verify your connection.')
       }
     } finally {
       setIsLoading(false)
@@ -298,39 +271,6 @@ export default function AuthPage({ initialTab = 'login' }: AuthPageProps) {
               {activeTab === 'login' ? 'Sign In to Your Account' : 'Create Prosumer Account'}
             </h2>
           </div>
-
-          {/* Feedback Messages with AnimatePresence */}
-          <AnimatePresence mode="wait">
-            {errorMessage && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="mb-5 p-3.5 rounded-[var(--radius-md)] bg-red-50 border border-red-200 text-red-800 text-sm flex items-start gap-2.5"
-              >
-                <svg className="w-5 h-5 text-red-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-                <span className="text-xs leading-relaxed">{errorMessage}</span>
-              </motion.div>
-            )}
-
-            {validationErrors.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -6 }}
-                className="mb-5 p-3.5 rounded-[var(--radius-md)] bg-amber-50 border border-amber-200 text-amber-900 text-xs"
-              >
-                <p className="font-semibold mb-1">Please correct the following:</p>
-                <ul className="list-disc list-inside space-y-0.5">
-                  {validationErrors.map((err, i) => (
-                    <li key={i}>{err}</li>
-                  ))}
-                </ul>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Form container with AnimatePresence for smooth slide/fade between Login and Register */}
           <AnimatePresence mode="wait">
