@@ -18,7 +18,8 @@ public class JwtTokenService(IOptions<JwtSettings> settings)
         {
             new(JwtRegisteredClaimNames.Sub, user.Id),
             new(ClaimTypes.Role, user.Role.ToString()),
-            new(ClaimTypes.Name, user.FullName)
+            new(ClaimTypes.Name, user.FullName),
+            new("status", user.Status.ToString())
         };
 
         if (!string.IsNullOrEmpty(user.Nic))

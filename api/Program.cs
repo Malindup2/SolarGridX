@@ -10,11 +10,13 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true);
+builder.Configuration.AddEnvironmentVariables();
 
 builder.Services.AddRouting(options => options.LowercaseUrls = true);
 
@@ -138,15 +140,38 @@ using (var scope = app.Services.CreateScope())
 {
     var mongoContext = scope.ServiceProvider.GetRequiredService<MongoDbContext>();
     var users = mongoContext.GetCollection<User>("Users");
-    await users.Indexes.CreateManyAsync(new[]
+
+    CreateIndexModel<User> UniqueStringIndex(string field) => new(
+        Builders<User>.IndexKeys.Ascending(field),
+        new CreateIndexOptions<User>
+        {
+            Unique = true,
+            PartialFilterExpression = Builders<User>.Filter.Type(field, BsonType.String)
+        });
+
+    try
     {
-        new CreateIndexModel<User>(
-            Builders<User>.IndexKeys.Ascending(u => u.Nic),
-            new CreateIndexOptions { Unique = true, Sparse = true }),
-        new CreateIndexModel<User>(
-            Builders<User>.IndexKeys.Ascending(u => u.Username),
-            new CreateIndexOptions { Unique = true, Sparse = true })
-    });
+        var existing = await (await users.Indexes.ListAsync()).ToListAsync();
+        foreach (var name in new[] { "Nic_1", "Username_1" })
+        {
+            var index = existing.FirstOrDefault(i => i["name"].AsString == name);
+            if (index is not null && !index.Contains("partialFilterExpression"))
+            {
+                await users.Indexes.DropOneAsync(name);
+            }
+        }
+
+        await users.Indexes.CreateManyAsync(new[]
+        {
+            UniqueStringIndex("Nic"),
+            UniqueStringIndex("Username"),
+            UniqueStringIndex("Email")
+        });
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Could not create the Users indexes; uniqueness is not enforced by the database until this succeeds.");
+    }
 }
 
 app.UseExceptionHandler();
@@ -157,7 +182,10 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 
 app.UseCors("DefaultCorsPolicy");
 

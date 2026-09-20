@@ -4,6 +4,6 @@ public record RegisterRequest(
     string Nic,
     string Password,
     string FullName,
-    string? Email,
+    string Email,
     string? Phone,
     string? Address);

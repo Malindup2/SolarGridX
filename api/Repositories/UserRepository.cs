@@ -13,11 +13,14 @@ public class UserRepository
         _users = context.GetCollection<User>("Users");
     }
 
-    public Task<User?> FindByUsernameOrNicAsync(string usernameOrNic) =>
-        _users.Find(u => u.Username == usernameOrNic || u.Nic == usernameOrNic).FirstOrDefaultAsync()!;
+    public Task<User?> FindByEmailAsync(string email) =>
+        _users.Find(u => u.Email == email).FirstOrDefaultAsync()!;
 
     public Task<bool> ExistsByNicAsync(string nic) =>
         _users.Find(u => u.Nic == nic).AnyAsync();
+
+    public Task<bool> ExistsByEmailAsync(string email) =>
+        _users.Find(u => u.Email == email).AnyAsync();
 
     public Task CreateAsync(User user) => _users.InsertOneAsync(user);
 }
