@@ -1,4 +1,5 @@
 using FluentValidation;
+using MicrogridApi.Common;
 using MicrogridApi.DTOs.Auth;
 using MicrogridApi.Services;
 using Microsoft.AspNetCore.Authorization;
@@ -14,20 +15,37 @@ public class AuthController(
 {
     [HttpPost("login")]
     [AllowAnonymous]
-    public async Task<ActionResult<LoginResponse>> Login(LoginRequest request)
+    [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> Login(LoginRequest request)
     {
-        await ValidateAsync(loginValidator, request);
-        var response = await authService.LoginAsync(request);
-        return Ok(response);
+        var invalid = await ValidateAsync(loginValidator, request);
+        if (invalid is not null)
+        {
+            return ToErrorResponse(invalid);
+        }
+
+        var result = await authService.LoginAsync(request);
+        return ToResponse(result, response => Ok(response));
     }
 
     [HttpPost("register")]
     [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register(RegisterRequest request)
     {
-        await ValidateAsync(registerValidator, request);
-        await authService.RegisterAsync(request);
-        return StatusCode(StatusCodes.Status201Created);
+        var invalid = await ValidateAsync(registerValidator, request);
+        if (invalid is not null)
+        {
+            return ToErrorResponse(invalid);
+        }
+
+        var result = await authService.RegisterAsync(request);
+        return ToResponse(result, () => StatusCode(StatusCodes.Status201Created));
     }
 
     [HttpPost("logout")]

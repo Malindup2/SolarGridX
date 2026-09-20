@@ -8,18 +8,23 @@ namespace MicrogridApi.Services;
 
 public class AuthService(UserRepository userRepository, JwtTokenService jwtTokenService, EmailService emailService)
 {
-    public async Task<LoginResponse> LoginAsync(LoginRequest request)
+    public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request)
     {
-        var user = await userRepository.FindByUsernameOrNicAsync(request.Username);
+        var user = await userRepository.FindByEmailAsync(NormalizeEmail(request.Email));
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
-            throw new ApiException("INVALID_CREDENTIALS", "Invalid username or password.", StatusCodes.Status401Unauthorized);
+            return AuthErrors.InvalidCredentials;
         }
 
-        if (user.Status != UserStatus.Active)
+        if (user.Status == UserStatus.Deactivated)
         {
-            throw new ApiException("ACCOUNT_NOT_ACTIVE", $"Account is {user.Status}.", StatusCodes.Status403Forbidden);
+            return AuthErrors.AccountNotActive(user.Status);
+        }
+
+        if (user.Role != Role.Prosumer && user.Status != UserStatus.Active)
+        {
+            return AuthErrors.AccountNotActive(user.Status);
         }
 
         var token = jwtTokenService.GenerateToken(user);
@@ -29,14 +34,22 @@ public class AuthService(UserRepository userRepository, JwtTokenService jwtToken
             Role: user.Role.ToString(),
             Nic: user.Nic,
             DisplayName: user.FullName,
-            HomeRoute: HomeRouteFor(user.Role));
+            HomeRoute: HomeRouteFor(user.Role),
+            Status: user.Status.ToString());
     }
 
-    public async Task RegisterAsync(RegisterRequest request)
+    public async Task<Result> RegisterAsync(RegisterRequest request)
     {
+        var email = NormalizeEmail(request.Email);
+
         if (await userRepository.ExistsByNicAsync(request.Nic))
         {
-            throw new ApiException("NIC_ALREADY_REGISTERED", "This NIC is already registered.", StatusCodes.Status409Conflict);
+            return AuthErrors.NicAlreadyRegistered;
+        }
+
+        if (await userRepository.ExistsByEmailAsync(email))
+        {
+            return AuthErrors.EmailAlreadyRegistered;
         }
 
         var user = new User
@@ -44,7 +57,7 @@ public class AuthService(UserRepository userRepository, JwtTokenService jwtToken
             Nic = request.Nic,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password),
             FullName = request.FullName,
-            Email = request.Email,
+            Email = email,
             Phone = request.Phone,
             Address = request.Address,
             Role = Role.Prosumer,
@@ -59,14 +72,16 @@ public class AuthService(UserRepository userRepository, JwtTokenService jwtToken
         }
         catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
         {
-            throw new ApiException("NIC_ALREADY_REGISTERED", "This NIC is already registered.", StatusCodes.Status409Conflict);
+            return ex.WriteError.Message.Contains("Email_1")
+                ? AuthErrors.EmailAlreadyRegistered
+                : AuthErrors.NicAlreadyRegistered;
         }
 
-        if (!string.IsNullOrWhiteSpace(user.Email))
-        {
-            await emailService.SendRegistrationSuccessEmailAsync(user.Email, user.FullName);
-        }
+        await emailService.SendRegistrationSuccessEmailAsync(user.Email!, user.FullName);
+        return Result.Success();
     }
+
+    private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
     private static string HomeRouteFor(Role role) => role switch
     {
