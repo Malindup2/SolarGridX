@@ -486,7 +486,7 @@ Holds both web application users (Backoffice, Grid Operator) and solar prosumers
 | `username` | string | Unique for web users |
 | `passwordHash` | string | BCrypt |
 | `fullName` | string | |
-| `email` | string | |
+| `email` | string | **Login credential** — required, unique, stored lowercase |
 | `phone` | string | |
 | `address` | string | |
 | `role` | string | `Backoffice` \| `GridOperator` \| `Prosumer` |
@@ -569,7 +569,10 @@ References are document references, not relational foreign keys. Referential con
 
 ### 10.1 Error envelope
 
-All errors are returned by the global exception handler in a consistent shape:
+Every error response has the same shape. Failures are handled in two tiers:
+
+- **Expected failures** — validation errors, wrong credentials, duplicates, business-rule violations — are **returned, not thrown**. A service returns a `Result` / `Result<T>` carrying an `Error` (code, message, type), and `ApiControllerBase` maps the error type to the HTTP status. New services and controllers must follow this pattern; do not throw exceptions for anything a client can cause.
+- **Unexpected failures** — a database outage, a bug — are exceptions, caught by one global exception handler that logs them and returns `503` or `500` with a `traceId` in `details` so the log entry can be found.
 
 ```json
 {
@@ -588,6 +591,8 @@ All errors are returned by the global exception handler in a consistent shape:
 | 403 | Role not permitted |
 | 404 | Resource not found |
 | 409 | Business rule conflict (e.g. node deactivation blocked) |
+| 500 | Unexpected server error (see `traceId` in `details`) |
+| 503 | A dependency such as the database is unavailable |
 
 ### 10.2 Authentication
 
@@ -597,11 +602,13 @@ All errors are returned by the global exception handler in a consistent shape:
 | `POST` | `/auth/register` | Public | Prosumer self-registration with NIC; status `Pending` |
 | `POST` | `/auth/logout` | Any | Invalidate token |
 
+> **UI implications.** Every role logs in with `email` and `password`; the NIC is not a login credential (it identifies prosumers at registration and in reservations). `email` is required and unique, and is compared lowercase. Backoffice and Grid Operator accounts are created by an existing Backoffice user via `POST /users`, which must also supply a unique email — they are never self-registered. The only self-registration is `POST /auth/register`, which always creates a `Prosumer` with status `Pending`; the request carries no `role` field, so there is no role selector anywhere in the public auth flow.
+
 **`POST /auth/login`**
 
 ```json
 // Request
-{ "username": "199812345678", "password": "..." }
+{ "email": "a.perera@example.com", "password": "..." }
 
 // Response 200
 {
