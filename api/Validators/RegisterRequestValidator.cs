@@ -14,6 +14,6 @@ public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
 
         RuleFor(x => x.Password).NotEmpty().MinimumLength(8);
         RuleFor(x => x.FullName).NotEmpty();
-        RuleFor(x => x.Email).EmailAddress().When(x => !string.IsNullOrEmpty(x.Email));
+        RuleFor(x => x.Email).NotEmpty().EmailAddress();
     }
 }

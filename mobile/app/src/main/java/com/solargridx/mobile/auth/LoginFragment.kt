@@ -23,17 +23,17 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
         val authApi = ApiClient.retrofit.create(AuthApi::class.java)
         val sessionManager = SessionManager(requireContext())
 
-        val usernameInput = view.findViewById<EditText>(R.id.usernameInput)
+        val emailInput = view.findViewById<EditText>(R.id.emailInput)
         val passwordInput = view.findViewById<EditText>(R.id.passwordInput)
         val loginError = view.findViewById<TextView>(R.id.loginError)
 
         view.findViewById<Button>(R.id.loginButton).setOnClickListener {
-            val username = usernameInput.text.toString()
+            val email = emailInput.text.toString()
             val password = passwordInput.text.toString()
 
             viewLifecycleOwner.lifecycleScope.launch {
                 try {
-                    val response = authApi.login(LoginRequest(username, password))
+                    val response = authApi.login(LoginRequest(email, password))
                     val body = response.body()
                     if (response.isSuccessful && body != null) {
                         sessionManager.saveSession(

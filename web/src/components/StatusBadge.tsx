@@ -1,4 +1,13 @@
-const STATUS_STYLES = {
+interface StatusBadgeProps {
+  status: string
+}
+
+interface StatusStyle {
+  color: string
+  label: string
+}
+
+const STATUS_STYLES: Record<string, StatusStyle> = {
   Pending: { color: 'var(--color-status-pending)', label: 'Pending' },
   Approved: { color: 'var(--color-status-approved)', label: 'Approved' },
   Active: { color: 'var(--color-status-approved)', label: 'Active' },
@@ -9,7 +18,7 @@ const STATUS_STYLES = {
   Inactive: { color: 'var(--color-status-cancelled)', label: 'Inactive' },
 }
 
-export default function StatusBadge({ status }) {
+export default function StatusBadge({ status }: StatusBadgeProps) {
   const style = STATUS_STYLES[status] ?? { color: 'var(--color-border)', label: status }
 
   return (

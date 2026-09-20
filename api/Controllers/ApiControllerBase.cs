@@ -7,16 +7,36 @@ namespace MicrogridApi.Controllers;
 [ApiController]
 public abstract class ApiControllerBase : ControllerBase
 {
-    protected static async Task ValidateAsync<T>(IValidator<T> validator, T instance)
+    protected static async Task<Error?> ValidateAsync<T>(IValidator<T> validator, T instance)
     {
         var result = await validator.ValidateAsync(instance);
-        if (!result.IsValid)
+        if (result.IsValid)
         {
-            throw new ApiException(
-                "VALIDATION_FAILED",
-                "One or more validation errors occurred.",
-                StatusCodes.Status400BadRequest,
-                result.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}").ToArray());
+            return null;
         }
+
+        return Error.Validation(
+            "VALIDATION_FAILED",
+            "One or more validation errors occurred.",
+            result.Errors.Select(e => $"{e.PropertyName}: {e.ErrorMessage}").ToArray());
     }
+
+    protected IActionResult ToErrorResponse(Error error) =>
+        StatusCode(StatusFor(error.Type), new ErrorResponse(error.Code, error.Message, error.Details));
+
+    protected IActionResult ToResponse(Result result, Func<IActionResult> onSuccess) =>
+        result.IsSuccess ? onSuccess() : ToErrorResponse(result.Error!);
+
+    protected IActionResult ToResponse<T>(Result<T> result, Func<T, IActionResult> onSuccess) =>
+        result.IsSuccess ? onSuccess(result.Value) : ToErrorResponse(result.Error!);
+
+    private static int StatusFor(ErrorType type) => type switch
+    {
+        ErrorType.Validation => StatusCodes.Status400BadRequest,
+        ErrorType.Unauthorized => StatusCodes.Status401Unauthorized,
+        ErrorType.Forbidden => StatusCodes.Status403Forbidden,
+        ErrorType.NotFound => StatusCodes.Status404NotFound,
+        ErrorType.Conflict => StatusCodes.Status409Conflict,
+        _ => StatusCodes.Status500InternalServerError
+    };
 }

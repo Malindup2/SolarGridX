@@ -1,6 +1,6 @@
 package com.solargridx.mobile.dto
 
 data class LoginRequest(
-    val username: String,
+    val email: String,
     val password: String
 )
