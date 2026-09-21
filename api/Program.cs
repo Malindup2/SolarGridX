@@ -46,6 +46,9 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<EmailService>();
 
+builder.Services.Configure<SeedAdminSettings>(builder.Configuration.GetSection("SeedAdmin"));
+builder.Services.AddScoped<AdminSeeder>();
+
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
@@ -172,15 +175,21 @@ using (var scope = app.Services.CreateScope())
     {
         app.Logger.LogError(ex, "Could not create the Users indexes; uniqueness is not enforced by the database until this succeeds.");
     }
+
+    try
+    {
+        await scope.ServiceProvider.GetRequiredService<AdminSeeder>().SeedAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Could not create the default administrator.");
+    }
 }
 
 app.UseExceptionHandler();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 if (!app.Environment.IsDevelopment())
 {
@@ -192,6 +201,10 @@ app.UseCors("DefaultCorsPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
+app.MapHealthChecks("/health");
+
+app.Run();
 app.MapControllers();
 app.MapHealthChecks("/health");
 

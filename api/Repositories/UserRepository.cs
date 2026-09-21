@@ -22,5 +22,8 @@ public class UserRepository
     public Task<bool> ExistsByEmailAsync(string email) =>
         _users.Find(u => u.Email == email).AnyAsync();
 
+    public Task<bool> ExistsByRoleAsync(Role role) =>
+        _users.Find(u => u.Role == role).AnyAsync();
+
     public Task CreateAsync(User user) => _users.InsertOneAsync(user);
 }
