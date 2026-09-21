@@ -14,6 +14,16 @@ public static class AuthErrors
     public static readonly Error EmailAlreadyRegistered =
         Error.Conflict("EMAIL_ALREADY_REGISTERED", "This email is already registered.");
 
+    public static Error RoleNotAllowedOnClient(Role role) =>
+        Error.Forbidden(
+            "ROLE_NOT_ALLOWED_ON_CLIENT",
+            role == Role.Prosumer
+                ? "Solar Prosumer accounts sign in through the SolarGridX mobile app."
+                : "Backoffice accounts sign in through the SolarGridX web application.");
+
+    public static readonly Error InvalidToken =
+        Error.Unauthorized("INVALID_TOKEN", "The token cannot be used to sign out.");
+
     public static Error AccountNotActive(UserStatus status) =>
         Error.Forbidden("ACCOUNT_NOT_ACTIVE", $"Account is {status}.");
 }

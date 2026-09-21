@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using FluentValidation;
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Auth;
@@ -19,7 +21,7 @@ public class AuthController(
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
-    public async Task<IActionResult> Login(LoginRequest request)
+    public async Task<IActionResult> Login(LoginRequest request, [FromHeader(Name = ClientTypes.HeaderName)] string? clientType)
     {
         var invalid = await ValidateAsync(loginValidator, request);
         if (invalid is not null)
@@ -27,7 +29,7 @@ public class AuthController(
             return ToErrorResponse(invalid);
         }
 
-        var result = await authService.LoginAsync(request);
+        var result = await authService.LoginAsync(request, ClientTypes.Parse(clientType));
         return ToResponse(result, response => Ok(response));
     }
 
@@ -50,5 +52,16 @@ public class AuthController(
 
     [HttpPost("logout")]
     [Authorize]
-    public IActionResult Logout() => Ok();
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Logout()
+    {
+        var tokenId = User.FindFirstValue(JwtRegisteredClaimNames.Jti);
+        var expiresAt = long.TryParse(User.FindFirstValue(JwtRegisteredClaimNames.Exp), out var seconds)
+            ? DateTimeOffset.FromUnixTimeSeconds(seconds).UtcDateTime
+            : DateTime.UtcNow.AddHours(24);
+
+        var result = await authService.LogoutAsync(tokenId, expiresAt);
+        return ToResponse(result, () => Ok());
+    }
 }

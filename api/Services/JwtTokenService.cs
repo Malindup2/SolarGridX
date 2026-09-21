@@ -17,6 +17,7 @@ public class JwtTokenService(IOptions<JwtSettings> settings)
         var claims = new List<Claim>
         {
             new(JwtRegisteredClaimNames.Sub, user.Id),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
             new(ClaimTypes.Role, user.Role.ToString()),
             new(ClaimTypes.Name, user.FullName),
             new("status", user.Status.ToString())

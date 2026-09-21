@@ -21,15 +21,13 @@ object ApiClient {
 
         val client = OkHttpClient.Builder()
             .addInterceptor { chain ->
+                val builder = chain.request().newBuilder()
+                    .addHeader("X-Client-Type", "mobile")
                 val token = sessionManager.getToken()
-                val request = if (token.isNullOrBlank()) {
-                    chain.request()
-                } else {
-                    chain.request().newBuilder()
-                        .addHeader("Authorization", "Bearer $token")
-                        .build()
+                if (!token.isNullOrBlank()) {
+                    builder.addHeader("Authorization", "Bearer $token")
                 }
-                chain.proceed(request)
+                chain.proceed(builder.build())
             }
             .addInterceptor(logging)
             .build()
