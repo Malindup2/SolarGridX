@@ -24,6 +24,12 @@ public static class AuthErrors
     public static readonly Error InvalidToken =
         Error.Unauthorized("INVALID_TOKEN", "The token cannot be used to sign out.");
 
+    public static readonly Error InvalidCurrentPassword =
+        Error.Validation("INVALID_CURRENT_PASSWORD", "The current password is incorrect.");
+
+    public static readonly Error PasswordUnchanged =
+        Error.Validation("PASSWORD_UNCHANGED", "The new password must be different from the current password.");
+
     public static Error AccountNotActive(UserStatus status) =>
         Error.Forbidden("ACCOUNT_NOT_ACTIVE", $"Account is {status}.");
 }

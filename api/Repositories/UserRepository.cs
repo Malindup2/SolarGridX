@@ -25,5 +25,16 @@ public class UserRepository
     public Task<bool> ExistsByRoleAsync(Role role) =>
         _users.Find(u => u.Role == role).AnyAsync();
 
+    public Task<User?> FindByIdAsync(string id) =>
+        _users.Find(u => u.Id == id).FirstOrDefaultAsync()!;
+
     public Task CreateAsync(User user) => _users.InsertOneAsync(user);
+
+    public Task UpdatePasswordAsync(string id, string passwordHash) =>
+        _users.UpdateOneAsync(
+            u => u.Id == id,
+            Builders<User>.Update
+                .Set(u => u.PasswordHash, passwordHash)
+                .Set(u => u.MustChangePassword, false)
+                .Set(u => u.UpdatedAt, DateTime.UtcNow));
 }

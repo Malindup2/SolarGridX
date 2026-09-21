@@ -12,6 +12,7 @@ public class User
     public string? Nic { get; set; }
     public string? Username { get; set; }
     public string PasswordHash { get; set; } = null!;
+    public bool MustChangePassword { get; set; }
     public string FullName { get; set; } = null!;
     public string? Email { get; set; }
     public string? Phone { get; set; }

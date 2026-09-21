@@ -44,7 +44,8 @@ public class AuthService(
             Nic: user.Nic,
             DisplayName: user.FullName,
             HomeRoute: HomeRouteFor(user.Role),
-            Status: user.Status.ToString());
+            Status: user.Status.ToString(),
+            MustChangePassword: user.MustChangePassword);
     }
 
     public async Task<Result> RegisterAsync(RegisterRequest request)
@@ -87,6 +88,29 @@ public class AuthService(
         }
 
         await emailService.SendRegistrationSuccessEmailAsync(user.Email!, user.FullName);
+        return Result.Success();
+    }
+
+    public async Task<Result> ChangePasswordAsync(string? userId, ChangePasswordRequest request)
+    {
+        var user = string.IsNullOrEmpty(userId) ? null : await userRepository.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return AuthErrors.InvalidToken;
+        }
+
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+        {
+            return AuthErrors.InvalidCurrentPassword;
+        }
+
+        if (request.CurrentPassword == request.NewPassword)
+        {
+            return AuthErrors.PasswordUnchanged;
+        }
+
+        await userRepository.UpdatePasswordAsync(user.Id, BCrypt.Net.BCrypt.HashPassword(request.NewPassword));
         return Result.Success();
     }
 

@@ -13,7 +13,8 @@ namespace MicrogridApi.Controllers;
 public class AuthController(
     AuthService authService,
     IValidator<LoginRequest> loginValidator,
-    IValidator<RegisterRequest> registerValidator) : ApiControllerBase
+    IValidator<RegisterRequest> registerValidator,
+    IValidator<ChangePasswordRequest> changePasswordValidator) : ApiControllerBase
 {
     [HttpPost("login")]
     [AllowAnonymous]
@@ -48,6 +49,26 @@ public class AuthController(
 
         var result = await authService.RegisterAsync(request);
         return ToResponse(result, () => StatusCode(StatusCodes.Status201Created));
+    }
+
+    [HttpPost("change-password")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
+    {
+        var invalid = await ValidateAsync(changePasswordValidator, request);
+        if (invalid is not null)
+        {
+            return ToErrorResponse(invalid);
+        }
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
+
+        var result = await authService.ChangePasswordAsync(userId, request);
+        return ToResponse(result, () => Ok());
     }
 
     [HttpPost("logout")]
