@@ -14,6 +14,7 @@ export interface LoginResponse {
   displayName: string
   homeRoute: string
   status?: UserStatus
+  mustChangePassword?: boolean
 }
 
 export interface AuthUser {
@@ -23,11 +24,18 @@ export interface AuthUser {
   displayName: string
   homeRoute: string
   status?: UserStatus
+  mustChangePassword?: boolean
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
 }
 
 export interface AuthContextType {
   auth: AuthUser | null
   login: (data: AuthUser) => void
+  markPasswordChanged: () => void
   logout: () => Promise<void>
 }
 

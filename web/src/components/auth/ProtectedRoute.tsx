@@ -7,9 +7,10 @@ import toast from 'react-hot-toast'
 interface ProtectedRouteProps {
   children: ReactNode
   allowedRoles?: UserRole[]
+  allowPasswordChange?: boolean
 }
 
-export default function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export default function ProtectedRoute({ children, allowedRoles, allowPasswordChange = false }: ProtectedRouteProps) {
   const { auth } = useAuth()
   const location = useLocation()
   const notifiedRef = useRef(false)
@@ -37,6 +38,11 @@ export default function ProtectedRoute({ children, allowedRoles }: ProtectedRout
   if (!isAuth) {
     const returnUrl = encodeURIComponent(location.pathname + location.search)
     return <Navigate to={`/login?redirect=${returnUrl}`} replace />
+  }
+
+  // Accounts created by an administrator must replace the temporary password first
+  if (auth?.mustChangePassword && !allowPasswordChange) {
+    return <Navigate to="/change-password" replace />
   }
 
   // If authenticated but unauthorized for this role, redirect to their home portal

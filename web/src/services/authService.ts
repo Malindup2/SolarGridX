@@ -1,5 +1,5 @@
 import api from './api'
-import type { LoginRequest, LoginResponse } from '../types/auth'
+import type { ChangePasswordRequest, LoginRequest, LoginResponse } from '../types/auth'
 
 export const authService = {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
@@ -8,6 +8,10 @@ export const authService = {
       password: credentials.password,
     })
     return response.data
+  },
+
+  async changePassword(request: ChangePasswordRequest): Promise<void> {
+    await api.post('/auth/change-password', request)
   },
 
   async logout(token?: string | null): Promise<void> {

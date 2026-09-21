@@ -18,19 +18,26 @@ export function AuthProvider({ children }: AuthProviderProps) {
     const status = (localStorage.getItem('status') as UserStatus | null) || 'Active'
 
     if (token && role && displayName && homeRoute) {
-      return { token, role, nic, displayName, homeRoute, status }
+      const mustChangePassword = localStorage.getItem('mustChangePassword') === 'true'
+      return { token, role, nic, displayName, homeRoute, status, mustChangePassword }
     }
     return null
   })
 
-  const login = ({ token, role, nic, displayName, homeRoute, status }: AuthUser) => {
+  const login = ({ token, role, nic, displayName, homeRoute, status, mustChangePassword }: AuthUser) => {
     localStorage.setItem('token', token)
     localStorage.setItem('role', role)
     if (nic) localStorage.setItem('nic', nic)
     localStorage.setItem('displayName', displayName)
     localStorage.setItem('homeRoute', homeRoute)
     if (status) localStorage.setItem('status', status)
-    setAuth({ token, role, nic, displayName, homeRoute, status: status || 'Active' })
+    localStorage.setItem('mustChangePassword', String(Boolean(mustChangePassword)))
+    setAuth({ token, role, nic, displayName, homeRoute, status: status || 'Active', mustChangePassword: Boolean(mustChangePassword) })
+  }
+
+  const markPasswordChanged = () => {
+    localStorage.setItem('mustChangePassword', 'false')
+    setAuth((current) => (current ? { ...current, mustChangePassword: false } : current))
   }
 
   const logout = async () => {
@@ -45,12 +52,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
       localStorage.removeItem('displayName')
       localStorage.removeItem('homeRoute')
       localStorage.removeItem('status')
+      localStorage.removeItem('mustChangePassword')
       setAuth(null)
     }
   }
 
   return (
-    <AuthContext.Provider value={{ auth, login, logout }}>
+    <AuthContext.Provider value={{ auth, login, logout, markPasswordChanged }}>
       {children}
     </AuthContext.Provider>
   )

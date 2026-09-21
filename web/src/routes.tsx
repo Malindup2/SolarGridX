@@ -3,9 +3,20 @@ import MainLayout from './layouts/MainLayout'
 import Home from './pages/Home'
 import AuthPage from './pages/AuthPage'
 import DashboardPage from './pages/DashboardPage'
+import ChangePasswordPage from './pages/ChangePasswordPage'
 import ProtectedRoute from './components/auth/ProtectedRoute'
 
 const router = createBrowserRouter([
+  // Password change (any signed-in web user; forced on first sign-in for administrator-created accounts)
+  {
+    path: '/change-password',
+    element: (
+      <ProtectedRoute allowedRoles={['Backoffice', 'GridOperator']} allowPasswordChange>
+        <ChangePasswordPage />
+      </ProtectedRoute>
+    ),
+  },
+
   // Protected Backoffice Administrator Dashboard (Backoffice role only)
   {
     path: '/backoffice/dashboard',

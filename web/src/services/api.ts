@@ -1,6 +1,6 @@
 import axios, { isAxiosError, type InternalAxiosRequestConfig } from 'axios'
 
-const SESSION_KEYS = ['token', 'role', 'nic', 'displayName', 'homeRoute', 'status']
+const SESSION_KEYS = ['token', 'role', 'nic', 'displayName', 'homeRoute', 'status', 'mustChangePassword']
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL,

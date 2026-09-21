@@ -16,6 +16,10 @@ export default function AuthPage() {
   // If already authenticated, redirect to requested path or user home
   useEffect(() => {
     if (auth && auth.token) {
+      if (auth.mustChangePassword) {
+        navigate('/change-password', { replace: true })
+        return
+      }
       const redirectParam = searchParams.get('redirect')
       const target = redirectParam ? decodeURIComponent(redirectParam) : auth.homeRoute || '/'
       navigate(target, { replace: true })
@@ -56,9 +60,14 @@ export default function AuthPage() {
         displayName: data.displayName,
         homeRoute: data.homeRoute,
         status: data.status,
+        mustChangePassword: data.mustChangePassword,
       })
 
       toast.success(`Welcome back, ${data.displayName}!`)
+      if (data.mustChangePassword) {
+        navigate('/change-password')
+        return
+      }
       const redirectParam = searchParams.get('redirect')
       const destination = redirectParam ? decodeURIComponent(redirectParam) : data.homeRoute || '/'
       navigate(destination)
