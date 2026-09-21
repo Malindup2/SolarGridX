@@ -426,17 +426,83 @@ npm run build
 ### 7.5 Mobile Application
 
 1. Open Android Studio and select **Open**, then choose the `mobile/` folder (not the repository root).
-2. Copy `local.properties.example` to `local.properties` and add:
+2. Copy `local.properties.example` to `local.properties` (it is git-ignored) and set:
 
 ```properties
 sdk.dir=C\:\\Users\\<user>\\AppData\\Local\\Android\\Sdk
+API_BASE_URL=http://localhost:5187/api/
 MAPS_API_KEY=<your-google-maps-api-key>
-API_BASE_URL="http://10.0.2.2:5001/api/"
 ```
 
-3. Let Gradle sync, then run on an emulator or device.
+Do not wrap the URL in quotes; the build adds them. `API_BASE_URL` is compiled into the app, so **rebuild and reinstall after changing it**.
 
-> **Base URL note.** `10.0.2.2` is the Android emulator's alias for the host machine's `localhost`. On a physical device, use the host machine's LAN IP (for example `http://192.168.1.10:5001/api/`) and ensure both devices are on the same network. For cleartext HTTP during development, `android:usesCleartextTraffic="true"` is set in the manifest.
+3. Let Gradle sync, then run on an emulator or a device (see 7.5.1).
+
+#### 7.5.1 Testing the mobile app against your local API
+
+Start the API first (section 7.3) and confirm <http://localhost:5187/swagger> opens. The phone must be able to reach the API on your computer. Pick one option:
+
+| Option | `API_BASE_URL` | Extra step | Use when |
+|---|---|---|---|
+| **USB device (recommended)** | `http://localhost:5187/api/` | `adb reverse tcp:5187 tcp:5187` | A physical phone with USB debugging; works on any network |
+| **Emulator** | `http://localhost:5187/api/` with `adb reverse`, or `http://10.0.2.2:5187/api/` without it | none for `10.0.2.2` | An Android Virtual Device (`10.0.2.2` is the emulator's alias for the host) |
+| **Wi-Fi device** | `http://<computer-lan-ip>:5187/api/` | Run the API on `0.0.0.0` (the `http` launch profile already does) and allow port 5187 through Windows Firewall | Phone and computer on the same network |
+
+**Steps for a USB device**
+
+1. On the phone, enable **Developer options → USB debugging**, connect the cable and accept the "Allow USB debugging" prompt.
+2. Open a terminal on your computer (PowerShell, Command Prompt or the Terminal tab in Android Studio; the folder does not matter). `adb` lives in `<sdk.dir>\platform-tools`. If `adb` is not recognised, either add that folder to your `PATH` or call it by its full path, for example in PowerShell:
+
+```powershell
+& "C:\Users\<user>\AppData\Local\Android\Sdk\platform-tools\adb.exe" devices
+```
+
+The phone must be listed with the state `device`. `unauthorized` means the USB debugging prompt on the phone has not been accepted.
+
+3. Create the tunnel. `localhost:5187` on the phone now reaches port 5187 on your computer:
+
+```powershell
+adb reverse tcp:5187 tcp:5187
+```
+
+If `adb` is not on your `PATH`, use the full path instead: `& "C:\Users\<user>\AppData\Local\Android\Sdk\platform-tools\adb.exe" reverse tcp:5187 tcp:5187`. Confirm it with `adb reverse --list`, which must print:
+
+```text
+UsbFfs tcp:5187 tcp:5187
+```
+
+4. Set `API_BASE_URL=http://localhost:5187/api/` in `mobile/local.properties`.
+5. Install the app, either with **Run** in Android Studio or from a terminal in `mobile/`:
+
+```bash
+./gradlew installDebug
+```
+
+6. Sign in or register on the phone (test accounts below).
+
+> **The tunnel is not permanent.** `adb reverse` is cleared when you unplug the phone, restart the phone or restart `adb`. If the app shows "Unable to connect to the microgrid API server", run step 3 again.
+
+**Accounts for testing**
+
+| Account | How to get it | Where it signs in |
+|---|---|---|
+| Solar Prosumer | Tap **Register Prosumer Account** in the app. It is created as `Pending` and can already sign in | Mobile only |
+| Grid Operator | A Backoffice user creates it with `POST /users` (Swagger → Authorize with the admin token). The first sign-in opens the change-password screen | Web and mobile |
+| Backoffice | Seeded at startup (section 7.3). Signing in on mobile is refused with `ROLE_NOT_ALLOWED_ON_CLIENT` | Web only |
+
+**Test on the phone**
+
+1. Confirm the API is running and the tunnel is active (`adb reverse --list`).
+2. Open the SolarGridX app. After the splash screen the login screen appears.
+3. Tap **Register Prosumer Account**, fill in a valid NIC (9 digits + V/X, or 12 digits), full name, email and a password of at least 8 characters, then submit. A success message appears after a few seconds and the app returns to the login screen. The registration email arrives shortly afterwards.
+4. Sign in with that email and password. The home screen shows your name and role (`Prosumer`) with a **Logout** button.
+5. Tap **Logout** and confirm. The login screen returns with "Logged out successfully".
+6. Sign in with the Backoffice account. The app refuses it with a message that Backoffice accounts sign in on the web application.
+7. Optional (Grid Operator): create an operator with `POST /users`, then sign in as that operator on the phone. The change-password screen opens first; after you change the password the home screen appears.
+
+Registering in step 3 creates a real prosumer in the shared database, so use an email address you control and agree with the team before creating test accounts.
+
+> **Base URL note.** For cleartext HTTP during development, `android:usesCleartextTraffic="true"` is set in the manifest. The IIS deployment (section 8.7) uses port 8090 instead of 5187.
 
 ### 7.6 Google Maps API key
 
@@ -700,6 +766,7 @@ Every error response has the same shape. Failures are handled in two tiers:
 |---|---|---|---|
 | `POST` | `/auth/login` | Public | Authenticate; returns token, role and home route |
 | `POST` | `/auth/register` | Public | Prosumer self-registration with NIC; status `Pending` |
+| `POST` | `/auth/change-password` | Any | Replace the caller's password (`currentPassword`, `newPassword`); clears `mustChangePassword` |
 | `POST` | `/auth/logout` | Any | End the session: revokes the calling token so it stops working immediately |
 
 > **Login credentials.** Every role logs in with `email` and `password`; the NIC is not a login credential (it identifies prosumers at registration and in reservations). `email` is required and unique, and is compared lowercase.
@@ -713,6 +780,8 @@ Every error response has the same shape. Failures are handled in two tiers:
 | Solar Prosumer | No | Yes | Self-registers in the mobile app with `POST /auth/register` (status `Pending`); a Backoffice user can also create and manage prosumer profiles from the web application |
 
 The web application has no registration page. `POST /auth/register` always creates a `Prosumer` and carries no `role` field, so there is no role selector anywhere in the public flow. The API enforces the table at login: each client sends the header `X-Client-Type: web` or `mobile`, and a role that is not allowed on that client receives `403 ROLE_NOT_ALLOWED_ON_CLIENT` with a message pointing to the right application. Requests without the header (Swagger, Postman) are accepted for every role.
+
+**First sign-in for administrator-created accounts.** `POST /users` marks the new account `mustChangePassword`, and the login response carries that flag. Both clients then show a change-password screen before anything else: the web application redirects every protected route to `/change-password`, and the mobile application opens its change-password screen instead of the home screen. `POST /auth/change-password` needs the current (temporary) password, requires a new password of at least 8 characters that differs from it, and answers `400 INVALID_CURRENT_PASSWORD` or `400 PASSWORD_UNCHANGED` otherwise. Seeded and self-registered accounts are not flagged. The flag is enforced by the clients; the API does not block other endpoints until the password is changed.
 
 **Sessions.** A token lasts `JwtSettings:ExpiryMinutes` (120 by default) with no clock skew. `POST /auth/logout` revokes the token that made the call (see 9.6); using it afterwards returns `401`. Sessions are independent, so signing out of one device does not end another. The web application asks for confirmation, ends the session on the server first and then clears the browser, and it signs the user out automatically when the API answers `401`.
 
@@ -728,7 +797,9 @@ The web application has no registration page. `POST /auth/register` always creat
   "role": "Prosumer",
   "nic": "199812345678",
   "displayName": "A. Perera",
-  "homeRoute": "/prosumer/home"
+  "homeRoute": "/prosumer/home",
+  "status": "Pending",
+  "mustChangePassword": false
 }
 ```
 
@@ -787,6 +858,25 @@ The web application has no registration page. `POST /auth/register` always creat
 | `PUT` | `/prosumers/{nic}` | Prosumer / Backoffice | Update profile |
 | `PATCH` | `/prosumers/{nic}/activate` | **Backoffice only** | Activate or reactivate |
 | `PATCH` | `/prosumers/{nic}/deactivate` | Prosumer / Backoffice | Deactivate account |
+
+**`POST /users`** creates a web account that is `Active` immediately. `role` must be `Backoffice` or `GridOperator`; `nic`, `phone` and `address` are optional. The administrator chooses the temporary `password` (minimum 8 characters), and the API emails the sign-in details to the new user. The response never contains the password or its hash.
+
+```json
+{
+  "fullName": "Nimal Perera",
+  "email": "nimal@solargridx.com",
+  "password": "Temp@12345",
+  "role": "GridOperator"
+}
+```
+
+| Status | Code | Cause |
+|---|---|---|
+| `201` | — | Account created; the body is the new user |
+| `400` | `VALIDATION_FAILED` | Missing field, bad email, short password, or a role other than `Backoffice` / `GridOperator` |
+| `401` | — | No token, or a revoked or expired one |
+| `403` | — | Signed in but not Backoffice |
+| `409` | `EMAIL_ALREADY_REGISTERED` / `NIC_ALREADY_REGISTERED` | The email or NIC is already in use |
 
 ### 10.5 Microgrid Nodes
 
@@ -991,6 +1081,11 @@ A Postman collection is provided at `docs/postman/SmartMicrogrid.postman_collect
 | A Backoffice user signs in on the mobile application | 403 — `ROLE_NOT_ALLOWED_ON_CLIENT` |
 | Use a token after signing out | 401 — token revoked |
 | Click Logout on the web application | Confirmation dialog first; the session ends on the server and the login page opens |
+| Backoffice creates a Grid Operator with `POST /users`, then the operator signs in | The operator receives an email with the temporary password, and the first sign-in opens the change-password screen (web and mobile) |
+| Change password with a wrong current password | `400 INVALID_CURRENT_PASSWORD`; the session stays signed in |
+| Change password to the same value or fewer than 8 characters | `400 PASSWORD_UNCHANGED` / `400 VALIDATION_FAILED` |
+| After the change, sign out and sign in with the old and new passwords | The old password returns `401`; the new one signs in without the change-password screen |
+| Mobile: send any request with an expired or revoked token | The app returns to the login screen with a "session expired" message |
 
 ### Seed data
 
@@ -1004,7 +1099,10 @@ Run `docs/seed/seed.js` in `mongosh` to create two stations, one day of slots, o
 |---|---|---|
 | `HTTP Error 500.19` on IIS | Hosting Bundle not installed | Install the ASP.NET Core 10 Hosting Bundle and restart IIS |
 | `HTTP Error 500.30` on IIS | App failed to start | Check `logs/stdout` after enabling `stdoutLogEnabled` in `web.config`; usually a bad connection string |
-| Android emulator cannot reach the API | `localhost` resolves to the emulator | Use `10.0.2.2` for the emulator, LAN IP for physical devices |
+| Android emulator cannot reach the API | `localhost` resolves to the emulator | Use `10.0.2.2` for the emulator, or run `adb reverse tcp:5187 tcp:5187` and use `localhost` |
+| App shows "Unable to connect to the microgrid API server" on a USB phone | The `adb reverse` tunnel was cleared (cable unplugged, phone or adb restarted) | Run `adb reverse tcp:5187 tcp:5187` again and confirm the API is running |
+| Changed `API_BASE_URL` but the app still uses the old address | The URL is compiled into the app | Rebuild and reinstall (`./gradlew installDebug`) |
+| `adb devices` shows `unauthorized` or nothing | USB debugging prompt not accepted, or no debugging enabled | Enable USB debugging, reconnect and accept the prompt on the phone |
 | `CLEARTEXT communication not permitted` | HTTP blocked by default on API 28+ | Set `android:usesCleartextTraffic="true"` for development, or use HTTPS |
 | Map renders grey | Invalid or unrestricted API key | Verify the key, enable Maps SDK for Android, check the SHA-1 restriction |
 | CORS error in the browser | Origin not allowed | Add the origin to `Cors.AllowedOrigins` in `appsettings` |

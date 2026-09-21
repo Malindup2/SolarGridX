@@ -1,5 +1,6 @@
 sdk.dir=/path/to/your/Android/Sdk
-API_BASE_URL=http://10.0.2.2:5001/api/
+# USB phone: run "adb reverse tcp:5187 tcp:5187". Emulator without adb reverse: use http://10.0.2.2:5187/api/
+API_BASE_URL=http://localhost:5187/api/
 
 # Added later, once the Maps/QR-scanning work starts:
 # MAPS_API_KEY=your-google-maps-api-key
