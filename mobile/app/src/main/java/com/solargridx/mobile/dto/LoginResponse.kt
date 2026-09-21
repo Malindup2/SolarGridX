@@ -5,5 +5,6 @@ data class LoginResponse(
     val role: String,
     val nic: String?,
     val displayName: String,
-    val homeRoute: String
+    val homeRoute: String,
+    val status: String? = null
 )

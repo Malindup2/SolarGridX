@@ -19,7 +19,29 @@
         <item name="colorOnSurface">@color/color_ink</item>
         <item name="colorOnSurfaceVariant">@color/color_muted</item>
         <item name="colorOutline">@color/color_border</item>
+
+        <!-- Framework Controls & Cursor Color (No default purple) -->
+        <item name="colorControlActivated">@color/color_primary</item>
+        <item name="colorControlHighlight">#2049B02D</item>
+        <item name="colorAccent">@color/color_primary</item>
+
+        <!-- Global default OutlinedBox style -->
+        <item name="textInputStyle">@style/Widget.SolarGridX.TextInputLayout</item>
     </style>
 
     <style name="Theme.Solargridx" parent="Base.Theme.Solargridx" />
+
+    <!-- Branded TextInputLayout style -->
+    <style name="Widget.SolarGridX.TextInputLayout" parent="Widget.Material3.TextInputLayout.OutlinedBox">
+        <item name="boxStrokeColor">@color/sl_input_box_stroke</item>
+        <item name="hintTextColor">@color/sl_input_hint_color</item>
+        <item name="startIconTint">@color/sl_input_icon_tint</item>
+        <item name="cursorColor">@color/color_primary</item>
+        <item name="boxStrokeErrorColor">@color/status_rejected</item>
+        <item name="errorTextColor">@color/status_rejected</item>
+        <item name="boxCornerRadiusTopStart">14dp</item>
+        <item name="boxCornerRadiusTopEnd">14dp</item>
+        <item name="boxCornerRadiusBottomStart">14dp</item>
+        <item name="boxCornerRadiusBottomEnd">14dp</item>
+    </style>
 </resources>

@@ -29,7 +29,7 @@ android {
         buildConfigField(
             "String",
             "API_BASE_URL",
-            "\"${localProperties.getProperty("API_BASE_URL", "http://10.0.2.2:5001/api/")}\""
+            "\"${localProperties.getProperty("API_BASE_URL", "http://10.0.2.2:5187/api/")}\""
         )
     }
 
