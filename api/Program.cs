@@ -45,6 +45,7 @@ builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddScoped<UserRepository>();
 builder.Services.AddScoped<RevokedTokenRepository>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UserService>();
 
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<EmailService>();
