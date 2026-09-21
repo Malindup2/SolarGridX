@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import type { AuthContextType, AuthUser, UserRole, UserStatus } from '../types/auth'
+import { authService } from '../services/authService'
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
@@ -32,14 +33,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setAuth({ token, role, nic, displayName, homeRoute, status: status || 'Active' })
   }
 
-  const logout = () => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('role')
-    localStorage.removeItem('nic')
-    localStorage.removeItem('displayName')
-    localStorage.removeItem('homeRoute')
-    localStorage.removeItem('status')
-    setAuth(null)
+  const logout = async () => {
+    const token = localStorage.getItem('token')
+
+    try {
+      await authService.logout(token)
+    } finally {
+      localStorage.removeItem('token')
+      localStorage.removeItem('role')
+      localStorage.removeItem('nic')
+      localStorage.removeItem('displayName')
+      localStorage.removeItem('homeRoute')
+      localStorage.removeItem('status')
+      setAuth(null)
+    }
   }
 
   return (

@@ -7,15 +7,6 @@ export interface LoginRequest {
   password: string
 }
 
-export interface RegisterRequest {
-  nic: string
-  password: string
-  fullName: string
-  email: string
-  phone?: string | null
-  address?: string | null
-}
-
 export interface LoginResponse {
   token: string
   role: UserRole
@@ -37,7 +28,7 @@ export interface AuthUser {
 export interface AuthContextType {
   auth: AuthUser | null
   login: (data: AuthUser) => void
-  logout: () => void
+  logout: () => Promise<void>
 }
 
 export interface ApiErrorResponse {

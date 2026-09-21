@@ -1,5 +1,5 @@
 import api from './api'
-import type { LoginRequest, LoginResponse, RegisterRequest } from '../types/auth'
+import type { LoginRequest, LoginResponse } from '../types/auth'
 
 export const authService = {
   async login(credentials: LoginRequest): Promise<LoginResponse> {
@@ -10,22 +10,14 @@ export const authService = {
     return response.data
   },
 
-  async register(data: RegisterRequest): Promise<void> {
-    await api.post('/auth/register', {
-      nic: data.nic.trim(),
-      password: data.password,
-      fullName: data.fullName.trim(),
-      email: data.email.trim().toLowerCase(),
-      phone: data.phone?.trim() || null,
-      address: data.address?.trim() || null,
-    })
-  },
-
-  async logout(): Promise<void> {
+  async logout(token?: string | null): Promise<void> {
     try {
-      await api.post('/auth/logout')
+      await api.post('/auth/logout', null, {
+        timeout: 8000,
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+      })
     } catch {
-      // Best-effort logout notification
+      // The local session is cleared even if the server cannot be reached.
     }
   },
 }
