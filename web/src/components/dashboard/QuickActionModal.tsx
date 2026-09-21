@@ -1,6 +1,10 @@
 import { useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
+import { isAxiosError } from 'axios'
 import toast from 'react-hot-toast'
+import { userService } from '../../services/userService'
+import type { UserResponse } from '../../types/user'
+import type { ApiErrorResponse } from '../../types/auth'
 
 export type QuickActionType =
   | 'createUser'
@@ -16,7 +20,7 @@ interface QuickActionModalProps {
   actionType: QuickActionType | null
   isOpen: boolean
   onClose: () => void
-  onSuccess?: (message: string) => void
+  onSuccess?: (message: string, createdUser?: UserResponse) => void
 }
 
 export default function QuickActionModal({
@@ -26,10 +30,14 @@ export default function QuickActionModal({
   onSuccess,
 }: QuickActionModalProps) {
   // Form states for Create User
-  const [userRole, setUserRole] = useState<'Backoffice' | 'GridOperator' | 'Prosumer'>('GridOperator')
+  const [userRole, setUserRole] = useState<'GridOperator' | 'Backoffice'>('GridOperator')
   const [userFullName, setUserFullName] = useState('')
   const [userEmail, setUserEmail] = useState('')
   const [userNic, setUserNic] = useState('')
+  const [userPhone, setUserPhone] = useState('')
+  const [userPassword, setUserPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Form states for Add Station
   const [stationCode, setStationCode] = useState('')
@@ -44,15 +52,62 @@ export default function QuickActionModal({
 
   if (!isOpen || !actionType) return null
 
-  const handleCreateUserSubmit = (e: React.FormEvent) => {
+  const handleCreateUserSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!userFullName || !userEmail || !userNic) {
-      toast.error('Please complete all required fields')
+    if (!userFullName.trim() || !userEmail.trim()) {
+      toast.error('Please enter full name and email')
       return
     }
-    toast.success(`User ${userFullName} (${userRole}) created successfully!`)
-    onSuccess?.(`User ${userFullName} created`)
-    onClose()
+
+    if (!userPassword || userPassword.length < 8) {
+      toast.error('Temporary password must be at least 8 characters long')
+      return
+    }
+
+    if (userNic.trim() && !/^([0-9]{9}[vVxX]|[0-9]{12})$/.test(userNic.trim())) {
+      toast.error('NIC must be in a valid format (9 digits + V/X or 12 digits)')
+      return
+    }
+
+    setIsSubmitting(true)
+    try {
+      const created = await userService.createUser({
+        fullName: userFullName.trim(),
+        email: userEmail.trim(),
+        password: userPassword,
+        role: userRole,
+        nic: userNic.trim() || null,
+        phone: userPhone.trim() || null,
+      })
+
+      toast.success(`${userRole === 'GridOperator' ? 'Grid Operator' : 'Administrator'} account for ${created.fullName} created successfully!`)
+      onSuccess?.(`User ${created.fullName} created`, created)
+
+      // Reset form
+      setUserFullName('')
+      setUserEmail('')
+      setUserNic('')
+      setUserPhone('')
+      setUserPassword('')
+      onClose()
+    } catch (err: unknown) {
+      if (isAxiosError<ApiErrorResponse>(err)) {
+        const resp = err.response?.data
+        if (resp?.code === 'NIC_ALREADY_REGISTERED') {
+          toast.error('This NIC is already registered in the system.')
+        } else if (resp?.code === 'EMAIL_ALREADY_REGISTERED') {
+          toast.error('This email address is already registered.')
+        } else if (resp?.details && resp.details.length > 0) {
+          resp.details.forEach((d) => toast.error(d))
+        } else {
+          toast.error(resp?.message || 'Failed to create user. Please check your inputs.')
+        }
+      } else {
+        toast.error('An unexpected error occurred while creating user.')
+      }
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   const handleAddStationSubmit = (e: React.FormEvent) => {
@@ -107,27 +162,35 @@ export default function QuickActionModal({
             {actionType === 'createUser' && (
               <form onSubmit={handleCreateUserSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Select Role</label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(['GridOperator', 'Backoffice', 'Prosumer'] as const).map((r) => (
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Select Account Role <span className="text-red-500">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {([
+                      { role: 'GridOperator', label: 'Grid Operator', desc: 'Regional telemetry & dispatch' },
+                      { role: 'Backoffice', label: 'System Admin', desc: 'System governance & admin' },
+                    ] as const).map(({ role, label, desc }) => (
                       <button
-                        key={r}
+                        key={role}
                         type="button"
-                        onClick={() => setUserRole(r)}
-                        className={`py-2 px-3 text-xs font-semibold rounded-lg border text-center transition-all cursor-pointer ${
-                          userRole === r
+                        onClick={() => setUserRole(role)}
+                        className={`py-2.5 px-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          userRole === role
                             ? 'bg-emerald-50 border-[var(--color-primary)] text-[var(--color-primary)] shadow-xs'
                             : 'border-gray-200 text-gray-600 hover:bg-gray-50'
                         }`}
                       >
-                        {r === 'GridOperator' ? 'Grid Operator' : r}
+                        <span className="text-xs font-bold block">{label}</span>
+                        <span className="text-[10px] text-gray-500 block leading-tight mt-0.5">{desc}</span>
                       </button>
                     ))}
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1">Full Name</label>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">
+                    Full Name <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="text"
                     required
@@ -143,39 +206,106 @@ export default function QuickActionModal({
                     <label className="block text-xs font-semibold text-gray-700 mb-1">NIC Number</label>
                     <input
                       type="text"
-                      required
                       value={userNic}
-                      onChange={(e) => setUserNic(e.target.value)}
-                      placeholder="199512345678"
+                      onChange={(e) => setUserNic(e.target.value.toUpperCase())}
+                      placeholder="e.g. 199512345678"
                       className="w-full px-3.5 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--color-primary)]"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 mb-1">Work Email</label>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Work Email <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="email"
                       required
                       value={userEmail}
                       onChange={(e) => setUserEmail(e.target.value)}
-                      placeholder="sunil@solargridx.lk"
+                      placeholder="operator@solargridx.lk"
                       className="w-full px-3.5 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--color-primary)]"
                     />
                   </div>
                 </div>
 
-                <div className="pt-3 flex justify-end gap-2">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">Phone Number</label>
+                    <input
+                      type="tel"
+                      value={userPhone}
+                      onChange={(e) => setUserPhone(e.target.value)}
+                      placeholder="+94 77 123 4567"
+                      className="w-full px-3.5 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--color-primary)]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1">
+                      Temporary Password <span className="text-red-500">*</span>
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showPassword ? 'text' : 'password'}
+                        required
+                        minLength={8}
+                        value={userPassword}
+                        onChange={(e) => setUserPassword(e.target.value)}
+                        placeholder="Min. 8 characters"
+                        className="w-full px-3.5 pr-9 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:border-[var(--color-primary)]"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-gray-400 hover:text-gray-600 cursor-pointer"
+                      >
+                        {showPassword ? (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-lg bg-emerald-50/60 border border-emerald-100 flex items-start gap-2">
+                  <svg className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span className="text-[11px] text-emerald-800 leading-tight">
+                    An activation email will be sent automatically. The new operator will be required to change their temporary password upon initial login.
+                  </span>
+                </div>
+
+                <div className="pt-2 flex justify-end gap-2">
                   <button
                     type="button"
+                    disabled={isSubmitting}
                     onClick={onClose}
-                    className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-lg"
+                    className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded-lg cursor-pointer disabled:opacity-50"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded-lg shadow-sm"
+                    disabled={isSubmitting}
+                    className="px-5 py-2 text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] rounded-lg shadow-sm cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
                   >
-                    Create User
+                    {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        </svg>
+                        <span>Creating Account...</span>
+                      </>
+                    ) : (
+                      <span>Create {userRole === 'GridOperator' ? 'Grid Operator' : 'Admin'}</span>
+                    )}
                   </button>
                 </div>
               </form>

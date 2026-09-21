@@ -181,19 +181,19 @@ export default function SolarGridDashboard({
   const activeStations = stations.filter((s) => s.status === 'Active')
   const inactiveStations = stations.filter((s) => s.status === 'Inactive')
 
-  // Sample Users list for Users tab
-  const sampleUsers = [
-    { name: 'Admin', role: 'Backoffice', email: 'admin@solargridx.lk', status: 'Active' },
-    { name: 'Kamal Gunaratne', role: 'Grid Operator', email: 'kamal.g@solargridx.lk', status: 'Active' },
+  // Users list state for Users tab
+  const [usersList, setUsersList] = useState([
+    { name: 'Admin', role: 'Backoffice', email: 'admin@solargridx.com', status: 'Active' },
+    { name: 'Kamal Gunaratne', role: 'Grid Operator', email: 'operator@solargridx.com', status: 'Active' },
     { name: 'Sunil Wickramasinghe', role: 'Grid Operator', email: 'sunil.w@solargridx.lk', status: 'Active' },
     { name: 'Amal Perera', role: 'Prosumer', email: 'amal.perera@example.com', status: 'Pending' },
     { name: 'Kasun Silva', role: 'Prosumer', email: 'kasun.silva@example.com', status: 'Pending' },
     { name: 'Nimal Perera', role: 'Prosumer', email: 'nimal.perera@example.com', status: 'Pending' },
     { name: 'Dilani Samarawickrama', role: 'Prosumer', email: 'dilani.s@example.com', status: 'Active' },
     { name: 'Saman Kumara', role: 'Prosumer', email: 'saman.k@example.com', status: 'Active' },
-  ]
+  ])
 
-  const filteredUsers = sampleUsers.filter((u) => {
+  const filteredUsers = usersList.filter((u) => {
     const matchesSearch =
       u.name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
       u.email.toLowerCase().includes(userSearchQuery.toLowerCase())
@@ -1338,6 +1338,30 @@ export default function SolarGridDashboard({
         isOpen={isQuickActionModalOpen}
         actionType={currentQuickAction}
         onClose={() => setIsQuickActionModalOpen(false)}
+        onSuccess={(_msg, createdUser) => {
+          if (createdUser) {
+            const roleLabel = createdUser.role === 'GridOperator' ? 'Grid Operator' : 'Backoffice'
+            setUsersList((prev) => [
+              {
+                name: createdUser.fullName,
+                role: roleLabel,
+                email: createdUser.email,
+                status: createdUser.status,
+              },
+              ...prev,
+            ])
+            setActivity((prev) => [
+              {
+                id: `act-${Date.now()}`,
+                title: `${roleLabel} Account Created`,
+                description: `${createdUser.fullName} (${createdUser.email}) registered in microgrid system`,
+                timeAgo: 'Just now',
+                type: 'user',
+              },
+              ...prev,
+            ])
+          }
+        }}
       />
     </div>
   )
