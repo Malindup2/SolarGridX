@@ -10,27 +10,48 @@ public class EmailService(IOptions<EmailSettings> settings, ILogger<EmailService
 {
     private readonly EmailSettings _settings = settings.Value;
 
-    public async Task SendRegistrationSuccessEmailAsync(string toEmail, string fullName)
+    public Task SendRegistrationSuccessEmailAsync(string toEmail, string fullName) =>
+        SendAsync(
+            toEmail,
+            "Registration received - SolarGridX",
+            $"""
+            Hi {fullName},
+
+            Thanks for registering with SolarGridX. Your account has been created and is
+            currently pending activation by our Backoffice team. You'll be able to log in
+            once your account is activated.
+
+            - SolarGridX
+            """);
+
+    public Task SendAccountCreatedEmailAsync(string toEmail, string fullName, string role, string temporaryPassword) =>
+        SendAsync(
+            toEmail,
+            "Your SolarGridX account - sign-in details",
+            $"""
+            Hi {fullName},
+
+            A SolarGridX {role} account has been created for you. Sign in on the web
+            application with:
+
+            Email:    {toEmail}
+            Password: {temporaryPassword}
+
+            Please keep these details private.
+
+            - SolarGridX
+            """);
+
+    private async Task SendAsync(string toEmail, string subject, string body)
     {
-        var message = new MimeMessage();
-        message.From.Add(MailboxAddress.Parse(_settings.User));
-        message.To.Add(MailboxAddress.Parse(toEmail));
-        message.Subject = "Registration received - SolarGridX";
-        message.Body = new TextPart("plain")
-        {
-            Text = $"""
-                Hi {fullName},
-
-                Thanks for registering with SolarGridX. Your account has been created and is
-                currently pending activation by our Backoffice team. You'll be able to log in
-                once your account is activated.
-
-                - SolarGridX
-                """
-        };
-
         try
         {
+            var message = new MimeMessage();
+            message.From.Add(MailboxAddress.Parse(_settings.User));
+            message.To.Add(MailboxAddress.Parse(toEmail));
+            message.Subject = subject;
+            message.Body = new TextPart("plain") { Text = body };
+
             using var client = new SmtpClient();
             await client.ConnectAsync(_settings.Host, _settings.Port, SecureSocketOptions.StartTls);
             await client.AuthenticateAsync(_settings.User, _settings.Pass);
@@ -39,7 +60,7 @@ public class EmailService(IOptions<EmailSettings> settings, ILogger<EmailService
         }
         catch (Exception ex)
         {
-            logger.LogWarning(ex, "Failed to send registration email to {Email}", toEmail);
+            logger.LogWarning(ex, "Failed to send email '{Subject}' to {Email}", subject, toEmail);
         }
     }
 }

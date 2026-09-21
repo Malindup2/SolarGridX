@@ -1,3 +1,5 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
 using System.Text;
 using FluentValidation;
 using MicrogridApi.Common;
@@ -41,10 +43,15 @@ builder.Services.AddSingleton<MongoDbContext>();
 builder.Services.Configure<JwtSettings>(builder.Configuration.GetSection("JwtSettings"));
 builder.Services.AddSingleton<JwtTokenService>();
 builder.Services.AddScoped<UserRepository>();
+builder.Services.AddScoped<RevokedTokenRepository>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<UserService>();
 
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<EmailService>();
+
+builder.Services.Configure<SeedAdminSettings>(builder.Configuration.GetSection("SeedAdmin"));
+builder.Services.AddScoped<AdminSeeder>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
@@ -96,6 +103,7 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
+        ClockSkew = TimeSpan.Zero,
         ValidIssuer = jwtSettings["Issuer"],
         ValidAudience = jwtSettings["Audience"],
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret))
@@ -103,6 +111,16 @@ builder.Services.AddAuthentication(options =>
 
     options.Events = new JwtBearerEvents
     {
+        OnTokenValidated = async context =>
+        {
+            var tokenId = context.Principal?.FindFirstValue(JwtRegisteredClaimNames.Jti);
+            var revokedTokens = context.HttpContext.RequestServices.GetRequiredService<RevokedTokenRepository>();
+
+            if (string.IsNullOrEmpty(tokenId) || await revokedTokens.IsRevokedAsync(tokenId))
+            {
+                context.Fail("The token has no identifier or has been revoked.");
+            }
+        },
         OnChallenge = async context =>
         {
             context.HandleResponse();
@@ -172,15 +190,30 @@ using (var scope = app.Services.CreateScope())
     {
         app.Logger.LogError(ex, "Could not create the Users indexes; uniqueness is not enforced by the database until this succeeds.");
     }
+
+    try
+    {
+        await scope.ServiceProvider.GetRequiredService<RevokedTokenRepository>().EnsureIndexAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Could not create the RevokedTokens expiry index; revoked tokens will not be cleaned up automatically.");
+    }
+
+    try
+    {
+        await scope.ServiceProvider.GetRequiredService<AdminSeeder>().SeedAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Could not create the default administrator.");
+    }
 }
 
 app.UseExceptionHandler();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 if (!app.Environment.IsDevelopment())
 {

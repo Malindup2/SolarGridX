@@ -1,6 +1,7 @@
 package com.solargridx.mobile.api
 
 import com.solargridx.mobile.BuildConfig
+import com.solargridx.mobile.session.SessionEvents
 import com.solargridx.mobile.session.SessionManager
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -21,15 +22,21 @@ object ApiClient {
 
         val client = OkHttpClient.Builder()
             .addInterceptor { chain ->
+                val builder = chain.request().newBuilder()
+                    .addHeader("X-Client-Type", "mobile")
                 val token = sessionManager.getToken()
-                val request = if (token.isNullOrBlank()) {
-                    chain.request()
-                } else {
-                    chain.request().newBuilder()
-                        .addHeader("Authorization", "Bearer $token")
-                        .build()
+                if (!token.isNullOrBlank()) {
+                    builder.addHeader("Authorization", "Bearer $token")
                 }
-                chain.proceed(request)
+                val response = chain.proceed(builder.build())
+
+                val path = chain.request().url.encodedPath
+                val isAuthCall = path.endsWith("/auth/login") || path.endsWith("/auth/logout")
+                if (response.code == 401 && !token.isNullOrBlank() && !isAuthCall) {
+                    sessionManager.clear()
+                    SessionEvents.notifyExpired()
+                }
+                response
             }
             .addInterceptor(logging)
             .build()

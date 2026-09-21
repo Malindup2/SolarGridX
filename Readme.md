@@ -352,11 +352,37 @@ Edit `appsettings.Development.json`:
     "Audience": "SmartMicrogridClients",
     "ExpiryMinutes": 120
   },
+  "EmailSettings": {
+    "Host": "smtp.gmail.com",
+    "Port": 587,
+    "User": "<sender-email-address>",
+    "Pass": "<app-password>"
+  },
+  "SeedAdmin": {
+    "Email": "admin@solargridx.com",
+    "Password": "Admin@12345",
+    "FullName": "System Administrator"
+  },
   "Cors": {
     "AllowedOrigins": [ "http://localhost:5173" ]
   }
 }
 ```
+
+> **First administrator.** On startup the API creates one `Backoffice` account from `SeedAdmin` if — and only if — no Backoffice user exists yet, so restarts never duplicate or overwrite it. That administrator signs in with the configured email and password and creates the Grid Operators (and any further Backoffice users) through `POST /users`. If `SeedAdmin` is not configured, the API logs a warning and creates nothing; there is no password built into the code.
+
+**Default administrator (development and demo)**
+
+Using the `SeedAdmin` values above, the first start creates this account:
+
+| | |
+|---|---|
+| **Email** | `admin@solargridx.com` |
+| **Password** | `Admin@12345` |
+| **Role** | Backoffice (status `Active`) |
+| **Sign in at** | `http://localhost:5173/login` — lands on the Backoffice dashboard |
+
+> **Security.** These are demonstration credentials for local development and marking only. Change `SeedAdmin` (in `appsettings.Development.json`, or `SEED_ADMIN_*` in `.env` for Docker) before deploying anywhere reachable by other people, and never reuse this password elsewhere. The seeder only runs while no Backoffice user exists, so after the first start the password is changed through the application, not by editing the settings.
 
 Restore, build and run:
 
@@ -400,17 +426,83 @@ npm run build
 ### 7.5 Mobile Application
 
 1. Open Android Studio and select **Open**, then choose the `mobile/` folder (not the repository root).
-2. Copy `local.properties.example` to `local.properties` and add:
+2. Copy `local.properties.example` to `local.properties` (it is git-ignored) and set:
 
 ```properties
 sdk.dir=C\:\\Users\\<user>\\AppData\\Local\\Android\\Sdk
+API_BASE_URL=http://localhost:5187/api/
 MAPS_API_KEY=<your-google-maps-api-key>
-API_BASE_URL="http://10.0.2.2:5001/api/"
 ```
 
-3. Let Gradle sync, then run on an emulator or device.
+Do not wrap the URL in quotes; the build adds them. `API_BASE_URL` is compiled into the app, so **rebuild and reinstall after changing it**.
 
-> **Base URL note.** `10.0.2.2` is the Android emulator's alias for the host machine's `localhost`. On a physical device, use the host machine's LAN IP (for example `http://192.168.1.10:5001/api/`) and ensure both devices are on the same network. For cleartext HTTP during development, `android:usesCleartextTraffic="true"` is set in the manifest.
+3. Let Gradle sync, then run on an emulator or a device (see 7.5.1).
+
+#### 7.5.1 Testing the mobile app against your local API
+
+Start the API first (section 7.3) and confirm <http://localhost:5187/swagger> opens. The phone must be able to reach the API on your computer. Pick one option:
+
+| Option | `API_BASE_URL` | Extra step | Use when |
+|---|---|---|---|
+| **USB device (recommended)** | `http://localhost:5187/api/` | `adb reverse tcp:5187 tcp:5187` | A physical phone with USB debugging; works on any network |
+| **Emulator** | `http://localhost:5187/api/` with `adb reverse`, or `http://10.0.2.2:5187/api/` without it | none for `10.0.2.2` | An Android Virtual Device (`10.0.2.2` is the emulator's alias for the host) |
+| **Wi-Fi device** | `http://<computer-lan-ip>:5187/api/` | Run the API on `0.0.0.0` (the `http` launch profile already does) and allow port 5187 through Windows Firewall | Phone and computer on the same network |
+
+**Steps for a USB device**
+
+1. On the phone, enable **Developer options → USB debugging**, connect the cable and accept the "Allow USB debugging" prompt.
+2. Open a terminal on your computer (PowerShell, Command Prompt or the Terminal tab in Android Studio; the folder does not matter). `adb` lives in `<sdk.dir>\platform-tools`. If `adb` is not recognised, either add that folder to your `PATH` or call it by its full path, for example in PowerShell:
+
+```powershell
+& "C:\Users\<user>\AppData\Local\Android\Sdk\platform-tools\adb.exe" devices
+```
+
+The phone must be listed with the state `device`. `unauthorized` means the USB debugging prompt on the phone has not been accepted.
+
+3. Create the tunnel. `localhost:5187` on the phone now reaches port 5187 on your computer:
+
+```powershell
+adb reverse tcp:5187 tcp:5187
+```
+
+If `adb` is not on your `PATH`, use the full path instead: `& "C:\Users\<user>\AppData\Local\Android\Sdk\platform-tools\adb.exe" reverse tcp:5187 tcp:5187`. Confirm it with `adb reverse --list`, which must print:
+
+```text
+UsbFfs tcp:5187 tcp:5187
+```
+
+4. Set `API_BASE_URL=http://localhost:5187/api/` in `mobile/local.properties`.
+5. Install the app, either with **Run** in Android Studio or from a terminal in `mobile/`:
+
+```bash
+./gradlew installDebug
+```
+
+6. Sign in or register on the phone (test accounts below).
+
+> **The tunnel is not permanent.** `adb reverse` is cleared when you unplug the phone, restart the phone or restart `adb`. If the app shows "Unable to connect to the microgrid API server", run step 3 again.
+
+**Accounts for testing**
+
+| Account | How to get it | Where it signs in |
+|---|---|---|
+| Solar Prosumer | Tap **Register Prosumer Account** in the app. It is created as `Pending` and can already sign in | Mobile only |
+| Grid Operator | A Backoffice user creates it with `POST /users` (Swagger → Authorize with the admin token). The first sign-in opens the change-password screen | Web and mobile |
+| Backoffice | Seeded at startup (section 7.3). Signing in on mobile is refused with `ROLE_NOT_ALLOWED_ON_CLIENT` | Web only |
+
+**Test on the phone**
+
+1. Confirm the API is running and the tunnel is active (`adb reverse --list`).
+2. Open the SolarGridX app. After the splash screen the login screen appears.
+3. Tap **Register Prosumer Account**, fill in a valid NIC (9 digits + V/X, or 12 digits), full name, email and a password of at least 8 characters, then submit. A success message appears after a few seconds and the app returns to the login screen. The registration email arrives shortly afterwards.
+4. Sign in with that email and password. The home screen shows your name and role (`Prosumer`) with a **Logout** button.
+5. Tap **Logout** and confirm. The login screen returns with "Logged out successfully".
+6. Sign in with the Backoffice account. The app refuses it with a message that Backoffice accounts sign in on the web application.
+7. Optional (Grid Operator): create an operator with `POST /users`, then sign in as that operator on the phone. The change-password screen opens first; after you change the password the home screen appears.
+
+Registering in step 3 creates a real prosumer in the shared database, so use an email address you control and agree with the team before creating test accounts.
+
+> **Base URL note.** For cleartext HTTP during development, `android:usesCleartextTraffic="true"` is set in the manifest. The IIS deployment (section 8.7) uses port 8090 instead of 5187.
 
 ### 7.6 Google Maps API key
 
@@ -427,53 +519,118 @@ keytool -list -v -keystore ~/.android/debug.keystore -alias androiddebugkey -sto
 
 ## 8. Deployment to IIS
 
-Deployment is performed on a single Windows host.
+Deployment is performed on a single Windows host. These steps were followed on Windows 11 with IIS 10, the .NET 10 SDK and MongoDB Atlas, and the result was checked end to end (see 8.5).
 
 ### 8.1 Prepare the host
 
-1. Open **Windows Features** and enable **Internet Information Services**, including *Web Management Tools* and *World Wide Web Services → Application Development Features*.
-2. Download and install the **ASP.NET Core 10 Hosting Bundle** from the .NET website. This installs the ASP.NET Core Module (ANCM) into IIS.
-3. Restart IIS:
+1. Open **Windows Features** and enable **Internet Information Services** with **Web Management Tools → IIS Management Console**. The default *World Wide Web Services* features are enough — ASP.NET Core does not use the classic ASP.NET 4.x features.
+2. Install the **.NET 10 Hosting Bundle** from <https://dotnet.microsoft.com/download/dotnet/10.0> (*ASP.NET Core Runtime → Hosting Bundle*). It installs the .NET runtime and the ASP.NET Core Module (ANCM) that lets IIS host the API.
+3. Restart IIS from an **Administrator** PowerShell:
 
 ```powershell
-net stop was /y
-net start w3svc
+iisreset
 ```
+
+4. Make sure Windows **Smart App Control** is off, otherwise Windows blocks the unsigned published DLL (see section 15).
+
+> The site also ran on a machine that had the .NET 10 runtime but an older ANCM (from the 8.0 Hosting Bundle), because the runtime ships the in-process handler. If IIS returns `500.30` or `500.32`, install the .NET 10 Hosting Bundle and run `iisreset`.
 
 ### 8.2 Publish the API
 
-```bash
-cd api
-dotnet publish -c Release -o ./publish
-```
-
-Copy the contents of `api/publish/` to `C:\inetpub\wwwroot\MicrogridApi\`.
-
-### 8.3 Configure IIS
-
-1. Open **IIS Manager**.
-2. Under **Application Pools**, create a pool named `MicrogridApiPool` with **.NET CLR version: No Managed Code** and **Managed pipeline mode: Integrated**.
-3. Under **Sites**, add a website named `MicrogridApi`, physical path `C:\inetpub\wwwroot\MicrogridApi`, application pool `MicrogridApiPool`, port `8080`.
-4. Grant `IIS_IUSRS` read and execute permissions on the physical path.
-5. Add `appsettings.Production.json` with the production MongoDB connection string and JWT secret.
-6. Allow port 8080 through Windows Firewall so mobile devices on the LAN can reach the service:
+From the repository root, in an **Administrator** PowerShell (writing under `C:\inetpub` needs administrator rights):
 
 ```powershell
-New-NetFirewallRule -DisplayName "Microgrid API" -Direction Inbound -LocalPort 8080 -Protocol TCP -Action Allow
+dotnet publish api/MicrogridApi.csproj -c Release -o C:\inetpub\wwwroot\SolarGridX_API
 ```
 
-### 8.4 Verify
+The output contains the API, `web.config` (the ASP.NET Core Module handler, in-process hosting) and the `appsettings*.json` files.
 
-- On the host: `http://localhost:8080/swagger`
-- From another device on the network: `http://<host-lan-ip>:8080/swagger`
+### 8.3 Provide the API settings
 
-Update the mobile `API_BASE_URL` and the web `VITE_API_BASE_URL` to the deployed address.
+IIS runs the API as `Production`. Settings are read in this order, and **later sources win**: `appsettings.json` → `appsettings.Production.json` → `appsettings.Development.json` (loaded whenever the file is present) → environment variables. Provide `MongoDbSettings`, `JwtSettings`, `EmailSettings`, `SeedAdmin` and `Cors` (section 7.3) in one of these ways:
+
+- **Simplest:** keep your `appsettings.Development.json` in `api/` before publishing — it is copied into the publish folder and picked up automatically.
+- Add an `appsettings.Production.json` to the publish folder, or
+- Set environment variables such as `MongoDbSettings__ConnectionString` on the app pool.
+
+`Cors:AllowedOrigins` must list the origin the web application is served from. The MongoDB Atlas **Network Access** list must allow this host's public IP. The publish folder holds the connection string and JWT secret, so keep it out of source control and restrict who can read it.
+
+### 8.4 Configure IIS
+
+1. Open **IIS Manager** (`inetmgr`).
+2. Under **Application Pools**, add a pool named `SolarGridX_Pool` with **.NET CLR version: No Managed Code** and **Managed pipeline mode: Integrated**.
+3. Under **Sites**, add a website named `SolarGridX_API`, application pool `SolarGridX_Pool`, physical path `C:\inetpub\wwwroot\SolarGridX_API`, binding **http**, all unassigned IP addresses, port `8090`. Any free port works: `8080` was already used by WSL's port relay on the development machine, and `5187` is the development profile's port.
+4. If the site returns `HTTP Error 500.19`, grant `IIS_IUSRS` read and execute permission on the physical path.
+5. Allow the port through Windows Firewall so other devices on the LAN (the phone) can reach the API:
+
+```powershell
+New-NetFirewallRule -DisplayName "Microgrid API (IIS)" -Direction Inbound -LocalPort 8090 -Protocol TCP -Action Allow
+```
+
+### 8.5 Verify
+
+- `http://localhost:8090/health` returns `Healthy`.
+- `http://localhost:8090/swagger` loads. Swagger is enabled in every environment so the API can be demonstrated on the host.
+- In Swagger, `POST /api/auth/login` with the default administrator from section 7.3 returns `200` with role `Backoffice`. The first start creates that administrator if no Backoffice user exists, so the Atlas allow-list must already permit the host.
+- From another device on the network: `http://<host-lan-ip>:8090/swagger`.
+
+Point the clients at the deployed address:
+
+| Client | Setting |
+|---|---|
+| Web | `VITE_API_BASE_URL=http://<host>:8090/api` |
+| Mobile (Wi-Fi) | `API_BASE_URL=http://<host-lan-ip>:8090/api/` in `local.properties`, then rebuild |
+| Mobile (USB) | run `adb reverse tcp:8090 tcp:8090`, then `API_BASE_URL=http://localhost:8090/api/` |
+
+### 8.6 Redeploying and troubleshooting
+
+- **Republishing:** stop `SolarGridX_Pool` first (otherwise the DLL is locked), publish again, then start the pool.
+- **Access to `C:\inetpub\...` is denied while publishing:** the PowerShell window is not elevated — reopen it with *Run as administrator*.
+- **`500.30` / `500.32`:** the Hosting Bundle is missing or too old — install the .NET 10 Hosting Bundle and run `iisreset`.
+- **`500.19`:** grant `IIS_IUSRS` read access to the publish folder (8.4, step 4).
+- **The site starts but the API fails:** set `stdoutLogEnabled="true"` in the published `web.config`, create a `logs` folder next to it, and read `logs\stdout*.log`.
+- **`503` from the API:** the database is unreachable — check the connection string and the Atlas Network Access list.
+
+### 8.7 IIS configuration reference
+
+| Item | Value |
+|---|---|
+| Host | Windows with IIS 10 and the ASP.NET Core Module (V2) |
+| Hosting model | In-process (set in the published `web.config`) |
+| Application pool | `SolarGridX_Pool` — .NET CLR version *No Managed Code*, pipeline *Integrated*, default identity |
+| Site | `SolarGridX_API` |
+| Physical path | `C:\inetpub\wwwroot\SolarGridX_API` |
+| Binding | `http`, all unassigned IP addresses, port `8090` |
+| Environment | `Production` (the IIS default); settings supplied as described in 8.3 |
+| Permissions | `IIS_IUSRS` read and execute on the physical path, needed only if the site returns `500.19` |
+| Firewall | Inbound TCP `8090` (rule *Microgrid API (IIS)*) |
+| Health check | `/health` |
+| API documentation | `/swagger` (enabled in every environment) |
+
+`dotnet publish` generates the `web.config` that connects IIS to the API:
+
+```xml
+<configuration>
+  <location path="." inheritInChildApplications="false">
+    <system.webServer>
+      <handlers>
+        <add name="aspNetCore" path="*" verb="*" modules="AspNetCoreModuleV2" resourceType="Unspecified" />
+      </handlers>
+      <aspNetCore processPath="dotnet" arguments=".\MicrogridApi.dll" stdoutLogEnabled="false" stdoutLogFile=".\logs\stdout" hostingModel="inprocess" />
+    </system.webServer>
+  </location>
+</configuration>
+```
+
+- `AspNetCoreModuleV2` hands every request to the API, which runs inside the IIS worker process (`hostingModel="inprocess"`), so no separate port or Kestrel process is involved.
+- `stdoutLogEnabled` is `false` by default. Set it to `true` and create the `logs` folder only while troubleshooting, then set it back.
+- The pool uses *No Managed Code* because ASP.NET Core does not use the .NET Framework CLR that IIS would otherwise load.
 
 ---
 
 ## 9. Database Design
 
-MongoDB database: **`SmartMicrogridDb`** — four collections.
+MongoDB database: **`SmartMicrogridDb`** — four domain collections, plus a small `RevokedTokens` collection used for session invalidation (9.6).
 
 ### 9.1 `Users`
 
@@ -558,6 +715,15 @@ SolarStationInfo (_id) ───┼──► EnergyReservation
 
 References are document references, not relational foreign keys. Referential consistency is enforced in the service layer.
 
+### 9.6 `RevokedTokens` (session invalidation)
+
+Not a domain collection. Every JWT the API issues carries a unique id (`jti`). `POST /auth/logout` stores that id here until the token's own expiry, and the API answers `401` to any request whose token id is present. A TTL index on `expiresAt` removes each entry once the token would have expired anyway, so the collection stays small.
+
+| Field | Type | Notes |
+|---|---|---|
+| `_id` | string | The token's `jti` |
+| `expiresAt` | DateTime | Token expiry (UTC) — TTL index |
+
 ---
 
 ## 10. API Reference
@@ -600,9 +766,24 @@ Every error response has the same shape. Failures are handled in two tiers:
 |---|---|---|---|
 | `POST` | `/auth/login` | Public | Authenticate; returns token, role and home route |
 | `POST` | `/auth/register` | Public | Prosumer self-registration with NIC; status `Pending` |
-| `POST` | `/auth/logout` | Any | Invalidate token |
+| `POST` | `/auth/change-password` | Any | Replace the caller's password (`currentPassword`, `newPassword`); clears `mustChangePassword` |
+| `POST` | `/auth/logout` | Any | End the session: revokes the calling token so it stops working immediately |
 
-> **UI implications.** Every role logs in with `email` and `password`; the NIC is not a login credential (it identifies prosumers at registration and in reservations). `email` is required and unique, and is compared lowercase. Backoffice and Grid Operator accounts are created by an existing Backoffice user via `POST /users`, which must also supply a unique email — they are never self-registered. The only self-registration is `POST /auth/register`, which always creates a `Prosumer` with status `Pending`; the request carries no `role` field, so there is no role selector anywhere in the public auth flow.
+> **Login credentials.** Every role logs in with `email` and `password`; the NIC is not a login credential (it identifies prosumers at registration and in reservations). `email` is required and unique, and is compared lowercase.
+
+**Access by client**
+
+| Role | Web application | Mobile application | How the account is created |
+|---|---|---|---|
+| Backoffice | Yes | No | The first one is created at startup from the `SeedAdmin` settings (section 7.3); further ones by a Backoffice user via `POST /users` |
+| Grid Operator | Yes | Yes | By a Backoffice user via `POST /users` |
+| Solar Prosumer | No | Yes | Self-registers in the mobile app with `POST /auth/register` (status `Pending`); a Backoffice user can also create and manage prosumer profiles from the web application |
+
+The web application has no registration page. `POST /auth/register` always creates a `Prosumer` and carries no `role` field, so there is no role selector anywhere in the public flow. The API enforces the table at login: each client sends the header `X-Client-Type: web` or `mobile`, and a role that is not allowed on that client receives `403 ROLE_NOT_ALLOWED_ON_CLIENT` with a message pointing to the right application. Requests without the header (Swagger, Postman) are accepted for every role.
+
+**First sign-in for administrator-created accounts.** `POST /users` marks the new account `mustChangePassword`, and the login response carries that flag. Both clients then show a change-password screen before anything else: the web application redirects every protected route to `/change-password`, and the mobile application opens its change-password screen instead of the home screen. `POST /auth/change-password` needs the current (temporary) password, requires a new password of at least 8 characters that differs from it, and answers `400 INVALID_CURRENT_PASSWORD` or `400 PASSWORD_UNCHANGED` otherwise. Seeded and self-registered accounts are not flagged. The flag is enforced by the clients; the API does not block other endpoints until the password is changed.
+
+**Sessions.** A token lasts `JwtSettings:ExpiryMinutes` (120 by default) with no clock skew. `POST /auth/logout` revokes the token that made the call (see 9.6); using it afterwards returns `401`. Sessions are independent, so signing out of one device does not end another. The web application asks for confirmation, ends the session on the server first and then clears the browser, and it signs the user out automatically when the API answers `401`.
 
 **`POST /auth/login`**
 
@@ -616,7 +797,9 @@ Every error response has the same shape. Failures are handled in two tiers:
   "role": "Prosumer",
   "nic": "199812345678",
   "displayName": "A. Perera",
-  "homeRoute": "/prosumer/home"
+  "homeRoute": "/prosumer/home",
+  "status": "Pending",
+  "mustChangePassword": false
 }
 ```
 
@@ -669,11 +852,31 @@ Every error response has the same shape. Failures are handled in two tiers:
 | `PUT` | `/users/{id}` | Backoffice | Update web user |
 | `DELETE` | `/users/{id}` | Backoffice | Delete web user |
 | `GET` | `/prosumers` | Backoffice / Operator | List prosumers `?status=` |
+| `POST` | `/prosumers` | Backoffice | Create a prosumer profile from the web admin console (created `Active`) |
 | `GET` | `/prosumers/pending` | Backoffice | Pending activation queue |
 | `GET` | `/prosumers/{nic}` | All | Profile by NIC |
 | `PUT` | `/prosumers/{nic}` | Prosumer / Backoffice | Update profile |
 | `PATCH` | `/prosumers/{nic}/activate` | **Backoffice only** | Activate or reactivate |
 | `PATCH` | `/prosumers/{nic}/deactivate` | Prosumer / Backoffice | Deactivate account |
+
+**`POST /users`** creates a web account that is `Active` immediately. `role` must be `Backoffice` or `GridOperator`; `nic`, `phone` and `address` are optional. The administrator chooses the temporary `password` (minimum 8 characters), and the API emails the sign-in details to the new user. The response never contains the password or its hash.
+
+```json
+{
+  "fullName": "Nimal Perera",
+  "email": "nimal@solargridx.com",
+  "password": "Temp@12345",
+  "role": "GridOperator"
+}
+```
+
+| Status | Code | Cause |
+|---|---|---|
+| `201` | — | Account created; the body is the new user |
+| `400` | `VALIDATION_FAILED` | Missing field, bad email, short password, or a role other than `Backoffice` / `GridOperator` |
+| `401` | — | No token, or a revoked or expired one |
+| `403` | — | Signed in but not Backoffice |
+| `409` | `EMAIL_ALREADY_REGISTERED` / `NIC_ALREADY_REGISTERED` | The email or NIC is already in use |
 
 ### 10.5 Microgrid Nodes
 
@@ -830,7 +1033,7 @@ docs(<area>): <what was documented>
 ### Member 2 — Identity and Account Management
 
 **Web service:** `UserController`, `ProsumerController`, `UserService`, `ProsumerService`, NIC uniqueness enforcement, BR-05 and BR-06.
-**Endpoints:** `GET/POST /users`, `PUT/DELETE /users/{id}`, `GET /prosumers`, `GET /prosumers/pending`, `GET /prosumers/{nic}`, `PUT /prosumers/{nic}`, `PATCH /prosumers/{nic}/activate`, `PATCH /prosumers/{nic}/deactivate`.
+**Endpoints:** `GET/POST /users`, `PUT/DELETE /users/{id}`, `GET /prosumers`, `POST /prosumers`, `GET /prosumers/pending`, `GET /prosumers/{nic}`, `PUT /prosumers/{nic}`, `PATCH /prosumers/{nic}/activate`, `PATCH /prosumers/{nic}/deactivate`.
 **Web application:** Login, user list, create user, edit user, prosumer list, prosumer details/edit, pending prosumer queue, activate prosumer, deactivate prosumer.
 **Mobile application:** Splash, login, registration, pending account, profile, edit profile, account status, logout.
 **Signature capability:** Role-based routing across both clients (routes into Member 1's home screens after login), SQLite session persistence on Android.
@@ -874,10 +1077,19 @@ A Postman collection is provided at `docs/postman/SmartMicrogrid.postman_collect
 | Scan an expired QR token | 400 — token expired |
 | Scan the same QR token twice | 400 — token already used |
 | Log in as each of the three roles | Correct home screen on both clients |
+| A Prosumer signs in on the web application | 403 — `ROLE_NOT_ALLOWED_ON_CLIENT` |
+| A Backoffice user signs in on the mobile application | 403 — `ROLE_NOT_ALLOWED_ON_CLIENT` |
+| Use a token after signing out | 401 — token revoked |
+| Click Logout on the web application | Confirmation dialog first; the session ends on the server and the login page opens |
+| Backoffice creates a Grid Operator with `POST /users`, then the operator signs in | The operator receives an email with the temporary password, and the first sign-in opens the change-password screen (web and mobile) |
+| Change password with a wrong current password | `400 INVALID_CURRENT_PASSWORD`; the session stays signed in |
+| Change password to the same value or fewer than 8 characters | `400 PASSWORD_UNCHANGED` / `400 VALIDATION_FAILED` |
+| After the change, sign out and sign in with the old and new passwords | The old password returns `401`; the new one signs in without the change-password screen |
+| Mobile: send any request with an expired or revoked token | The app returns to the login screen with a "session expired" message |
 
 ### Seed data
 
-Run `docs/seed/seed.js` in `mongosh` to create two stations, one day of slots, one Backoffice user, one Grid Operator and three prosumers in mixed states.
+Run `docs/seed/seed.js` in `mongosh` to create two stations, one day of slots, one Backoffice user, one Grid Operator and three prosumers in mixed states. The Backoffice administrator is not part of this script — the API creates it automatically on first startup (see section 7.3).
 
 ---
 
@@ -887,12 +1099,16 @@ Run `docs/seed/seed.js` in `mongosh` to create two stations, one day of slots, o
 |---|---|---|
 | `HTTP Error 500.19` on IIS | Hosting Bundle not installed | Install the ASP.NET Core 10 Hosting Bundle and restart IIS |
 | `HTTP Error 500.30` on IIS | App failed to start | Check `logs/stdout` after enabling `stdoutLogEnabled` in `web.config`; usually a bad connection string |
-| Android emulator cannot reach the API | `localhost` resolves to the emulator | Use `10.0.2.2` for the emulator, LAN IP for physical devices |
+| Android emulator cannot reach the API | `localhost` resolves to the emulator | Use `10.0.2.2` for the emulator, or run `adb reverse tcp:5187 tcp:5187` and use `localhost` |
+| App shows "Unable to connect to the microgrid API server" on a USB phone | The `adb reverse` tunnel was cleared (cable unplugged, phone or adb restarted) | Run `adb reverse tcp:5187 tcp:5187` again and confirm the API is running |
+| Changed `API_BASE_URL` but the app still uses the old address | The URL is compiled into the app | Rebuild and reinstall (`./gradlew installDebug`) |
+| `adb devices` shows `unauthorized` or nothing | USB debugging prompt not accepted, or no debugging enabled | Enable USB debugging, reconnect and accept the prompt on the phone |
 | `CLEARTEXT communication not permitted` | HTTP blocked by default on API 28+ | Set `android:usesCleartextTraffic="true"` for development, or use HTTPS |
 | Map renders grey | Invalid or unrestricted API key | Verify the key, enable Maps SDK for Android, check the SHA-1 restriction |
 | CORS error in the browser | Origin not allowed | Add the origin to `Cors.AllowedOrigins` in `appsettings` |
 | `MongoAuthenticationException` | Wrong credentials or IP not allowlisted | Check the Atlas user and network access list |
 | Gradle sync fails after pull | Frozen `build.gradle` changed | Run **File → Sync Project with Gradle Files** |
+| `FileLoadException ... An Application Control policy has blocked this file (0x800711C7)` when starting the API | Windows **Smart App Control** blocks locally built, unsigned .NET assemblies (Windows Event Viewer → Code Integrity shows event 3077) | Turn Smart App Control off (Windows Security → App & browser control → Smart App Control settings), or run the API in Docker. The same applies to the IIS host |
 
 ---
 

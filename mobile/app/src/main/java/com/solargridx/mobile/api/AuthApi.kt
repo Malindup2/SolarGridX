@@ -1,5 +1,6 @@
 package com.solargridx.mobile.api
 
+import com.solargridx.mobile.dto.ChangePasswordRequest
 import com.solargridx.mobile.dto.LoginRequest
 import com.solargridx.mobile.dto.LoginResponse
 import com.solargridx.mobile.dto.RegisterRequest
@@ -15,6 +16,9 @@ interface AuthApi {
 
     @POST("auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<Unit>
+
+    @POST("auth/change-password")
+    suspend fun changePassword(@Body request: ChangePasswordRequest): Response<Unit>
 
     @POST("auth/logout")
     suspend fun logout(): Response<Unit>

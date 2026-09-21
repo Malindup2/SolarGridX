@@ -2,20 +2,59 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import MainLayout from './layouts/MainLayout'
 import Home from './pages/Home'
 import AuthPage from './pages/AuthPage'
-import DashboardStub from './pages/DashboardStub'
+import DashboardPage from './pages/DashboardPage'
+import ChangePasswordPage from './pages/ChangePasswordPage'
+import ProtectedRoute from './components/auth/ProtectedRoute'
 
 const router = createBrowserRouter([
+  // Password change (any signed-in web user; forced on first sign-in for administrator-created accounts)
+  {
+    path: '/change-password',
+    element: (
+      <ProtectedRoute allowedRoles={['Backoffice', 'GridOperator']} allowPasswordChange>
+        <ChangePasswordPage />
+      </ProtectedRoute>
+    ),
+  },
+
+  // Protected Backoffice Administrator Dashboard (Backoffice role only)
+  {
+    path: '/backoffice/dashboard',
+    element: (
+      <ProtectedRoute allowedRoles={['Backoffice']}>
+        <DashboardPage defaultRole="Backoffice" />
+      </ProtectedRoute>
+    ),
+  },
+
+  // Protected Grid Operator Terminal (GridOperator and Backoffice can access)
+  {
+    path: '/operator/home',
+    element: (
+      <ProtectedRoute allowedRoles={['GridOperator', 'Backoffice']}>
+        <DashboardPage defaultRole="GridOperator" />
+      </ProtectedRoute>
+    ),
+  },
+
+  // General dashboard redirect alias
+  {
+    path: '/dashboard',
+    element: (
+      <ProtectedRoute allowedRoles={['Backoffice', 'GridOperator']}>
+        <DashboardPage />
+      </ProtectedRoute>
+    ),
+  },
+
+  // Public & consumer portal routes with marketing navbar and footer
   {
     path: '/',
     element: <MainLayout />,
     children: [
       { index: true, element: <Home /> },
-      { path: 'login', element: <AuthPage initialTab="login" /> },
-      { path: 'register', element: <AuthPage initialTab="register" /> },
+      { path: 'login', element: <AuthPage /> },
       { path: 'admin/login', element: <Navigate to="/login" replace /> },
-      { path: 'prosumer/home', element: <DashboardStub roleName="Prosumer" /> },
-      { path: 'operator/home', element: <DashboardStub roleName="Grid Operator" /> },
-      { path: 'backoffice/dashboard', element: <DashboardStub roleName="Backoffice Administrator" /> },
       { path: '*', element: <Navigate to="/" replace /> },
     ],
   },
