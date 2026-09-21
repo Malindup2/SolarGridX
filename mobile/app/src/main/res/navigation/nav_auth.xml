@@ -17,6 +17,13 @@
             app:popUpToInclusive="true"
             app:enterAnim="@android:anim/fade_in"
             app:exitAnim="@android:anim/fade_out" />
+        <action
+            android:id="@+id/action_splashFragment_to_changePasswordFragment"
+            app:destination="@id/changePasswordFragment"
+            app:popUpTo="@id/splashFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@android:anim/fade_in"
+            app:exitAnim="@android:anim/fade_out" />
     </fragment>
 
     <fragment
@@ -31,6 +38,13 @@
             app:exitAnim="@android:anim/fade_out"
             app:popEnterAnim="@android:anim/fade_in"
             app:popExitAnim="@android:anim/fade_out" />
+        <action
+            android:id="@+id/action_loginFragment_to_changePasswordFragment"
+            app:destination="@id/changePasswordFragment"
+            app:popUpTo="@id/loginFragment"
+            app:popUpToInclusive="true"
+            app:enterAnim="@android:anim/fade_in"
+            app:exitAnim="@android:anim/fade_out" />
     </fragment>
 
     <fragment
@@ -46,5 +60,11 @@
             app:enterAnim="@android:anim/fade_in"
             app:exitAnim="@android:anim/fade_out" />
     </fragment>
+
+    <fragment
+        android:id="@+id/changePasswordFragment"
+        android:name="com.solargridx.mobile.auth.ChangePasswordFragment"
+        android:label="Change password"
+        tools:layout="@layout/fragment_change_password" />
 
 </navigation>

@@ -42,4 +42,26 @@
     <string name="error_passwords_mismatch">Passwords do not match.</string>
     <string name="registration_success">Registration submitted successfully!</string>
     <string name="login_success">Welcome to SolarGridX!</string>
+
+    <!-- Change password -->
+    <string name="change_password_title">Change Password</string>
+    <string name="change_password_subtitle">Enter your current password and choose a new one.</string>
+    <string name="change_password_title_forced">Set a New Password</string>
+    <string name="change_password_subtitle_forced">Your account was created with a temporary password. Choose a new one before you continue.</string>
+    <string name="hint_current_password">Current Password</string>
+    <string name="hint_new_password">New Password</string>
+    <string name="hint_confirm_new_password">Confirm New Password</string>
+    <string name="btn_update_password">Update Password</string>
+    <string name="error_current_password_empty">Please enter your current password.</string>
+    <string name="change_password_success">Password updated successfully.</string>
+    <string name="change_password_failed">Unable to update the password. Please try again.</string>
+    <string name="error_role_not_supported">This account type cannot sign in on the mobile app.</string>
+
+    <!-- Session -->
+    <string name="logout_title">Logout</string>
+    <string name="logout_message">Are you sure you want to logout?</string>
+    <string name="btn_logout">Logout</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="logout_success">Logged out successfully</string>
+    <string name="session_expired">Your session has expired. Please sign in again.</string>
 </resources>

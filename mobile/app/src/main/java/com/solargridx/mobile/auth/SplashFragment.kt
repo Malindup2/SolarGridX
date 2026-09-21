@@ -39,10 +39,10 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
             if (!isAdded) return@launch
 
             if (sessionManager.isLoggedIn()) {
-                // Already authenticated — route directly to reservations/home
-                try {
-                    findNavController().navigate(R.id.reservations_nav)
-                } catch (e: Exception) {
+                if (sessionManager.mustChangePassword()) {
+                    findNavController().navigate(R.id.action_splashFragment_to_changePasswordFragment)
+                } else if (!AuthNavigator.goHome(findNavController(), sessionManager.getRole())) {
+                    sessionManager.clear()
                     findNavController().navigate(R.id.action_splashFragment_to_loginFragment)
                 }
             } else {

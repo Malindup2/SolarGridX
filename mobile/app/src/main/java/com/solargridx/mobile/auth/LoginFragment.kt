@@ -69,14 +69,24 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
                             role = body.role,
                             nic = body.nic,
                             displayName = body.displayName,
-                            homeRoute = body.homeRoute
+                            homeRoute = body.homeRoute,
+                            mustChangePassword = body.mustChangePassword
                         )
                         Toast.makeText(
                             requireContext(),
                             "Welcome back, ${body.displayName}!",
                             Toast.LENGTH_SHORT
                         ).show()
-                        findNavController().navigate(R.id.reservations_nav)
+                        if (body.mustChangePassword) {
+                            findNavController().navigate(R.id.action_loginFragment_to_changePasswordFragment)
+                        } else if (!AuthNavigator.goHome(findNavController(), body.role)) {
+                            sessionManager.clear()
+                            Toast.makeText(
+                                requireContext(),
+                                getString(R.string.error_role_not_supported),
+                                Toast.LENGTH_LONG
+                            ).show()
+                        }
                     } else {
                         val errorJson = response.errorBody()?.string()
                         val msg = try {
