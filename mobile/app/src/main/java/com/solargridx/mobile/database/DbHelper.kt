@@ -17,7 +17,8 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
                 $COL_ROLE TEXT,
                 $COL_NIC TEXT,
                 $COL_DISPLAY_NAME TEXT,
-                $COL_HOME_ROUTE TEXT
+                $COL_HOME_ROUTE TEXT,
+                $COL_MUST_CHANGE_PASSWORD INTEGER NOT NULL DEFAULT 0
             )
             """.trimIndent()
         )
@@ -28,7 +29,14 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
         onCreate(db)
     }
 
-    fun saveSession(token: String, role: String, nic: String?, displayName: String, homeRoute: String) {
+    fun saveSession(
+        token: String,
+        role: String,
+        nic: String?,
+        displayName: String,
+        homeRoute: String,
+        mustChangePassword: Boolean
+    ) {
         val values = ContentValues().apply {
             put(COL_ID, SESSION_ROW_ID)
             put(COL_TOKEN, token)
@@ -36,8 +44,14 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
             put(COL_NIC, nic)
             put(COL_DISPLAY_NAME, displayName)
             put(COL_HOME_ROUTE, homeRoute)
+            put(COL_MUST_CHANGE_PASSWORD, if (mustChangePassword) 1 else 0)
         }
         writableDatabase.replace(TABLE_SESSION, null, values)
+    }
+
+    fun markPasswordChanged() {
+        val values = ContentValues().apply { put(COL_MUST_CHANGE_PASSWORD, 0) }
+        writableDatabase.update(TABLE_SESSION, values, "$COL_ID = ?", arrayOf(SESSION_ROW_ID.toString()))
     }
 
     fun readSession(): SessionRow? {
@@ -51,7 +65,8 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
                 role = cursor.getString(cursor.getColumnIndexOrThrow(COL_ROLE)),
                 nic = cursor.getString(cursor.getColumnIndexOrThrow(COL_NIC)),
                 displayName = cursor.getString(cursor.getColumnIndexOrThrow(COL_DISPLAY_NAME)),
-                homeRoute = cursor.getString(cursor.getColumnIndexOrThrow(COL_HOME_ROUTE))
+                homeRoute = cursor.getString(cursor.getColumnIndexOrThrow(COL_HOME_ROUTE)),
+                mustChangePassword = cursor.getInt(cursor.getColumnIndexOrThrow(COL_MUST_CHANGE_PASSWORD)) == 1
             )
         }
     }
@@ -65,12 +80,13 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
         val role: String,
         val nic: String?,
         val displayName: String,
-        val homeRoute: String
+        val homeRoute: String,
+        val mustChangePassword: Boolean
     )
 
     companion object {
         private const val DATABASE_NAME = "solargridx.db"
-        private const val DATABASE_VERSION = 1
+        private const val DATABASE_VERSION = 2
         private const val SESSION_ROW_ID = 1
 
         private const val TABLE_SESSION = "session"
@@ -80,5 +96,6 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
         private const val COL_NIC = "nic"
         private const val COL_DISPLAY_NAME = "display_name"
         private const val COL_HOME_ROUTE = "home_route"
+        private const val COL_MUST_CHANGE_PASSWORD = "must_change_password"
     }
 }

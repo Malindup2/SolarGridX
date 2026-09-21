@@ -1,22 +1,19 @@
 import { useState } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
-import toast from 'react-hot-toast'
 import { useAuth } from '../context/AuthContext'
+import { useLogoutConfirm } from '../components/auth/useLogoutConfirm'
 import StatusBadge from '../components/StatusBadge'
 import solargridlogo from '../assets/solargridlogo.png'
 
 export default function MainLayout() {
-  const { auth, logout } = useAuth()
+  const { auth } = useAuth()
+  const { requestLogout, dialog } = useLogoutConfirm()
   const navigate = useNavigate()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  const handleSignOut = () => {
-    logout()
-    toast.success('Signed out successfully')
-    navigate('/login')
-  }
+  const handleSignOut = () => requestLogout()
 
   const scrollToSection = (sectionId: string) => {
     setMobileMenuOpen(false)
@@ -131,7 +128,7 @@ export default function MainLayout() {
                   onClick={handleSignOut}
                   className="px-3 py-1.5 text-caption font-semibold rounded-[var(--radius-md)] border border-[var(--color-border)] hover:bg-gray-100 transition-colors text-[var(--color-muted)] hover:text-[var(--color-ink)] cursor-pointer"
                 >
-                  Sign Out
+                  Logout
                 </motion.button>
               </div>
             ) : (
@@ -140,29 +137,12 @@ export default function MainLayout() {
                 <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
                   <Link
                     to="/login"
-                    className="px-3.5 py-2 text-button font-semibold rounded-[var(--radius-md)] text-[var(--color-ink)] hover:bg-gray-100 transition-colors flex items-center gap-1.5"
+                    className="px-4 py-2 text-button font-semibold rounded-[var(--radius-md)] text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] transition-all shadow-[var(--shadow-card)] flex items-center gap-1.5"
                   >
-                    <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                     </svg>
                     Login
-                  </Link>
-                </motion.div>
-
-                {/* Sign Up Button with Framer Motion micro-interaction */}
-                <motion.div
-                  whileHover={{ scale: 1.04, y: -1 }}
-                  whileTap={{ scale: 0.96 }}
-                  transition={{ type: 'spring', stiffness: 400, damping: 17 }}
-                >
-                  <Link
-                    to="/register"
-                    className="px-4 py-2 text-button font-bold rounded-[var(--radius-md)] text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] shadow-sm hover:shadow-md transition-all flex items-center gap-1.5"
-                  >
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                    Sign Up
                   </Link>
                 </motion.div>
               </div>
@@ -240,22 +220,12 @@ export default function MainLayout() {
                   <Link
                     to="/login"
                     onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-[var(--radius-md)] text-button font-semibold text-[var(--color-ink)] border border-[var(--color-border)] hover:bg-gray-50 transition-colors"
+                    className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-[var(--radius-md)] text-button font-semibold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] transition-all shadow-[var(--shadow-card)]"
                   >
-                    <svg className="w-4 h-4 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                     </svg>
                     Login
-                  </Link>
-                  <Link
-                    to="/register"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-[var(--radius-md)] text-button font-bold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] shadow-sm transition-all"
-                  >
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
-                    </svg>
-                    Sign Up
                   </Link>
                 </div>
               )}
@@ -321,6 +291,8 @@ export default function MainLayout() {
           <span>Sri Lanka National Clean Energy & Microgrid Governance</span>
         </div>
       </footer>
+
+      {dialog}
     </div>
   )
 }

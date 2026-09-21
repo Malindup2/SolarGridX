@@ -345,15 +345,12 @@ export default function Home() {
               </div>
               <h3 className="text-h3 font-bold text-[var(--color-ink)] mb-2">Solar Prosumer</h3>
               <p className="text-sm text-[var(--color-muted)] leading-relaxed mb-4">
-                Household solar generators self-register using their NIC exclusively through the SolarGridX Mobile App. Prosumers can also authenticate on the web to review statements.
+                Household solar generators register with their NIC and manage reservations, booking history and QR dispatch through the SolarGridX mobile app.
               </p>
             </div>
-            <Link
-              to="/login"
-              className="inline-flex items-center gap-1.5 text-button font-semibold text-[var(--color-primary)] hover:underline"
-            >
-              Prosumer Sign In →
-            </Link>
+            <span className="inline-flex items-center gap-1.5 text-button font-semibold text-[var(--color-muted)]">
+              Available on the mobile app
+            </span>
           </motion.div>
         </div>
       </section>

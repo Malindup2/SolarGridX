@@ -6,4 +6,5 @@ public record LoginResponse(
     string? Nic,
     string DisplayName,
     string HomeRoute,
-    string Status);
+    string Status,
+    bool MustChangePassword);

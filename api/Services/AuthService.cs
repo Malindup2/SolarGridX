@@ -6,15 +6,24 @@ using MongoDB.Driver;
 
 namespace MicrogridApi.Services;
 
-public class AuthService(UserRepository userRepository, JwtTokenService jwtTokenService, EmailService emailService)
+public class AuthService(
+    UserRepository userRepository,
+    RevokedTokenRepository revokedTokenRepository,
+    JwtTokenService jwtTokenService,
+    EmailService emailService)
 {
-    public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request)
+    public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request, ClientType client)
     {
         var user = await userRepository.FindByEmailAsync(NormalizeEmail(request.Email));
 
         if (user is null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
             return AuthErrors.InvalidCredentials;
+        }
+
+        if (!IsRoleAllowedOn(client, user.Role))
+        {
+            return AuthErrors.RoleNotAllowedOnClient(user.Role);
         }
 
         if (user.Status == UserStatus.Deactivated)
@@ -35,7 +44,8 @@ public class AuthService(UserRepository userRepository, JwtTokenService jwtToken
             Nic: user.Nic,
             DisplayName: user.FullName,
             HomeRoute: HomeRouteFor(user.Role),
-            Status: user.Status.ToString());
+            Status: user.Status.ToString(),
+            MustChangePassword: user.MustChangePassword);
     }
 
     public async Task<Result> RegisterAsync(RegisterRequest request)
@@ -81,7 +91,48 @@ public class AuthService(UserRepository userRepository, JwtTokenService jwtToken
         return Result.Success();
     }
 
+    public async Task<Result> ChangePasswordAsync(string? userId, ChangePasswordRequest request)
+    {
+        var user = string.IsNullOrEmpty(userId) ? null : await userRepository.FindByIdAsync(userId);
+
+        if (user is null)
+        {
+            return AuthErrors.InvalidToken;
+        }
+
+        if (!BCrypt.Net.BCrypt.Verify(request.CurrentPassword, user.PasswordHash))
+        {
+            return AuthErrors.InvalidCurrentPassword;
+        }
+
+        if (request.CurrentPassword == request.NewPassword)
+        {
+            return AuthErrors.PasswordUnchanged;
+        }
+
+        await userRepository.UpdatePasswordAsync(user.Id, BCrypt.Net.BCrypt.HashPassword(request.NewPassword));
+        return Result.Success();
+    }
+
+    public async Task<Result> LogoutAsync(string? tokenId, DateTime expiresAtUtc)
+    {
+        if (string.IsNullOrEmpty(tokenId))
+        {
+            return AuthErrors.InvalidToken;
+        }
+
+        await revokedTokenRepository.RevokeAsync(tokenId, expiresAtUtc);
+        return Result.Success();
+    }
+
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
+
+    private static bool IsRoleAllowedOn(ClientType client, Role role) => client switch
+    {
+        ClientType.Web => role is Role.Backoffice or Role.GridOperator,
+        ClientType.Mobile => role is Role.Prosumer or Role.GridOperator,
+        _ => true
+    };
 
     private static string HomeRouteFor(Role role) => role switch
     {

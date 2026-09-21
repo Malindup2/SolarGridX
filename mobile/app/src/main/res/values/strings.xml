@@ -1,3 +1,67 @@
 <resources>
-    <string name="app_name">Solargridx</string>
+    <string name="app_name">SolarGridX</string>
+    <string name="brand_solar">SolarGrid</string>
+    <string name="brand_x">X</string>
+    <string name="tagline">Decentralized Clean Energy Microgrid</string>
+    <string name="sub_tagline">Empowering Prosumer Energy Autonomy</string>
+    <string name="app_version">v1.0-Release • Central Grid Synced</string>
+
+    <!-- Authentication Titles & Subtitles -->
+    <string name="login_title">Welcome Back</string>
+    <string name="login_welcome">"Welcome "</string>
+    <string name="login_back">Back</string>
+    <string name="login_subtitle">Sign in to monitor generation, energy balances, and microgrid settlements.</string>
+    <string name="register_title">Create Account</string>
+    <string name="register_subtitle">Register your household solar generation profile using your National ID (NIC).</string>
+
+    <!-- Field Hints -->
+    <string name="hint_email">Email Address</string>
+    <string name="hint_password">Password</string>
+    <string name="hint_confirm_password">Confirm Password</string>
+    <string name="hint_nic">National ID (NIC)</string>
+    <string name="hint_nic_helper">e.g. 199012345678 or 901234567V</string>
+    <string name="hint_full_name">Full Legal Name</string>
+    <string name="hint_phone">Phone Number (Optional)</string>
+    <string name="hint_address">Residential Address (Optional)</string>
+
+    <!-- Buttons & Links -->
+    <string name="btn_login">Sign In</string>
+    <string name="btn_register">Register Profile</string>
+    <string name="dont_have_account">"New to SolarGridX? "</string>
+    <string name="link_register">Register Prosumer Account</string>
+    <string name="already_have_account">"Already registered? "</string>
+    <string name="link_login">Sign In</string>
+
+    <!-- Validation & Alerts -->
+    <string name="error_empty_credentials">Please enter both your email and password.</string>
+    <string name="error_invalid_nic">NIC must be in a valid format (9 digits + V/X or 12 digits).</string>
+    <string name="error_empty_name">Full Name is required.</string>
+    <string name="error_empty_email">Email is required.</string>
+    <string name="error_invalid_email">Please enter a valid email address.</string>
+    <string name="error_password_short">Password must be at least 8 characters.</string>
+    <string name="error_passwords_mismatch">Passwords do not match.</string>
+    <string name="registration_success">Registration submitted successfully!</string>
+    <string name="login_success">Welcome to SolarGridX!</string>
+
+    <!-- Change password -->
+    <string name="change_password_title">Change Password</string>
+    <string name="change_password_subtitle">Enter your current password and choose a new one.</string>
+    <string name="change_password_title_forced">Set a New Password</string>
+    <string name="change_password_subtitle_forced">Your account was created with a temporary password. Choose a new one before you continue.</string>
+    <string name="hint_current_password">Current Password</string>
+    <string name="hint_new_password">New Password</string>
+    <string name="hint_confirm_new_password">Confirm New Password</string>
+    <string name="btn_update_password">Update Password</string>
+    <string name="error_current_password_empty">Please enter your current password.</string>
+    <string name="change_password_success">Password updated successfully.</string>
+    <string name="change_password_failed">Unable to update the password. Please try again.</string>
+    <string name="error_role_not_supported">This account type cannot sign in on the mobile app.</string>
+
+    <!-- Session -->
+    <string name="logout_title">Logout</string>
+    <string name="logout_message">Are you sure you want to logout?</string>
+    <string name="btn_logout">Logout</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="logout_success">Logged out successfully</string>
+    <string name="session_expired">Your session has expired. Please sign in again.</string>
 </resources>

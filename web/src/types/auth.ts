@@ -7,15 +7,6 @@ export interface LoginRequest {
   password: string
 }
 
-export interface RegisterRequest {
-  nic: string
-  password: string
-  fullName: string
-  email: string
-  phone?: string | null
-  address?: string | null
-}
-
 export interface LoginResponse {
   token: string
   role: UserRole
@@ -23,6 +14,7 @@ export interface LoginResponse {
   displayName: string
   homeRoute: string
   status?: UserStatus
+  mustChangePassword?: boolean
 }
 
 export interface AuthUser {
@@ -32,12 +24,19 @@ export interface AuthUser {
   displayName: string
   homeRoute: string
   status?: UserStatus
+  mustChangePassword?: boolean
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string
+  newPassword: string
 }
 
 export interface AuthContextType {
   auth: AuthUser | null
   login: (data: AuthUser) => void
-  logout: () => void
+  markPasswordChanged: () => void
+  logout: () => Promise<void>
 }
 
 export interface ApiErrorResponse {
