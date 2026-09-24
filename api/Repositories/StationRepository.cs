@@ -32,4 +32,13 @@ public sealed class StationRepository
             .SortBy(station => station.StationName)
             .ToListAsync();
     }
+
+    public Task<List<SolarStationInfo>> GetActiveAsync()
+    {
+        // Read only stations that are currently available to visitors.
+        return _stations
+            .Find(station => station.Status == StationStatus.Active)
+            .ToListAsync();
+    }
+    
 }
