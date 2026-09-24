@@ -55,7 +55,6 @@ public sealed class StationRepository
             .FirstOrDefaultAsync();
     }
 
-
     public async Task<List<EnergyBookingSlot>> GetUpcomingSlotsAsync(
         string stationId, DateTime today, string currentTime)
     {
@@ -76,7 +75,6 @@ public sealed class StationRepository
     }
 
 
-
     public Task<List<EnergyReservation>> GetActiveReservationsAsync(
         string stationId)
     {
@@ -91,7 +89,6 @@ public sealed class StationRepository
             .SortBy(reservation => reservation.ReservationDate)
             .ToListAsync();
     }
-
 
 
     public async Task<SolarStationInfo?> UpdateDetailsAsync(
@@ -125,8 +122,6 @@ public sealed class StationRepository
     }
 
 
-
-
     public async Task<SolarStationInfo?> UpdateScheduleAsync(
         string id, OperationalSchedule schedule)
     {
@@ -146,7 +141,6 @@ public sealed class StationRepository
 
 
 
-
     public async Task<SolarStationInfo?> SetStatusAsync(
         string id, StationStatus status)
     {
@@ -163,7 +157,6 @@ public sealed class StationRepository
                 ReturnDocument = ReturnDocument.After
             });
     }
-
 
 
     public async Task<bool> HasAnySlotsAsync(string stationId)

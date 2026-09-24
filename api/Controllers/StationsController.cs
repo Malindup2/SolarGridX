@@ -33,7 +33,6 @@ public sealed class StationsController(StationService stationService)
             StatusCode(StatusCodes.Status201Created, station));
     }
 
-
     [HttpGet]
     [Authorize]
     [ProducesResponseType(typeof(List<StationResponse>),
@@ -46,7 +45,6 @@ public sealed class StationsController(StationService stationService)
         var result = await stationService.GetAllAsync();
         return ToResponse(result, stations => Ok(stations));
     }
-
 
 
     [HttpGet("nearby")]
@@ -86,7 +84,6 @@ public sealed class StationsController(StationService stationService)
     }
 
 
-
     [HttpPut("{id}")]
     [Authorize(Roles = RoleNames.Backoffice)]
     [ProducesResponseType(typeof(StationResponse),
@@ -108,8 +105,6 @@ public sealed class StationsController(StationService stationService)
         var result = await stationService.UpdateAsync(id, request);
         return ToResponse(result, station => Ok(station));
     }
-
-
 
 
     [HttpPatch("{id}/schedule")]
@@ -135,8 +130,6 @@ public sealed class StationsController(StationService stationService)
     }
 
 
-
-
     [HttpPatch("{id}/activate")]
     [Authorize(Roles = RoleNames.Backoffice)]
     [ProducesResponseType(typeof(StationResponse),
@@ -155,7 +148,6 @@ public sealed class StationsController(StationService stationService)
         var result = await stationService.ActivateAsync(id);
         return ToResponse(result, station => Ok(station));
     }
-
 
 
     [HttpPatch("{id}/deactivate")]
@@ -178,7 +170,6 @@ public sealed class StationsController(StationService stationService)
         var result = await stationService.DeactivateAsync(id);
         return ToResponse(result, station => Ok(station));
     }
-
 
 
     [HttpDelete("{id}")]

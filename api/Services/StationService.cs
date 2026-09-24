@@ -161,7 +161,6 @@ public sealed class StationService(
     }
 
 
-
     public async Task<Result<StationResponse>> GetByIdAsync(string id)
     {
         // Reject an invalid MongoDB ID before querying the station collection.
@@ -199,7 +198,6 @@ public sealed class StationService(
             station.CreatedAt,
             station.UpdatedAt);
     }
-
 
 
     public async Task<Result<StationResponse>> UpdateAsync(
@@ -291,8 +289,6 @@ public sealed class StationService(
     }
 
 
-
-
     public async Task<Result<StationResponse>> UpdateScheduleAsync(
         string id, StationScheduleRequest request)
     {
@@ -379,10 +375,7 @@ public sealed class StationService(
                 updated.CreatedAt,
                 updated.UpdatedAt);
         }
-
-
-
-    
+   
 
     public async Task<Result<StationResponse>> ActivateAsync(string id)
     {
@@ -432,8 +425,6 @@ public sealed class StationService(
             activeStation.CreatedAt,
             activeStation.UpdatedAt);
     }
-
-
 
 
 
@@ -526,7 +517,6 @@ public sealed class StationService(
     }
 
 
-
     public async Task<Result> DeleteAsync(string id)
     {
         // Validate the ID and confirm the station exists.
@@ -583,8 +573,6 @@ public sealed class StationService(
     }
 
 
-
-
     private async Task<List<EnergyBookingSlot>> GetUpcomingSlotsAsync(string id)
     {
         
@@ -599,7 +587,6 @@ public sealed class StationService(
         return await stationRepository.GetUpcomingSlotsAsync(
             id, today, currentTime);
     }
-
 
 
 
