@@ -85,4 +85,28 @@ public sealed class StationsController(StationService stationService)
         return ToResponse(result, station => Ok(station));
     }
 
+
+
+    [HttpPut("{id}")]
+    [Authorize(Roles = RoleNames.Backoffice)]
+    [ProducesResponseType(typeof(StationResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Update(
+        string id, UpdateStationRequest request)
+    {
+        
+        var result = await stationService.UpdateAsync(id, request);
+        return ToResponse(result, station => Ok(station));
+    }
+
 }

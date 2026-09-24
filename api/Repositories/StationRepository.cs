@@ -11,12 +11,18 @@ namespace MicrogridApi.Repositories;
 
 public sealed class StationRepository
 {
+    // Use the station, slot, and reservation collections for station operations.
     private readonly IMongoCollection<SolarStationInfo> _stations;
+    private readonly IMongoCollection<EnergyBookingSlot> _slots;
+    private readonly IMongoCollection<EnergyReservation> _reservations;
 
     public StationRepository(MongoDbContext context)
     {
         
         _stations = context.GetCollection<SolarStationInfo>("SolarStationInfo");
+        _slots = context.GetCollection<EnergyBookingSlot>("EnergyBookingSlots");
+        _reservations = context.GetCollection<EnergyReservation>("EnergyReservation");
+
     }
 
     public Task CreateAsync(SolarStationInfo station)
@@ -49,5 +55,82 @@ public sealed class StationRepository
             .FirstOrDefaultAsync();
     }
 
+
+    public async Task<bool> HasUpcomingSlotsAsync(
+        string stationId, DateTime today, string currentTime)
+    {
+        // Include later dates and today's slots that have not ended.
+        var tomorrow = today.AddDays(1);
+        var filter = Builders<EnergyBookingSlot>.Filter.Eq(
+                slot => slot.StationId, stationId) &
+            (Builders<EnergyBookingSlot>.Filter.Gte(
+                slot => slot.SlotDate, tomorrow) |
+            (Builders<EnergyBookingSlot>.Filter.Gte(
+                slot => slot.SlotDate, today) &
+            Builders<EnergyBookingSlot>.Filter.Lt(
+                slot => slot.SlotDate, tomorrow) &
+            Builders<EnergyBookingSlot>.Filter.Gt(
+                slot => slot.EndTime, currentTime)));
+
+        return await _slots.CountDocumentsAsync(
+            filter, new CountOptions { Limit = 1 }) > 0;
+    }
+
+
+
+    public async Task<bool> HasUpcomingActiveReservationsAsync(
+        string stationId, DateTime today, string currentTime)
+    {
+        // Ignore rejected, cancelled, and completed reservations.
+        var tomorrow = today.AddDays(1);
+        var filter = Builders<EnergyReservation>.Filter.Eq(
+                reservation => reservation.StationId, stationId) &
+            Builders<EnergyReservation>.Filter.In(
+                reservation => reservation.Status,
+                new[] { ReservationStatus.Pending, ReservationStatus.Approved }) &
+            (Builders<EnergyReservation>.Filter.Gte(
+                reservation => reservation.ReservationDate, tomorrow) |
+            (Builders<EnergyReservation>.Filter.Gte(
+                reservation => reservation.ReservationDate, today) &
+            Builders<EnergyReservation>.Filter.Lt(
+                reservation => reservation.ReservationDate, tomorrow) &
+            Builders<EnergyReservation>.Filter.Gt(
+                reservation => reservation.EndTime, currentTime)));
+
+        return await _reservations.CountDocumentsAsync(
+            filter, new CountOptions { Limit = 1 }) > 0;
+    }
+
+
+    public async Task<SolarStationInfo?> UpdateDetailsAsync(
+        string id,
+        string stationName,
+        string location,
+        double latitude,
+        double longitude,
+        double capacityKwh,
+        int batterySlotCount,
+        StationType type)
+    {
+        // Update editable station details 
+        var update = Builders<SolarStationInfo>.Update
+            .Set(station => station.StationName, stationName)
+            .Set(station => station.Location, location)
+            .Set(station => station.Latitude, latitude)
+            .Set(station => station.Longitude, longitude)
+            .Set(station => station.CapacityKwh, capacityKwh)
+            .Set(station => station.BatterySlotCount, batterySlotCount)
+            .Set(station => station.Type, type)
+            .Set(station => station.UpdatedAt, DateTime.UtcNow);
+
+        return await _stations.FindOneAndUpdateAsync(
+            station => station.Id == id,
+            update,
+            new FindOneAndUpdateOptions<SolarStationInfo>
+            {
+                ReturnDocument = ReturnDocument.After
+            });
+    }
+  
 
 }
