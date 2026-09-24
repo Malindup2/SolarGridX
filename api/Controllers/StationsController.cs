@@ -66,4 +66,23 @@ public sealed class StationsController(StationService stationService)
         var result = await stationService.GetNearbyAsync(lat, lng, radiusKm);
         return ToResponse(result, stations => Ok(stations));
     }
+
+
+    [HttpGet("{id}")]
+    [Authorize]
+    [ProducesResponseType(typeof(StationResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(string id)
+    {
+        // Ask the service for the requested station and return its result.
+        var result = await stationService.GetByIdAsync(id);
+        return ToResponse(result, station => Ok(station));
+    }
+
 }

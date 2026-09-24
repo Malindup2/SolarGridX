@@ -40,5 +40,14 @@ public sealed class StationRepository
             .Find(station => station.Status == StationStatus.Active)
             .ToListAsync();
     }
-    
+
+    public async Task<SolarStationInfo?> FindByIdAsync(string id)
+    {
+        // Find the station with the ID.
+        return await _stations
+            .Find(station => station.Id == id)
+            .FirstOrDefaultAsync();
+    }
+
+
 }

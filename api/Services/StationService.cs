@@ -157,6 +157,49 @@ public sealed class StationService(
         return nearby;
     }
 
+
+
+    public async Task<Result<StationResponse>> GetByIdAsync(string id)
+    {
+        // Reject an invalid MongoDB ID before querying the station collection.
+        if (!ObjectId.TryParse(id, out _))
+        {
+            return Error.Validation(
+                "VALIDATION_FAILED",
+                "The station ID is invalid.",
+                ["id: Station ID must be a valid MongoDB ObjectId."]);
+        }
+
+        var station = await stationRepository.FindByIdAsync(id);
+        if (station is null)
+        {
+            return Error.NotFound(
+                "STATION_NOT_FOUND",
+                "No station exists with the requested ID.");
+        }
+
+        // Return the station.
+        return new StationResponse(
+            station.Id,
+            station.StationName,
+            station.Location,
+            station.Latitude,
+            station.Longitude,
+            station.CapacityKwh,
+            station.BatterySlotCount,
+            station.Type.ToString(),
+            new StationScheduleResponse(
+                station.OperationalSchedule.OpenTime,
+                station.OperationalSchedule.CloseTime,
+                station.OperationalSchedule.ActiveDays),
+            station.Status.ToString(),
+            station.CreatedAt,
+            station.UpdatedAt);
+    }
+
+
+
+
     private static double DistanceKm(
         double fromLat, double fromLng,
         double toLat, double toLng)
