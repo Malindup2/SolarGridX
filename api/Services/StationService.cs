@@ -17,7 +17,8 @@ public sealed class StationService(
     StationRepository stationRepository,
     IValidator<CreateStationRequest> createValidator,
     IValidator<NearbyStationsQuery> nearbyValidator,
-    IValidator<UpdateStationRequest> updateValidator)
+    IValidator<UpdateStationRequest> updateValidator,
+    IValidator<StationScheduleRequest> scheduleValidator)
 {
     public async Task<Result<StationResponse>> CreateAsync(
         CreateStationRequest request)
@@ -239,26 +240,17 @@ public sealed class StationService(
 
         if (reducingCapacity)
         {
-            
-            var localNow = DateTimeOffset.UtcNow.ToOffset(
-                TimeSpan.FromMinutes(330));
-            var today = new DateTime(
-                localNow.Year, localNow.Month, localNow.Day,
-                0, 0, 0, DateTimeKind.Utc);
-            var currentTime = localNow.ToString(
-                "HH:mm", CultureInfo.InvariantCulture);
+            // A reduction is unsafe only when an upcoming slot exceeds a new limit.
+            var upcomingSlots = await GetUpcomingSlotsAsync(id);
+            var incompatibleSlot = upcomingSlots.Any(slot =>
+                slot.CapacityKwh > request.CapacityKwh!.Value ||
+                slot.ReservedCount > request.BatterySlotCount!.Value);
 
-            var hasSlots = await stationRepository.HasUpcomingSlotsAsync(
-                id, today, currentTime);
-            var hasReservations =
-                await stationRepository.HasUpcomingActiveReservationsAsync(
-                    id, today, currentTime);
-
-            if (hasSlots || hasReservations)
+            if (incompatibleSlot)
             {
                 return Error.Conflict(
                     "STATION_CAPACITY_REDUCTION_BLOCKED",
-                    "Capacity or battery-slot count cannot be reduced while upcoming slots or active reservations exist.");
+                    "An upcoming slot exceeds the proposed station capacity or battery-slot count.");
             }
         }
 
@@ -296,6 +288,114 @@ public sealed class StationService(
             updated.Status.ToString(),
             updated.CreatedAt,
             updated.UpdatedAt);
+    }
+
+
+
+
+    public async Task<Result<StationResponse>> UpdateScheduleAsync(
+        string id, StationScheduleRequest request)
+    {
+        // Validate the station ID and proposed schedule first.
+        if (!ObjectId.TryParse(id, out _))
+        {
+            return Error.Validation(
+                "VALIDATION_FAILED",
+                "The station ID is invalid.",
+                ["id: Station ID must be a valid MongoDB ObjectId."]);
+        }
+
+        var validation = await scheduleValidator.ValidateAsync(request);
+        if (!validation.IsValid)
+        {
+            return Error.Validation(
+                "VALIDATION_FAILED",
+                "One or more validation errors occurred.",
+                validation.Errors
+                    .Select(error =>
+                        $"{error.PropertyName}: {error.ErrorMessage}")
+                    .ToArray());
+        }
+
+        var current = await stationRepository.FindByIdAsync(id);
+        if (current is null)
+        {
+            return Error.NotFound(
+                "STATION_NOT_FOUND",
+                "No station exists with the requested ID.");
+        }
+
+        var activeDays = request.ActiveDays!
+            .Select(day => Enum.Parse<DayOfWeek>(
+                day.Trim(), ignoreCase: true).ToString())
+            .ToList();
+        var activeDaySet = activeDays.ToHashSet(
+            StringComparer.OrdinalIgnoreCase);
+
+        // Reject only a schedule that excludes an upcoming generated slot.
+        var upcomingSlots = await GetUpcomingSlotsAsync(id);
+        var incompatibleSlot = upcomingSlots.Any(slot =>
+            !activeDaySet.Contains(slot.SlotDate.DayOfWeek.ToString()) ||
+            string.CompareOrdinal(slot.StartTime, request.OpenTime!) < 0 ||
+            string.CompareOrdinal(slot.EndTime, request.CloseTime!) > 0);
+
+        if (incompatibleSlot)
+        {
+            return Error.Conflict(
+                "STATION_SCHEDULE_CONFLICT",
+                "An upcoming slot falls outside the proposed operating days or hours.");
+        }
+
+        var schedule = new OperationalSchedule
+        {
+            OpenTime = request.OpenTime!,
+            CloseTime = request.CloseTime!,
+            ActiveDays = activeDays
+        };
+
+        var updated = await stationRepository.UpdateScheduleAsync(id, schedule);
+            if (updated is null)
+            {
+                return Error.NotFound(
+                    "STATION_NOT_FOUND",
+                    "The station was removed before its schedule could be updated.");
+            }
+
+            // Return the station with its saved schedule.
+            return new StationResponse(
+                updated.Id,
+                updated.StationName,
+                updated.Location,
+                updated.Latitude,
+                updated.Longitude,
+                updated.CapacityKwh,
+                updated.BatterySlotCount,
+                updated.Type.ToString(),
+                new StationScheduleResponse(
+                    updated.OperationalSchedule.OpenTime,
+                    updated.OperationalSchedule.CloseTime,
+                    updated.OperationalSchedule.ActiveDays),
+                updated.Status.ToString(),
+                updated.CreatedAt,
+                updated.UpdatedAt);
+        }
+
+
+
+
+    private async Task<List<EnergyBookingSlot>> GetUpcomingSlotsAsync(string id)
+    {
+        
+        var localNow = DateTimeOffset.UtcNow.ToOffset(
+            TimeSpan.FromMinutes(330));
+        var today = new DateTime(
+            localNow.Year, localNow.Month, localNow.Day,
+            0, 0, 0, DateTimeKind.Utc);
+        var currentTime = localNow.ToString(
+            "HH:mm", CultureInfo.InvariantCulture);
+
+        return await stationRepository.GetUpcomingSlotsAsync(
+            id, today, currentTime);
     }
 
 

@@ -56,10 +56,10 @@ public sealed class StationRepository
     }
 
 
-    public async Task<bool> HasUpcomingSlotsAsync(
+    public async Task<List<EnergyBookingSlot>> GetUpcomingSlotsAsync(
         string stationId, DateTime today, string currentTime)
     {
-        // Include later dates and today's slots that have not ended.
+        // Read later slots and today's slots that have not ended.
         var tomorrow = today.AddDays(1);
         var filter = Builders<EnergyBookingSlot>.Filter.Eq(
                 slot => slot.StationId, stationId) &
@@ -72,8 +72,7 @@ public sealed class StationRepository
             Builders<EnergyBookingSlot>.Filter.Gt(
                 slot => slot.EndTime, currentTime)));
 
-        return await _slots.CountDocumentsAsync(
-            filter, new CountOptions { Limit = 1 }) > 0;
+        return await _slots.Find(filter).ToListAsync();
     }
 
 
@@ -121,6 +120,26 @@ public sealed class StationRepository
             .Set(station => station.CapacityKwh, capacityKwh)
             .Set(station => station.BatterySlotCount, batterySlotCount)
             .Set(station => station.Type, type)
+            .Set(station => station.UpdatedAt, DateTime.UtcNow);
+
+        return await _stations.FindOneAndUpdateAsync(
+            station => station.Id == id,
+            update,
+            new FindOneAndUpdateOptions<SolarStationInfo>
+            {
+                ReturnDocument = ReturnDocument.After
+            });
+    }
+
+
+
+
+    public async Task<SolarStationInfo?> UpdateScheduleAsync(
+        string id, OperationalSchedule schedule)
+    {
+        // Save the schedule without changing other station fields.
+        var update = Builders<SolarStationInfo>.Update
+            .Set(station => station.OperationalSchedule, schedule)
             .Set(station => station.UpdatedAt, DateTime.UtcNow);
 
         return await _stations.FindOneAndUpdateAsync(

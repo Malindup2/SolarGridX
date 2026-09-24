@@ -109,4 +109,29 @@ public sealed class StationsController(StationService stationService)
         return ToResponse(result, station => Ok(station));
     }
 
+
+
+
+    [HttpPatch("{id}/schedule")]
+    [Authorize(Roles = RoleNames.Backoffice + "," + RoleNames.GridOperator)]
+    [ProducesResponseType(typeof(StationResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> UpdateSchedule(
+        string id, StationScheduleRequest request)
+    {
+        // Ask the service to validate and save the proposed schedule.
+        var result = await stationService.UpdateScheduleAsync(id, request);
+        return ToResponse(result, station => Ok(station));
+    }
+
 }
