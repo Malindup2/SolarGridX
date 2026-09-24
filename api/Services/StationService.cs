@@ -436,6 +436,98 @@ public sealed class StationService(
 
 
 
+
+    public async Task<Result<StationResponse>> DeactivateAsync(string id)
+    {
+        // Validate the ID and find the station.
+        if (!ObjectId.TryParse(id, out _))
+        {
+            return Error.Validation(
+                "VALIDATION_FAILED",
+                "The station ID is invalid.",
+                ["id: Station ID must be a valid MongoDB ObjectId."]);
+        }
+
+        var station = await stationRepository.FindByIdAsync(id);
+        if (station is null)
+        {
+            return Error.NotFound(
+                "STATION_NOT_FOUND",
+                "No station exists with the requested ID.");
+        }
+
+        // An already-inactive station needs no database update.
+        if (station.Status == StationStatus.Inactive)
+        {
+            return new StationResponse(
+                station.Id,
+                station.StationName,
+                station.Location,
+                station.Latitude,
+                station.Longitude,
+                station.CapacityKwh,
+                station.BatterySlotCount,
+                station.Type.ToString(),
+                new StationScheduleResponse(
+                    station.OperationalSchedule.OpenTime,
+                    station.OperationalSchedule.CloseTime,
+                    station.OperationalSchedule.ActiveDays),
+                station.Status.ToString(),
+                station.CreatedAt,
+                station.UpdatedAt);
+        }
+
+        var blockingReservations =
+            await stationRepository.GetActiveReservationsAsync(id);
+
+        if (blockingReservations.Count > 0)
+        {
+            
+            var details = blockingReservations
+                .Select(reservation =>
+                    $"Reservation {reservation.Id}: {reservation.Status}, " +
+                    $"{reservation.ReservationDate:yyyy-MM-dd} " +
+                    $"{reservation.StartTime}-{reservation.EndTime}")
+                .ToArray();
+
+            return new Error(
+                "STATION_HAS_ACTIVE_RESERVATIONS",
+                "The station cannot be deactivated while active reservations exist.",
+                ErrorType.Conflict,
+                details);
+        }
+
+        var inactiveStation = await stationRepository.SetStatusAsync(
+            id, StationStatus.Inactive);
+        if (inactiveStation is null)
+        {
+            return Error.NotFound(
+                "STATION_NOT_FOUND",
+                "The station was removed before it could be deactivated.");
+        }
+
+        // Return the saved station without changing its schedule or capacity.
+        return new StationResponse(
+            inactiveStation.Id,
+            inactiveStation.StationName,
+            inactiveStation.Location,
+            inactiveStation.Latitude,
+            inactiveStation.Longitude,
+            inactiveStation.CapacityKwh,
+            inactiveStation.BatterySlotCount,
+            inactiveStation.Type.ToString(),
+            new StationScheduleResponse(
+                inactiveStation.OperationalSchedule.OpenTime,
+                inactiveStation.OperationalSchedule.CloseTime,
+                inactiveStation.OperationalSchedule.ActiveDays),
+            inactiveStation.Status.ToString(),
+            inactiveStation.CreatedAt,
+            inactiveStation.UpdatedAt);
+    }
+
+
+
+
     private async Task<List<EnergyBookingSlot>> GetUpcomingSlotsAsync(string id)
     {
         

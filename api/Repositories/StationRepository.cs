@@ -77,28 +77,21 @@ public sealed class StationRepository
 
 
 
-    public async Task<bool> HasUpcomingActiveReservationsAsync(
-        string stationId, DateTime today, string currentTime)
+    public Task<List<EnergyReservation>> GetActiveReservationsAsync(
+        string stationId)
     {
-        // Ignore rejected, cancelled, and completed reservations.
-        var tomorrow = today.AddDays(1);
+        // Find Pending and Approved reservations that block deactivation.
         var filter = Builders<EnergyReservation>.Filter.Eq(
                 reservation => reservation.StationId, stationId) &
             Builders<EnergyReservation>.Filter.In(
                 reservation => reservation.Status,
-                new[] { ReservationStatus.Pending, ReservationStatus.Approved }) &
-            (Builders<EnergyReservation>.Filter.Gte(
-                reservation => reservation.ReservationDate, tomorrow) |
-            (Builders<EnergyReservation>.Filter.Gte(
-                reservation => reservation.ReservationDate, today) &
-            Builders<EnergyReservation>.Filter.Lt(
-                reservation => reservation.ReservationDate, tomorrow) &
-            Builders<EnergyReservation>.Filter.Gt(
-                reservation => reservation.EndTime, currentTime)));
+                new[] { ReservationStatus.Pending, ReservationStatus.Approved });
 
-        return await _reservations.CountDocumentsAsync(
-            filter, new CountOptions { Limit = 1 }) > 0;
+        return _reservations.Find(filter)
+            .SortBy(reservation => reservation.ReservationDate)
+            .ToListAsync();
     }
+
 
 
     public async Task<SolarStationInfo?> UpdateDetailsAsync(

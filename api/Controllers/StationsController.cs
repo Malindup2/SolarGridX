@@ -156,4 +156,29 @@ public sealed class StationsController(StationService stationService)
         return ToResponse(result, station => Ok(station));
     }
 
+
+
+    [HttpPatch("{id}/deactivate")]
+    [Authorize(Roles = RoleNames.Backoffice)]
+    [ProducesResponseType(typeof(StationResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Deactivate(string id)
+    {
+        // Ask the service to enforce BR-04 before deactivating the station.
+        var result = await stationService.DeactivateAsync(id);
+        return ToResponse(result, station => Ok(station));
+    }
+
+    
+
 }
