@@ -150,6 +150,26 @@ public sealed class StationRepository
                 ReturnDocument = ReturnDocument.After
             });
     }
+
+
+
+
+    public async Task<SolarStationInfo?> SetStatusAsync(
+        string id, StationStatus status)
+    {
+        // Save the requested station status and update timestamp.
+        var update = Builders<SolarStationInfo>.Update
+            .Set(station => station.Status, status)
+            .Set(station => station.UpdatedAt, DateTime.UtcNow);
+
+        return await _stations.FindOneAndUpdateAsync(
+            station => station.Id == id,
+            update,
+            new FindOneAndUpdateOptions<SolarStationInfo>
+            {
+                ReturnDocument = ReturnDocument.After
+            });
+    }
   
 
 }

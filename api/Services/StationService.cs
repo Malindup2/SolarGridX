@@ -382,6 +382,59 @@ public sealed class StationService(
 
 
 
+    
+
+    public async Task<Result<StationResponse>> ActivateAsync(string id)
+    {
+        // Validate the ID and find the station before changing its status.
+        if (!ObjectId.TryParse(id, out _))
+        {
+            return Error.Validation(
+                "VALIDATION_FAILED",
+                "The station ID is invalid.",
+                ["id: Station ID must be a valid MongoDB ObjectId."]);
+        }
+
+        var station = await stationRepository.FindByIdAsync(id);
+        if (station is null)
+        {
+            return Error.NotFound(
+                "STATION_NOT_FOUND",
+                "No station exists with the requested ID.");
+        }
+
+        // An already-active station needs no database update.
+        var activeStation = station.Status == StationStatus.Active
+            ? station
+            : await stationRepository.SetStatusAsync(id, StationStatus.Active);
+
+        if (activeStation is null)
+        {
+            return Error.NotFound(
+                "STATION_NOT_FOUND",
+                "The station was removed before it could be activated.");
+        }
+
+        return new StationResponse(
+            activeStation.Id,
+            activeStation.StationName,
+            activeStation.Location,
+            activeStation.Latitude,
+            activeStation.Longitude,
+            activeStation.CapacityKwh,
+            activeStation.BatterySlotCount,
+            activeStation.Type.ToString(),
+            new StationScheduleResponse(
+                activeStation.OperationalSchedule.OpenTime,
+                activeStation.OperationalSchedule.CloseTime,
+                activeStation.OperationalSchedule.ActiveDays),
+            activeStation.Status.ToString(),
+            activeStation.CreatedAt,
+            activeStation.UpdatedAt);
+    }
+
+
+
 
     private async Task<List<EnergyBookingSlot>> GetUpcomingSlotsAsync(string id)
     {

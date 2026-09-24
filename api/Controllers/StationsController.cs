@@ -134,4 +134,26 @@ public sealed class StationsController(StationService stationService)
         return ToResponse(result, station => Ok(station));
     }
 
+
+
+
+    [HttpPatch("{id}/activate")]
+    [Authorize(Roles = RoleNames.Backoffice)]
+    [ProducesResponseType(typeof(StationResponse),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Activate(string id)
+    {
+        // Ask the service to activate the requested station.
+        var result = await stationService.ActivateAsync(id);
+        return ToResponse(result, station => Ok(station));
+    }
+
 }
