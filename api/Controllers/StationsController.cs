@@ -32,4 +32,18 @@ public sealed class StationsController(StationService stationService)
         return ToResponse(result, station =>
             StatusCode(StatusCodes.Status201Created, station));
     }
+
+
+    [HttpGet]
+    [Authorize]
+    [ProducesResponseType(typeof(List<StationResponse>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> GetAll()
+    {
+        // Ask the service for every station and return the resulting list
+        var result = await stationService.GetAllAsync();
+        return ToResponse(result, stations => Ok(stations));
+    }
 }

@@ -78,4 +78,27 @@ public sealed class StationService(
             station.CreatedAt,
             station.UpdatedAt);
     }
+
+    public async Task<Result<List<StationResponse>>> GetAllAsync()
+    {
+        // Read station records and return all
+        var stations = await stationRepository.GetAllAsync();
+
+        return stations.Select(station => new StationResponse(
+            station.Id,
+            station.StationName,
+            station.Location,
+            station.Latitude,
+            station.Longitude,
+            station.CapacityKwh,
+            station.BatterySlotCount,
+            station.Type.ToString(),
+            new StationScheduleResponse(
+                station.OperationalSchedule.OpenTime,
+                station.OperationalSchedule.CloseTime,
+                station.OperationalSchedule.ActiveDays),
+            station.Status.ToString(),
+            station.CreatedAt,
+            station.UpdatedAt)).ToList();
+    }
 }

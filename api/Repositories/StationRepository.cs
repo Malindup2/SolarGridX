@@ -24,4 +24,12 @@ public sealed class StationRepository
         // Save the station after the service has validated its request.
         return _stations.InsertOneAsync(station);
     }
+
+    public Task<List<SolarStationInfo>> GetAllAsync()
+    {
+        // Return all stations.
+        return _stations.Find(Builders<SolarStationInfo>.Filter.Empty)
+            .SortBy(station => station.StationName)
+            .ToListAsync();
+    }
 }
