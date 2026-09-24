@@ -163,6 +163,37 @@ public sealed class StationRepository
                 ReturnDocument = ReturnDocument.After
             });
     }
+
+
+
+    public async Task<bool> HasAnySlotsAsync(string stationId)
+    {
+        // Check whether any booking slot still references this station.
+        var filter = Builders<EnergyBookingSlot>.Filter.Eq(
+            slot => slot.StationId, stationId);
+
+        return await _slots.CountDocumentsAsync(
+            filter, new CountOptions { Limit = 1 }) > 0;
+    }
+
+    public async Task<bool> HasAnyReservationsAsync(string stationId)
+    {
+        // Check every reservation status, including historical records.
+        var filter = Builders<EnergyReservation>.Filter.Eq(
+            reservation => reservation.StationId, stationId);
+
+        return await _reservations.CountDocumentsAsync(
+            filter, new CountOptions { Limit = 1 }) > 0;
+    }
+
+    public async Task<bool> DeleteByIdAsync(string id)
+    {
+        // Delete only the requested station document.
+        var result = await _stations.DeleteOneAsync(
+            station => station.Id == id);
+
+        return result.DeletedCount > 0;
+    }
   
 
 }

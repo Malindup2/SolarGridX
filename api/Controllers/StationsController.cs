@@ -179,6 +179,26 @@ public sealed class StationsController(StationService stationService)
         return ToResponse(result, station => Ok(station));
     }
 
-    
+
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = RoleNames.Backoffice)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse),
+        StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Delete(string id)
+    {
+        // Ask the service to check dependencies before deleting the station.
+        var result = await stationService.DeleteAsync(id);
+        return ToResponse(result, () => NoContent());
+    }
 
 }

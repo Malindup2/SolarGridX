@@ -527,6 +527,63 @@ public sealed class StationService(
 
 
 
+    public async Task<Result> DeleteAsync(string id)
+    {
+        // Validate the ID and confirm the station exists.
+        if (!ObjectId.TryParse(id, out _))
+        {
+            return Error.Validation(
+                "VALIDATION_FAILED",
+                "The station ID is invalid.",
+                ["id: Station ID must be a valid MongoDB ObjectId."]);
+        }
+
+        var station = await stationRepository.FindByIdAsync(id);
+        if (station is null)
+        {
+            return Error.NotFound(
+                "STATION_NOT_FOUND",
+                "No station exists with the requested ID.");
+        }
+
+        // Preserve stations referenced by slots or reservations.
+        var hasSlots = await stationRepository.HasAnySlotsAsync(id);
+        var hasReservations =
+            await stationRepository.HasAnyReservationsAsync(id);
+
+        if (hasSlots || hasReservations)
+        {
+            var details = new List<string>();
+            if (hasSlots)
+            {
+                details.Add("Booking slots reference this station.");
+            }
+
+            if (hasReservations)
+            {
+                details.Add("Reservations reference this station.");
+            }
+
+            return new Error(
+                "STATION_HAS_DEPENDENCIES",
+                "The station cannot be deleted while slots or reservations reference it.",
+                ErrorType.Conflict,
+                details.ToArray());
+        }
+
+        var deleted = await stationRepository.DeleteByIdAsync(id);
+        if (!deleted)
+        {
+            return Error.NotFound(
+                "STATION_NOT_FOUND",
+                "The station was removed before it could be deleted.");
+        }
+
+        return Result.Success();
+    }
+
+
+
 
     private async Task<List<EnergyBookingSlot>> GetUpcomingSlotsAsync(string id)
     {
