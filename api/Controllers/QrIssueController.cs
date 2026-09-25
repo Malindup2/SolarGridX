@@ -21,17 +21,15 @@ public class QrIssueController(QrIssueService qrIssueService) : ApiControllerBas
         return ToResponse(result, response => StatusCode(StatusCodes.Status201Created, response));
     }
 
+    // Returns the token already issued; a prosumer only ever gets their own.
     [HttpGet("{reservationId}")]
-    // README's Section 10.7 restricts this to Prosumer. Since you likely
-    // don't have a prosumer test account yet, you can temporarily relax this
-    // to [Authorize] (any authenticated role) while testing, then tighten it
-    // back before you finish this endpoint.
     [Authorize(Roles = RoleNames.Prosumer)]
     [ProducesResponseType(typeof(QrTokenResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Get(string reservationId)
     {
-        var result = await qrIssueService.GetAsync(reservationId);
+        var result = await qrIssueService.GetAsync(reservationId, CallerNic, CallerRole);
         return ToResponse(result, response => Ok(response));
     }
 }

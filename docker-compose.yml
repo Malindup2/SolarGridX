@@ -23,6 +23,7 @@ services:
       JwtSettings__Issuer: ${JWT_ISSUER}
       JwtSettings__Audience: ${JWT_AUDIENCE}
       JwtSettings__ExpiryMinutes: ${JWT_EXPIRY_MINUTES}
+      QrSettings__HmacSecret: ${QR_HMAC_SECRET}
       SeedAdmin__Email: ${SEED_ADMIN_EMAIL}
       SeedAdmin__Password: ${SEED_ADMIN_PASSWORD}
       SeedAdmin__FullName: ${SEED_ADMIN_FULL_NAME}

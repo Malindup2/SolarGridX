@@ -63,7 +63,11 @@ builder.Services.AddScoped<StationRepository>();
 builder.Services.AddScoped<ReservationRepository>();
 builder.Services.AddScoped<SlotService>();
 builder.Services.AddScoped<QrIssueService>();
+builder.Services.AddScoped<QrVerificationService>();
 // --- End Member 4 registrations ---
+
+builder.Services.AddScoped<ReservationService>();
+builder.Services.AddScoped<DashboardService>();
 
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
@@ -101,6 +105,11 @@ builder.Services.AddSwaggerGen(options =>
 
 var jwtSettings = builder.Configuration.GetSection("JwtSettings");
 var jwtSecret = jwtSettings["Secret"] ?? throw new InvalidOperationException("JwtSettings:Secret is not configured.");
+
+if (string.IsNullOrWhiteSpace(builder.Configuration["QrSettings:HmacSecret"]))
+{
+    throw new InvalidOperationException("QrSettings:HmacSecret is not configured. QR tokens cannot be signed.");
+}
 
 builder.Services.AddAuthentication(options =>
 {

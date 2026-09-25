@@ -10,12 +10,22 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
     // Slot duration is fixed at 1 hour per the current project decision.
     private static readonly TimeSpan SlotDuration = TimeSpan.FromHours(1);
 
-    // Ensures every date is stored/compared as an unambiguous UTC midnight
-    // value, regardless of how it arrived (JSON body deserialization gives
-    // DateTime.Kind = Unspecified, which can be converted inconsistently
-    // by the MongoDB driver if left as-is).
+    // Sri Lanka is UTC+5:30. Matches the offset Member 3's StationService
+    // already uses for "current local time" comparisons (GetUpcomingSlotsAsync),
+    // so both features agree on what "today" and "now" mean near date/time
+    // boundaries rather than one using UTC and the other local time.
+    private static readonly TimeSpan SriLankaOffset = TimeSpan.FromMinutes(330);
+
     private static DateTime NormalizeDate(DateTime date) =>
         DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
+
+    private static (DateTime today, TimeSpan currentTime) GetSriLankaNow()
+    {
+        var localNow = DateTimeOffset.UtcNow.ToOffset(SriLankaOffset);
+        var today = DateTime.SpecifyKind(localNow.Date, DateTimeKind.Utc);
+        var currentTime = localNow.TimeOfDay;
+        return (today, currentTime);
+    }
 
     // ---------- Manual single-slot creation ----------
 
@@ -56,69 +66,82 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
     // ---------- Slot generation from station schedule (signature feature) ----------
 
     public async Task<Result<List<SlotResponse>>> GenerateAsync(string stationId, GenerateSlotsRequest request)
-{
-    var station = await stationRepository.FindByIdAsync(stationId);
-    if (station is null)
     {
-        return SlotErrors.StationNotFound;
-    }
-
-    var targetDate = NormalizeDate(request.Date);
-
-    var dayName = targetDate.DayOfWeek.ToString();
-    if (!station.OperationalSchedule.ActiveDays.Contains(dayName))
-    {
-        return SlotErrors.DayNotOperational;
-    }
-
-    var existing = await slotRepository.FindByStationAndDateAsync(stationId, targetDate);
-    if (existing.Count > 0)
-    {
-        return SlotErrors.SlotsAlreadyGenerated;
-    }
-
-    var openTime = ParseTime(station.OperationalSchedule.OpenTime);
-    var closeTime = ParseTime(station.OperationalSchedule.CloseTime);
-
-    // Each slot's capacity is the station's total throughput divided evenly
-    // across its physical battery bays, so no single hour can be booked for
-    // more energy than the station can actually deliver across all its bays.
-    var perSlotCapacity = station.BatterySlotCount > 0
-        ? station.CapacityKwh / station.BatterySlotCount
-        : station.CapacityKwh;
-
-    var generatedSlots = new List<EnergyBookingSlot>();
-    var current = openTime;
-
-    while (current.Add(SlotDuration) <= closeTime)
-    {
-        var start = current;
-        var end = current.Add(SlotDuration);
-
-        generatedSlots.Add(new EnergyBookingSlot
+        var station = await stationRepository.FindByIdAsync(stationId);
+        if (station is null)
         {
-            StationId = stationId,
-            SlotDate = targetDate,
-            StartTime = FormatTime(start),
-            EndTime = FormatTime(end),
-            CapacityKwh = perSlotCapacity,
-            IsAvailable = true,
-            ReservedCount = 0,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        });
+            return SlotErrors.StationNotFound;
+        }
 
-        current = end;
+        var targetDate = NormalizeDate(request.Date);
+        var (today, currentTime) = GetSriLankaNow();
+
+        // Reject any date strictly before today (Sri Lanka local time).
+        if (targetDate < today)
+        {
+            return SlotErrors.PastDateNotAllowed;
+        }
+
+        var dayName = targetDate.DayOfWeek.ToString();
+        if (!station.OperationalSchedule.ActiveDays.Contains(dayName))
+        {
+            return SlotErrors.DayNotOperational;
+        }
+
+        var existing = await slotRepository.FindByStationAndDateAsync(stationId, targetDate);
+        if (existing.Count > 0)
+        {
+            return SlotErrors.SlotsAlreadyGenerated;
+        }
+
+        var openTime = ParseTime(station.OperationalSchedule.OpenTime);
+        var closeTime = ParseTime(station.OperationalSchedule.CloseTime);
+        var isToday = targetDate == today;
+
+        var generatedSlots = new List<EnergyBookingSlot>();
+        var current = openTime;
+
+        while (current.Add(SlotDuration) <= closeTime)
+        {
+            var start = current;
+            var end = current.Add(SlotDuration);
+
+            // For today only: skip any slot whose start time has already
+            // passed, so operators can't generate slots that would never be
+            // bookable (e.g. generating at 12:00 shouldn't produce a
+            // 09:00–10:00 slot).
+            if (!isToday || start > currentTime)
+            {
+                generatedSlots.Add(new EnergyBookingSlot
+                {
+                    StationId = stationId,
+                    SlotDate = targetDate,
+                    StartTime = FormatTime(start),
+                    EndTime = FormatTime(end),
+                    CapacityKwh = station.BatterySlotCount > 0
+                        ? station.CapacityKwh / station.BatterySlotCount
+                        : station.CapacityKwh,
+                    IsAvailable = true,
+                    ReservedCount = 0,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+
+            current = end;
+        }
+
+        if (generatedSlots.Count == 0)
+        {
+            // Distinguish "station doesn't operate long enough for even one
+            // slot" from "today's remaining hours have already passed" so
+            // the operator gets an accurate, actionable message.
+            return isToday ? SlotErrors.NoRemainingSlotsToday : SlotErrors.DayNotOperational;
+        }
+
+        await slotRepository.CreateManyAsync(generatedSlots);
+        return generatedSlots.Select(ToResponse).ToList();
     }
-
-    if (generatedSlots.Count == 0)
-    {
-        return SlotErrors.DayNotOperational;
-    }
-
-    await slotRepository.CreateManyAsync(generatedSlots);
-    return generatedSlots.Select(ToResponse).ToList();
-}
 
     // ---------- Reads ----------
 
@@ -144,7 +167,6 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
             return SlotErrors.SlotNotFound;
         }
 
-        // BR-09: don't allow shrinking capacity below what's already reserved.
         if (slot.ReservedCount > 0 && request.CapacityKwh < slot.CapacityKwh)
         {
             return SlotErrors.SlotHasReservations;
@@ -193,7 +215,6 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
             return SlotErrors.SlotNotFound;
         }
 
-        // BR-09: cannot delete a slot that still has active reservations.
         if (slot.ReservedCount > 0)
         {
             return SlotErrors.SlotHasReservations;
