@@ -52,6 +52,17 @@ public class ReservationsController(
         return ToResponse(result, reservations => Ok(reservations));
     }
 
+    // Pre-flight rule check for a slot, before committing to a booking.
+    [HttpGet("validate")]
+    [ProducesResponseType(typeof(ReservationValidationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Validate([FromQuery] string slotId)
+    {
+        var result = await reservationService.ValidateAsync(slotId, CallerNic, CallerRole);
+        return ToResponse(result, validation => Ok(validation));
+    }
+
     // Returns a single reservation.
     [HttpGet("{id}")]
     [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]

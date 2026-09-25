@@ -366,6 +366,115 @@ public class ReservationService(
             .ToList();
     }
 
+    // Booking monitor: the list filters plus a date range.
+    public async Task<Result<List<ReservationResponse>>> SearchAsync(
+        string? nic, string? status, string? stationId, DateTime? dateFrom, DateTime? dateTo,
+        string? callerNic, string? callerRole)
+    {
+        var parsed = ParseStatus(status);
+        if (parsed.Error is not null)
+        {
+            return parsed.Error;
+        }
+
+        var effectiveNic = callerRole == RoleNames.Prosumer ? callerNic : nic;
+        var reservations = await reservationRepository.SearchAsync(
+            effectiveNic, parsed.Status, stationId, dateFrom, dateTo);
+
+        var stationNames = await StationNamesAsync();
+
+        return reservations
+            .Select(r => ToResponse(r, stationNames.GetValueOrDefault(r.StationId, string.Empty)))
+            .ToList();
+    }
+
+    // Pre-flight check so a client can test a slot before committing to it.
+    public async Task<Result<ReservationValidationResponse>> ValidateAsync(
+        string slotId, string? callerNic, string? callerRole)
+    {
+        var slot = await slotRepository.FindByIdAsync(slotId);
+        if (slot is null)
+        {
+            return ReservationErrors.SlotNotFound;
+        }
+
+        var failure = await FirstBookingFailureAsync(slot, callerNic, callerRole);
+
+        return failure is null
+            ? new ReservationValidationResponse(true, null, null)
+            : new ReservationValidationResponse(false, failure.Code, failure.Message);
+    }
+
+    // Runs the create-time checks that do not depend on the energy amount.
+    private async Task<Error?> FirstBookingFailureAsync(
+        Models.EnergyBookingSlot slot, string? callerNic, string? callerRole)
+    {
+        if (callerRole == RoleNames.Prosumer)
+        {
+            if (string.IsNullOrWhiteSpace(callerNic))
+            {
+                return ReservationErrors.NotOwner;
+            }
+
+            var prosumer = await userRepository.FindProsumerByNicAsync(callerNic);
+            if (prosumer is null)
+            {
+                return ReservationErrors.ProsumerNotFound;
+            }
+
+            if (prosumer.Status != UserStatus.Active)
+            {
+                return ReservationErrors.ProsumerNotActive(prosumer.Status.ToString());
+            }
+
+            if (await reservationRepository.ExistsLiveForSlotAsync(callerNic, slot.Id))
+            {
+                return ReservationErrors.AlreadyReserved(callerNic);
+            }
+        }
+
+        if (!slot.IsAvailable)
+        {
+            return ReservationErrors.SlotUnavailable;
+        }
+
+        var station = await stationRepository.FindByIdAsync(slot.StationId);
+        if (station is null)
+        {
+            return ReservationErrors.StationNotFound;
+        }
+
+        if (station.Status != StationStatus.Active)
+        {
+            return ReservationErrors.StationInactive;
+        }
+
+        if (station.BatterySlotCount > 0 && slot.ReservedCount >= station.BatterySlotCount)
+        {
+            return ReservationErrors.SlotFull;
+        }
+
+        return ValidateBookingWindow(slot.SlotDate);
+    }
+
+    private static (ReservationStatus? Status, Error? Error) ParseStatus(string? status)
+    {
+        if (string.IsNullOrWhiteSpace(status))
+        {
+            return (null, null);
+        }
+
+        if (!Enum.TryParse<ReservationStatus>(status, ignoreCase: true, out var value) || !Enum.IsDefined(value))
+        {
+            return (null, Error.Validation(
+                "VALIDATION_FAILED",
+                "One or more validation errors occurred.",
+                [$"status: '{status}' is not a known reservation status."]));
+        }
+
+        return (value, null);
+    }
+
     // Returns one reservation, refusing a prosumer who asks for another's.
     public async Task<Result<ReservationResponse>> GetByIdAsync(
         string id, string? callerNic, string? callerRole)
@@ -456,22 +565,6 @@ public class ReservationService(
     }
 
     
-    private static ReservationResponse ToResponse(EnergyReservation reservation, string stationName) => new(
-        reservation.Id,
-        reservation.Nic,
-        reservation.StationId,
-        stationName,
-        reservation.SlotId,
-        reservation.ReservationDate,
-        reservation.StartTime,
-        reservation.EndTime,
-        $"{reservation.ReservationDate:yyyy-MM-dd} {reservation.StartTime}-{reservation.EndTime}",
-        reservation.EnergyKwh,
-        reservation.Status.ToString(),
-        reservation.Status == ReservationStatus.Approved,
-        reservation.ApprovedBy,
-        reservation.RejectionReason,
-        reservation.CompletedAt,
-        reservation.CreatedAt,
-        reservation.UpdatedAt);
+    private static ReservationResponse ToResponse(EnergyReservation reservation, string stationName) =>
+        ReservationMapper.ToResponse(reservation, stationName);
 }
