@@ -47,6 +47,9 @@ builder.Services.AddScoped<RevokedTokenRepository>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<UserService>();
 
+builder.Services.AddScoped<StationRepository>();
+builder.Services.AddScoped<StationService>();
+
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("EmailSettings"));
 builder.Services.AddScoped<EmailService>();
 
