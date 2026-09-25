@@ -65,6 +65,8 @@ builder.Services.AddScoped<SlotService>();
 builder.Services.AddScoped<QrIssueService>();
 // --- End Member 4 registrations ---
 
+builder.Services.AddScoped<ReservationService>();
+
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
