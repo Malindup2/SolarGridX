@@ -56,6 +56,15 @@ builder.Services.AddScoped<EmailService>();
 builder.Services.Configure<SeedAdminSettings>(builder.Configuration.GetSection("SeedAdmin"));
 builder.Services.AddScoped<AdminSeeder>();
 
+// --- Member 4: Slots and QR issuance registrations ---
+builder.Services.Configure<QrSettings>(builder.Configuration.GetSection("QrSettings"));
+builder.Services.AddScoped<SlotRepository>();
+builder.Services.AddScoped<StationRepository>();
+builder.Services.AddScoped<ReservationRepository>();
+builder.Services.AddScoped<SlotService>();
+builder.Services.AddScoped<QrIssueService>();
+// --- End Member 4 registrations ---
+
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
