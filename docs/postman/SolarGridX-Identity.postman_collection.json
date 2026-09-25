@@ -267,10 +267,10 @@
           }
         },
         {
-          "name": "Prosumer tries to reactivate -> 403 (BR-05)",
+          "name": "Deactivated prosumer tries to reactivate -> 401 (BR-05)",
           "event": [{
             "listen": "test",
-            "script": { "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"] }
+            "script": { "exec": ["pm.test('401 Unauthorized (token rejected once the account is deactivated)', () => pm.response.to.have.status(401));"] }
           }],
           "request": {
             "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{prosumerToken}}", "type": "string" }] },
