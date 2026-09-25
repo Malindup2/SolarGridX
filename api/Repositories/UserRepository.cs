@@ -31,9 +31,6 @@ public class UserRepository
     public Task<User?> FindByIdAsync(string id) =>
         _users.Find(u => u.Id == id).FirstOrDefaultAsync()!;
 
-    public Task<User?> FindProsumerByNicAsync(string nic) =>
-        _users.Find(u => u.Role == Role.Prosumer && u.Nic == nic).FirstOrDefaultAsync()!;
-
     public Task<bool> ExistsByEmailExceptAsync(string email, string excludedId) =>
         _users.Find(u => u.Email == email && u.Id != excludedId).AnyAsync();
 
