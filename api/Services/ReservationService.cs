@@ -24,6 +24,16 @@ public class ReservationService(
         CreateReservationRequest request, string? callerNic, string? callerRole)
     {
         
+        if (!ObjectIds.IsValid(request.StationId))
+        {
+            return ObjectIds.Invalid("stationId");
+        }
+
+        if (!ObjectIds.IsValid(request.SlotId))
+        {
+            return ObjectIds.Invalid("slotId");
+        }
+
         if (!IsOwnRecord(callerRole, callerNic, request.Nic))
         {
             return ReservationErrors.NotOwner;
@@ -163,6 +173,11 @@ public class ReservationService(
 
         var reservation = loaded.Reservation!;
 
+        if (!ObjectIds.IsValid(request.SlotId))
+        {
+            return ObjectIds.Invalid("slotId");
+        }
+
         if (reservation.SlotId == request.SlotId)
         {
             return ReservationErrors.SameSlot;
@@ -239,6 +254,11 @@ public class ReservationService(
     // straight away.
     public async Task<Result<ReservationResponse>> ApproveAsync(string id, string? approvedBy)
     {
+        if (!ObjectIds.IsValid(id))
+        {
+            return ReservationErrors.NotFound;
+        }
+
         var reservation = await reservationRepository.FindByIdAsync(id);
         if (reservation is null)
         {
@@ -276,6 +296,11 @@ public class ReservationService(
     public async Task<Result<ReservationResponse>> RejectAsync(
         string id, RejectReservationRequest request, string? rejectedBy)
     {
+        if (!ObjectIds.IsValid(id))
+        {
+            return ReservationErrors.NotFound;
+        }
+
         var reservation = await reservationRepository.FindByIdAsync(id);
         if (reservation is null)
         {
@@ -304,6 +329,11 @@ public class ReservationService(
     public async Task<Result<ReservationResponse>> CancelAsync(
         string id, string? callerNic, string? callerRole)
     {
+        if (!ObjectIds.IsValid(id))
+        {
+            return ReservationErrors.NotFound;
+        }
+
         var reservation = await reservationRepository.FindByIdAsync(id);
         if (reservation is null)
         {
@@ -357,6 +387,11 @@ public class ReservationService(
             parsedStatus = value;
         }
 
+        if (stationId is not null && !ObjectIds.IsValid(stationId))
+        {
+            return ObjectIds.Invalid("stationId");
+        }
+
         var effectiveNic = callerRole == RoleNames.Prosumer ? callerNic : nic;
         var reservations = await reservationRepository.FindAsync(effectiveNic, parsedStatus, stationId);
         var stationNames = await StationNamesAsync();
@@ -377,6 +412,11 @@ public class ReservationService(
             return parsed.Error;
         }
 
+        if (stationId is not null && !ObjectIds.IsValid(stationId))
+        {
+            return ObjectIds.Invalid("stationId");
+        }
+
         var effectiveNic = callerRole == RoleNames.Prosumer ? callerNic : nic;
         var reservations = await reservationRepository.SearchAsync(
             effectiveNic, parsed.Status, stationId, dateFrom, dateTo);
@@ -392,6 +432,11 @@ public class ReservationService(
     public async Task<Result<ReservationValidationResponse>> ValidateAsync(
         string slotId, string? callerNic, string? callerRole)
     {
+        if (!ObjectIds.IsValid(slotId))
+        {
+            return ObjectIds.Invalid("slotId");
+        }
+
         var slot = await slotRepository.FindByIdAsync(slotId);
         if (slot is null)
         {
@@ -479,6 +524,11 @@ public class ReservationService(
     public async Task<Result<ReservationResponse>> GetByIdAsync(
         string id, string? callerNic, string? callerRole)
     {
+        if (!ObjectIds.IsValid(id))
+        {
+            return ReservationErrors.NotFound;
+        }
+
         var reservation = await reservationRepository.FindByIdAsync(id);
         if (reservation is null)
         {
@@ -505,6 +555,11 @@ public class ReservationService(
     private async Task<(EnergyReservation? Reservation, Error? Error)> LoadModifiableAsync(
         string id, string? callerNic, string? callerRole)
     {
+        if (!ObjectIds.IsValid(id))
+        {
+            return (null, ReservationErrors.NotFound);
+        }
+
         var reservation = await reservationRepository.FindByIdAsync(id);
         if (reservation is null)
         {

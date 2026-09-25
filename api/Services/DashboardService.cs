@@ -42,6 +42,11 @@ public class DashboardService(
     // Pending queue and approved future count for one microgrid node.
     public async Task<Result<OperatorDashboardResponse>> OperatorAsync(string stationId)
     {
+        if (!ObjectIds.IsValid(stationId))
+        {
+            return ReservationErrors.StationNotFound;
+        }
+
         var station = await stationRepository.FindByIdAsync(stationId);
         if (station is null)
         {

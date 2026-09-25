@@ -117,7 +117,8 @@ public class ReservationsController(
         return ToResponse(result, reservation => Ok(reservation));
     }
 
-    // Cancels a reservation and releases its slot 
+    // Cancels a reservation and releases its slot
+    [HttpPatch("{id}/cancel")]
     [Authorize(Roles = $"{RoleNames.Prosumer},{RoleNames.Backoffice}")]
     [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
