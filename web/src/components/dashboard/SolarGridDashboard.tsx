@@ -7,19 +7,21 @@ import {
   ADMIN_CONFIG,
   OPERATOR_CONFIG,
   INITIAL_RESERVATION_STATS,
-  INITIAL_STATIONS,
   INITIAL_PROSUMERS,
   INITIAL_ACTIVITY,
   type DashboardRole,
   type RoleDashboardConfig,
   type ProsumerRequest,
-  type StationItem,
   type RecentActivityItem,
 } from './dashboardConfig'
 import KpiCard from './KpiCard'
 import ReservationChart from './ReservationChart'
 import ProsumerDetailModal from './ProsumerDetailModal'
 import QuickActionModal, { type QuickActionType } from './QuickActionModal'
+
+
+import { useStations } from '../stations/useStations'
+import CreateStationModal from '../stations/CreateStationModal'
 
 export interface SolarGridDashboardProps {
   initialRole?: DashboardRole
@@ -72,7 +74,17 @@ export default function SolarGridDashboard({
 
   // Data states (with interactive updates)
   const [prosumers, setProsumers] = useState<ProsumerRequest[]>(INITIAL_PROSUMERS)
-  const [stations, setStations] = useState<StationItem[]>(INITIAL_STATIONS)
+  
+
+  // Station data comes from the API for both Backoffice and Grid Operator views.
+const {
+  stations,
+  loading: stationsLoading,
+  error: stationsError,
+  refresh: refreshStations,
+} = useStations()
+
+
   const [activity, setActivity] = useState<RecentActivityItem[]>(INITIAL_ACTIVITY)
   const [stats] = useState(INITIAL_RESERVATION_STATS)
   const [lastUpdated, setLastUpdated] = useState('Just now')
@@ -82,6 +94,7 @@ export default function SolarGridDashboard({
   const [isProsumerModalOpen, setIsProsumerModalOpen] = useState(false)
   const [currentQuickAction, setCurrentQuickAction] = useState<QuickActionType | null>(null)
   const [isQuickActionModalOpen, setIsQuickActionModalOpen] = useState(false)
+  const [isStationModalOpen, setIsStationModalOpen] = useState(false)
 
   // Notifications dropdown state
   const [notificationsOpen, setNotificationsOpen] = useState(false)
@@ -95,8 +108,9 @@ export default function SolarGridDashboard({
 
   // Refresh handler
   const handleRefresh = () => {
+    refreshStations()
     setLastUpdated('Just now')
-    toast.success('Microgrid telemetry refreshed')
+    toast('Reloading station data')
   }
 
   // Handle Logout
@@ -153,6 +167,14 @@ export default function SolarGridDashboard({
 
   // Quick Action Click
   const handleQuickActionClick = (actionType: string) => {
+
+    if (actionType === 'addStation') {
+      if (activeRole === 'Backoffice') {
+        setIsStationModalOpen(true)
+      }
+      return
+    }
+
     if (actionType === 'reviewProsumers') {
       setActiveTab('prosumers')
       setProsumerStatusFilter('Pending')
@@ -162,19 +184,7 @@ export default function SolarGridDashboard({
     }
   }
 
-  // Toggle station status
-  const handleToggleStationStatus = (stationId: string) => {
-    setStations((prev) =>
-      prev.map((st) => {
-        if (st.id === stationId) {
-          const nextStatus = st.status === 'Active' ? 'Inactive' : 'Active'
-          toast.success(`${st.name} is now ${nextStatus}`)
-          return { ...st, status: nextStatus }
-        }
-        return st
-      })
-    )
-  }
+
 
   // Derived counts
   const pendingProsumers = prosumers.filter((p) => p.status === 'Pending')
@@ -371,7 +381,11 @@ export default function SolarGridDashboard({
                             : 'bg-gray-100 text-gray-700'
                         }`}
                       >
-                        {item.badge}
+                        {item.id === 'stations'
+                          ? stationsLoading || stationsError
+                            ? '—'
+                            : `${stations.length} Total`
+                          : item.badge}
                       </span>
                     )}
                   </button>
@@ -591,17 +605,38 @@ export default function SolarGridDashboard({
 
               {/* Section 5: 4 KPI Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {config.kpis.map((kpi) => (
-                  <KpiCard
-                    key={kpi.id}
-                    metric={kpi}
-                    onClick={() => {
-                      if (kpi.targetTab) {
-                        setActiveTab(kpi.targetTab)
-                      }
-                    }}
-                  />
-                ))}
+                {config.kpis.map((kpi) => {
+                  const stationMetric =
+                    kpi.id === 'total-stations'
+                      ? {
+                          ...kpi,
+                          value: stationsLoading || stationsError ? '—' : stations.length,
+                          subtitle: stationsError
+                            ? 'Could not load stations'
+                            : `${activeStations.length} Active • ${inactiveStations.length} Inactive`,
+                        }
+                      : kpi.id === 'active-stations'
+                        ? {
+                            ...kpi,
+                            value: stationsLoading || stationsError ? '—' : activeStations.length,
+                            subtitle: stationsError
+                              ? 'Could not load stations'
+                              : stations.length === 0
+                                ? 'No stations registered'
+                                : `${Math.round((activeStations.length / stations.length) * 100)}% active`,
+                          }
+                        : kpi
+
+                  return (
+                    <KpiCard
+                      key={kpi.id}
+                      metric={stationMetric}
+                      onClick={() => {
+                        if (kpi.targetTab) setActiveTab(kpi.targetTab)
+                      }}
+                    />
+                  )
+                })}
               </div>
 
               {/* Middle Row: Reservation Overview + Station Status */}
@@ -620,7 +655,9 @@ export default function SolarGridDashboard({
                         <p className="text-xs text-gray-500 mt-0.5">Microgrid charging & injection nodes</p>
                       </div>
                       <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
-                        {activeStations.length} of {stations.length} Online
+                        {stationsLoading || stationsError
+                          ? 'Station data unavailable'
+                          : `${activeStations.length} of ${stations.length} active`}
                       </span>
                     </div>
 
@@ -647,8 +684,8 @@ export default function SolarGridDashboard({
                       {stations.slice(0, 3).map((st) => (
                         <div key={st.id} className="py-2.5 flex items-center justify-between text-xs">
                           <div>
-                            <span className="font-semibold text-gray-900 block">{st.name}</span>
-                            <span className="text-[11px] text-gray-400">{st.powerType} • {st.operatingHours}</span>
+                            <span className="font-semibold text-gray-900 block">{st.stationName}</span>
+                            <span className="text-[11px] text-gray-400">{st.type} • {st.operationalSchedule.openTime}-{st.operationalSchedule.closeTime}</span>
                           </div>
                           <div className="flex items-center gap-3">
                             <span
@@ -660,7 +697,7 @@ export default function SolarGridDashboard({
                             >
                               ● {st.status}
                             </span>
-                            <span className="text-[11px] font-mono text-gray-500">{st.slots} Slots</span>
+                            <span className="text-[11px] font-mono text-gray-500">{st.batterySlotCount} battery positions</span>
                           </div>
                         </div>
                       ))}
@@ -1039,7 +1076,8 @@ export default function SolarGridDashboard({
             </motion.div>
           )}
 
-          {/* TAB 4: STATIONS VIEW (Section 11) */}
+        
+          {/* TAB 4: STATIONS VIEW */}
           {activeTab === 'stations' && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -1050,82 +1088,102 @@ export default function SolarGridDashboard({
                 <div>
                   <h2 className="text-xl font-bold text-gray-900">Microgrid Stations</h2>
                   <p className="text-xs text-gray-500 mt-0.5">
-                    Distributed energy transfer nodes and transformer substations
+                    Stations registered in the microgrid API
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setCurrentQuickAction('addStation')
-                    setIsQuickActionModalOpen(true)
-                  }}
-                  className="px-4 py-2 rounded-lg text-xs font-bold text-white bg-[var(--color-primary)] hover:bg-[var(--color-primary-hover)] shadow-xs inline-flex items-center gap-1.5 cursor-pointer"
-                >
-                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
-                  </svg>
-                  <span>Add Station</span>
-                </button>
+
+                {activeRole === 'Backoffice' && (
+                  <button
+                    type="button"
+                    onClick={() => setIsStationModalOpen(true)}
+                    className="rounded-lg bg-[var(--color-primary)] px-4 py-2 text-xs font-bold text-white"
+                  >
+                    Add Station
+                  </button>
+                )}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {stations.map((st) => (
-                  <div
-                    key={st.id}
-                    className="border border-gray-200 rounded-xl p-5 hover:border-[var(--color-primary)] transition-all flex flex-col justify-between"
+              {stationsLoading && (
+                <p className="text-sm text-gray-500">Loading stations...</p>
+              )}
+
+              {stationsError && (
+                <div className="flex items-center gap-3">
+                  <p className="text-sm text-rose-700">{stationsError}</p>
+                  <button
+                    type="button"
+                    onClick={refreshStations}
+                    className="text-sm font-semibold text-[var(--color-primary)]"
                   >
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-                          {st.code}
-                        </span>
+                    Retry
+                  </button>
+                </div>
+              )}
+
+              {!stationsLoading && !stationsError && stations.length === 0 && (
+                <p className="text-sm text-gray-500">No stations have been registered yet.</p>
+              )}
+
+              {!stationsLoading && !stationsError && stations.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {stations.map((station) => (
+                    <div
+                      key={station.id}
+                      className="border border-gray-200 rounded-xl p-5 hover:border-[var(--color-primary)] transition-all"
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <h3 className="text-base font-bold text-gray-900">
+                            {station.stationName}
+                          </h3>
+                          <p className="text-xs text-gray-500 mt-1">{station.location}</p>
+                        </div>
                         <span
                           className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                            st.status === 'Active'
+                            station.status === 'Active'
                               ? 'bg-emerald-100 text-emerald-800'
                               : 'bg-gray-100 text-gray-600'
                           }`}
                         >
-                          ● {st.status}
+                          ● {station.status}
                         </span>
                       </div>
-                      <h4 className="text-base font-bold text-gray-900">{st.name}</h4>
-                      <p className="text-xs text-gray-500 mt-1">{st.location}</p>
 
-                      <div className="grid grid-cols-2 gap-2 mt-4 p-3 bg-gray-50 rounded-lg text-xs">
+                      <div className="grid grid-cols-2 gap-3 mt-4 p-3 bg-gray-50 rounded-lg text-xs">
                         <div>
-                          <span className="text-gray-400 block text-[10px]">Power Type</span>
-                          <span className="font-semibold text-gray-800">{st.powerType}</span>
+                          <span className="text-gray-400 block">Station type</span>
+                          <span className="font-semibold text-gray-800">{station.type}</span>
                         </div>
                         <div>
-                          <span className="text-gray-400 block text-[10px]">Operating Hours</span>
-                          <span className="font-semibold text-gray-800">{st.operatingHours}</span>
+                          <span className="text-gray-400 block">Capacity</span>
+                          <span className="font-semibold text-gray-800">
+                            {station.capacityKwh} kWh
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 block">Opening hours</span>
+                          <span className="font-semibold text-gray-800">
+                            {station.operationalSchedule.openTime}–{station.operationalSchedule.closeTime}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400 block">Battery positions</span>
+                          <span className="font-semibold text-gray-800">
+                            {station.batterySlotCount}
+                          </span>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
-                      <span className="text-xs text-gray-500 font-medium">Slots: <strong>{st.slots}</strong></span>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleToggleStationStatus(st.id)}
-                          className="px-3 py-1.5 rounded-md text-xs font-semibold border border-gray-200 hover:bg-gray-100"
-                        >
-                          {st.status === 'Active' ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toast.success(`Editing configuration for ${st.name}`)}
-                          className="px-3 py-1.5 rounded-md text-xs font-bold text-[var(--color-primary)] bg-emerald-50 hover:bg-emerald-100"
-                        >
-                          Edit
-                        </button>
-                      </div>
+                      <p className="text-xs text-gray-500 mt-3">
+                        Active days: {station.operationalSchedule.activeDays.join(', ')}
+                      </p>
+                      <p className="text-xs text-gray-400 mt-1">
+                        GPS: {station.latitude}, {station.longitude}
+                      </p>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+              )}
             </motion.div>
           )}
 
@@ -1333,6 +1391,17 @@ export default function SolarGridDashboard({
         onDeactivate={handleDeactivateProsumer}
       />
 
+      {activeRole === 'Backoffice' && isStationModalOpen && (
+        <CreateStationModal
+          onClose={() => setIsStationModalOpen(false)}
+          onCreated={() => {
+            setIsStationModalOpen(false)
+            refreshStations()
+            toast.success('Station created successfully.')
+          }}
+        />
+      )}
+
       {/* Quick Action Modal (Create User, Add Station, Scan QR, etc.) */}
       <QuickActionModal
         isOpen={isQuickActionModalOpen}
@@ -1356,7 +1425,7 @@ export default function SolarGridDashboard({
                 title: `${roleLabel} Account Created`,
                 description: `${createdUser.fullName} (${createdUser.email}) registered in microgrid system`,
                 timeAgo: 'Just now',
-                type: 'user',
+                type: 'registration',
               },
               ...prev,
             ])
