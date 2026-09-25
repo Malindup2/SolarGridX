@@ -2,6 +2,7 @@ using MicrogridApi.Common;
 using MicrogridApi.DTOs.Users;
 using MicrogridApi.Models;
 using MicrogridApi.Repositories;
+using MongoDB.Bson;
 using MongoDB.Driver;
 
 namespace MicrogridApi.Services;
@@ -51,15 +52,118 @@ public class UserService(UserRepository userRepository, EmailService emailServic
 
         await emailService.SendAccountCreatedEmailAsync(email, user.FullName, user.Role.ToString(), request.Password);
 
-        return new UserResponse(
-            user.Id,
-            user.FullName,
-            email,
-            user.Role.ToString(),
-            user.Status.ToString(),
-            user.Nic,
-            user.Phone,
-            user.Address,
-            user.CreatedAt);
+        return ToResponse(user);
     }
+
+    public async Task<List<UserResponse>> ListAsync()
+    {
+        var users = await userRepository.ListWebUsersAsync();
+        return users.Select(ToResponse).ToList();
+    }
+
+    public async Task<Result<UserResponse>> UpdateAsync(string id, UpdateUserRequest request, string? callerId)
+    {
+        var user = await FindWebUserAsync(id);
+        if (user is null)
+        {
+            return IdentityErrors.UserNotFound;
+        }
+
+        var email = request.Email.Trim().ToLowerInvariant();
+        var nic = string.IsNullOrWhiteSpace(request.Nic) ? null : request.Nic.Trim();
+        var role = Enum.Parse<Role>(request.Role);
+        var status = Enum.Parse<UserStatus>(request.Status);
+
+        var accessChanged = role != user.Role || status != user.Status;
+        if (accessChanged && user.Id == callerId)
+        {
+            return IdentityErrors.CannotChangeOwnAccess;
+        }
+
+        if (accessChanged && await IsLastActiveBackofficeAsync(user))
+        {
+            return IdentityErrors.LastBackoffice;
+        }
+
+        if (nic is not null && await userRepository.ExistsByNicExceptAsync(nic, user.Id))
+        {
+            return AuthErrors.NicAlreadyRegistered;
+        }
+
+        if (await userRepository.ExistsByEmailExceptAsync(email, user.Id))
+        {
+            return AuthErrors.EmailAlreadyRegistered;
+        }
+
+        user.FullName = request.FullName.Trim();
+        user.Email = email;
+        user.Nic = nic;
+        user.Phone = request.Phone;
+        user.Address = request.Address;
+        user.Role = role;
+        user.Status = status;
+        user.UpdatedAt = DateTime.UtcNow;
+
+        try
+        {
+            await userRepository.ReplaceAsync(user);
+        }
+        catch (MongoWriteException ex) when (ex.WriteError.Category == ServerErrorCategory.DuplicateKey)
+        {
+            return ex.WriteError.Message.Contains("Email_1")
+                ? AuthErrors.EmailAlreadyRegistered
+                : AuthErrors.NicAlreadyRegistered;
+        }
+
+        return ToResponse(user);
+    }
+
+    public async Task<Result> DeleteAsync(string id, string? callerId)
+    {
+        var user = await FindWebUserAsync(id);
+        if (user is null)
+        {
+            return IdentityErrors.UserNotFound;
+        }
+
+        if (user.Id == callerId)
+        {
+            return IdentityErrors.CannotChangeOwnAccess;
+        }
+
+        if (await IsLastActiveBackofficeAsync(user))
+        {
+            return IdentityErrors.LastBackoffice;
+        }
+
+        await userRepository.DeleteAsync(user.Id);
+        return Result.Success();
+    }
+
+    // Prosumers are managed through ProsumerService, so they are invisible to the /users endpoints.
+    private async Task<User?> FindWebUserAsync(string id)
+    {
+        if (!ObjectId.TryParse(id, out _))
+        {
+            return null;
+        }
+
+        var user = await userRepository.FindByIdAsync(id);
+        return user is { Role: not Role.Prosumer } ? user : null;
+    }
+
+    private async Task<bool> IsLastActiveBackofficeAsync(User user) =>
+        user is { Role: Role.Backoffice, Status: UserStatus.Active }
+        && await userRepository.CountActiveByRoleAsync(Role.Backoffice) <= 1;
+
+    private static UserResponse ToResponse(User user) => new(
+        user.Id,
+        user.FullName,
+        user.Email ?? string.Empty,
+        user.Role.ToString(),
+        user.Status.ToString(),
+        user.Nic,
+        user.Phone,
+        user.Address,
+        user.CreatedAt);
 }

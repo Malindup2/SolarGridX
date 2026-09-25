@@ -1,4 +1,3 @@
-using System.Globalization;
 using MicrogridApi.Common;
 using MicrogridApi.Configuration;
 using MicrogridApi.DTOs.Qr;
@@ -12,7 +11,6 @@ public class QrIssueService(ReservationRepository reservationRepository, IOption
 {
     private readonly QrSettings _settings = qrSettings.Value;
 
-    // Mints and stores the token for an approved reservation.
     public async Task<Result<QrTokenResponse>> IssueAsync(string reservationId)
     {
         if (!ObjectIds.IsValid(reservationId))
@@ -41,16 +39,16 @@ public class QrIssueService(ReservationRepository reservationRepository, IOption
         var signature = QrTokenCodec.ComputeSignature(
             _settings.HmacSecret, reservation.Id, reservation.Nic, reservation.StationId, issuedAtIso, expIso);
 
-        var token = QrTokenCodec.Encode(new QrTokenCodec.QrPayload(
-            reservation.Id, reservation.Nic, reservation.StationId, issuedAtIso, expIso, signature));
+        var payload = new QrTokenCodec.QrPayload(
+            reservation.Id, reservation.Nic, reservation.StationId, issuedAtIso, expIso, signature);
+
+        var token = QrTokenCodec.Encode(payload);
 
         await reservationRepository.SetQrTokenAsync(reservation.Id, token);
 
         return new QrTokenResponse(reservation.Id, token, expiresAt);
     }
 
-    // Returns the token already issued for a reservation. A prosumer may only
-    // fetch their own.
     public async Task<Result<QrTokenResponse>> GetAsync(
         string reservationId, string? callerNic, string? callerRole)
     {
@@ -65,6 +63,7 @@ public class QrIssueService(ReservationRepository reservationRepository, IOption
             return QrErrors.ReservationNotFound;
         }
 
+        // A prosumer may only fetch the token for their own reservation.
         if (callerRole == RoleNames.Prosumer &&
             !string.Equals(callerNic, reservation.Nic, StringComparison.OrdinalIgnoreCase))
         {
@@ -82,18 +81,16 @@ public class QrIssueService(ReservationRepository reservationRepository, IOption
             return QrErrors.TokenMalformed;
         }
 
-        var expiresAt = DateTime.Parse(payload.Exp, null, DateTimeStyles.RoundtripKind);
+        var expiresAt = DateTime.Parse(payload.Exp, null, System.Globalization.DateTimeStyles.RoundtripKind);
 
         return new QrTokenResponse(reservation.Id, reservation.QrToken, expiresAt);
     }
 
-    // Slot times are stored as "HH:mm" against a UTC date.
     private static DateTime CombineDateAndTime(DateTime date, string time)
     {
         var parts = time.Split(':');
-        var hour = int.Parse(parts[0], CultureInfo.InvariantCulture);
-        var minute = int.Parse(parts[1], CultureInfo.InvariantCulture);
-
+        var hour = int.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture);
+        var minute = int.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
         return new DateTime(date.Year, date.Month, date.Day, hour, minute, 0, DateTimeKind.Utc);
     }
 }
