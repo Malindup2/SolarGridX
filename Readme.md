@@ -974,6 +974,21 @@ All rules are enforced inside the Web API service layer. No client evaluates the
 | **BR-08** | A QR token is single-use and expires at the slot end time | `QrVerificationService.Verify` |
 | **BR-09** | A slot cannot be deleted or reduced below its reserved count | `SlotService.Update`, `Delete` |
 | **BR-10** | Only `Active` prosumers may create reservations | `ReservationService.Create` |
+| **BR-11** | A reservation's date and times must match the slot it books | `ReservationService.Create` | `SLOT_SCHEDULE_MISMATCH` |
+| **BR-12** | Booked energy cannot exceed the slot's capacity | `ReservationService.Create`, `Update` | `ENERGY_EXCEEDS_SLOT_CAPACITY` |
+| **BR-13** | A slot holds at most one reservation per battery bay at the node | `ReservationService.Create` | `SLOT_FULL` |
+| **BR-14** | One prosumer cannot hold two live reservations for the same slot | `ReservationService.Create`, `Reschedule` | `SLOT_ALREADY_RESERVED` |
+| **BR-15** | A prosumer may only read or change their own reservations and QR tokens | `ReservationService`, `QrIssueService.Get` | `NOT_RESERVATION_OWNER`, `NOT_TOKEN_OWNER` |
+| **BR-16** | Only a `Pending` reservation may be updated or rescheduled; an approved one carries an issued QR token | `ReservationService.Update`, `Reschedule` | `RESERVATION_NOT_MODIFIABLE` |
+| **BR-17** | Only a `Pending` reservation may be approved or rejected | `ReservationService.Approve`, `Reject` | `RESERVATION_ALREADY_DECIDED` |
+| **BR-18** | Reservations cannot be made against an inactive node or an offline slot | `ReservationService.Create` | `STATION_INACTIVE`, `SLOT_UNAVAILABLE` |
+| **BR-19** | Slots for one station and date may not overlap in time | `SlotService.Create`, `Update` | `SLOT_OVERLAP` |
+| **BR-20** | Slots are generated once per station per date | `SlotService.Generate` | `SLOTS_ALREADY_GENERATED` |
+| **BR-21** | Slots cannot be generated for a past date, and generating for today skips hours that have already passed | `SlotService.Generate` | `PAST_DATE_NOT_ALLOWED`, `NO_REMAINING_SLOTS_TODAY` |
+| **BR-22** | A node cannot be deleted while slots or reservations reference it | `StationService.Delete` | `STATION_HAS_DEPENDENCIES` |
+| **BR-23** | A QR token is only accepted at the node it was issued for, and a reissued token supersedes the old one | `QrVerificationService.Verify` | `QR_STATION_MISMATCH`, `QR_TOKEN_SUPERSEDED` |
+| **BR-24** | A user cannot change their own role or status, or delete their own account | `UserService.Update`, `Delete` | `CANNOT_CHANGE_OWN_ACCESS` |
+
 
 **Status lifecycle**
 

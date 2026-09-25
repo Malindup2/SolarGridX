@@ -24,15 +24,16 @@ public class EmailService(IOptions<EmailSettings> settings, ILogger<EmailService
             - SolarGridX
             """);
 
-    public Task SendAccountCreatedEmailAsync(string toEmail, string fullName, string role, string temporaryPassword) =>
+    public Task SendAccountCreatedEmailAsync(
+        string toEmail, string fullName, string role, string temporaryPassword, string signInApp = "web application") =>
         SendAsync(
             toEmail,
             "Your SolarGridX account - sign-in details",
             $"""
             Hi {fullName},
 
-            A SolarGridX {role} account has been created for you. Sign in on the web
-            application with:
+            A SolarGridX {role} account has been created for you. Sign in on the
+            {signInApp} with:
 
             Email:    {toEmail}
             Password: {temporaryPassword}
