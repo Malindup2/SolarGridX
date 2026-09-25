@@ -11,9 +11,10 @@ namespace MicrogridApi.Validators;
 
 public sealed class CreateStationRequestValidator : AbstractValidator<CreateStationRequest>
 {
+     // Reject missing or invalid station details before any database write.
     public CreateStationRequestValidator()
     {
-        // Reject missing or invalid station details before any database write.
+
         RuleFor(x => x.StationName).NotEmpty().MaximumLength(120);
         RuleFor(x => x.Location).NotEmpty().MaximumLength(250);
 
@@ -78,18 +79,20 @@ public sealed class CreateStationRequestValidator : AbstractValidator<CreateStat
         });
     }
 
+    // Checks for a time in 24-hour HH:mm format.
     private static bool IsValidTime(string? value)
     {
-        // Accept a 24-hour time such as 08:00 or 18:30.
+
         return TimeOnly.TryParseExact(
             value, "HH:mm",
             CultureInfo.InvariantCulture, DateTimeStyles.None,
             out _);
     }
 
+    // Checks for a nonempty list of unique weekday names.
     private static bool HasValidDays(List<string>? days)
     {
-        // Allow each named weekday once; do not accept numeric enum values.
+
         if (days is not { Count: > 0 })
         {
             return false;
