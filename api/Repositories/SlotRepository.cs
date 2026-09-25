@@ -94,5 +94,13 @@ public class SlotRepository
                 .Set(s => s.IsAvailable, isAvailable)
                 .Set(s => s.UpdatedAt, DateTime.UtcNow));
 
+    
+    public Task AdjustReservedCountAsync(string id, int delta) =>
+        _slots.UpdateOneAsync(
+            s => s.Id == id && s.ReservedCount >= (delta < 0 ? -delta : 0),
+            Builders<EnergyBookingSlot>.Update
+                .Inc(s => s.ReservedCount, delta)
+                .Set(s => s.UpdatedAt, DateTime.UtcNow));
+
     public Task DeleteAsync(string id) => _slots.DeleteOneAsync(s => s.Id == id);
 }
