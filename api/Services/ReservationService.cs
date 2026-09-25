@@ -115,6 +115,61 @@ public class ReservationService(
     }
 
     // A prosumer may only act on their own NIC
+    // Lists reservations. A prosumer only ever sees their own, whatever the
+    // query string asks for.
+    public async Task<Result<List<ReservationResponse>>> ListAsync(
+        string? nic, string? status, string? stationId, string? callerNic, string? callerRole)
+    {
+        ReservationStatus? parsedStatus = null;
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (!Enum.TryParse<ReservationStatus>(status, ignoreCase: true, out var value)
+                || !Enum.IsDefined(value))
+            {
+                return Error.Validation(
+                    "VALIDATION_FAILED",
+                    "One or more validation errors occurred.",
+                    [$"status: '{status}' is not a known reservation status."]);
+            }
+
+            parsedStatus = value;
+        }
+
+        var effectiveNic = callerRole == RoleNames.Prosumer ? callerNic : nic;
+        var reservations = await reservationRepository.FindAsync(effectiveNic, parsedStatus, stationId);
+        var stationNames = await StationNamesAsync();
+
+        return reservations
+            .Select(r => ToResponse(r, stationNames.GetValueOrDefault(r.StationId, string.Empty)))
+            .ToList();
+    }
+
+    // Returns one reservation, refusing a prosumer who asks for another's.
+    public async Task<Result<ReservationResponse>> GetByIdAsync(
+        string id, string? callerNic, string? callerRole)
+    {
+        var reservation = await reservationRepository.FindByIdAsync(id);
+        if (reservation is null)
+        {
+            return ReservationErrors.NotFound;
+        }
+
+        if (!IsOwnRecord(callerRole, callerNic, reservation.Nic))
+        {
+            return ReservationErrors.NotOwner;
+        }
+
+        var station = await stationRepository.FindByIdAsync(reservation.StationId);
+        return ToResponse(reservation, station?.StationName ?? string.Empty);
+    }
+
+    private async Task<Dictionary<string, string>> StationNamesAsync()
+    {
+        var stations = await stationRepository.GetAllAsync();
+        return stations.ToDictionary(s => s.Id, s => s.StationName);
+    }
+
     private static bool IsOwnRecord(string? callerRole, string? callerNic, string recordNic) =>
         callerRole != RoleNames.Prosumer ||
         string.Equals(callerNic, recordNic, StringComparison.OrdinalIgnoreCase);

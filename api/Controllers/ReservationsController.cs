@@ -1,10 +1,3 @@
-/*
- * ReservationsController.cs
- * HTTP surface for the energy reservation lifecycle (README section 10.3).
- * Rules live in ReservationService; this layer checks the request shape and
- * maps results onto status codes.
- */
-
 using FluentValidation;
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Reservations;
@@ -40,5 +33,31 @@ public class ReservationsController(
         var result = await reservationService.CreateAsync(request, CallerNic, CallerRole);
         return ToResponse(result, reservation =>
             StatusCode(StatusCodes.Status201Created, reservation));
+    }
+
+    // Lists reservations
+    [HttpGet]
+    [ProducesResponseType(typeof(List<ReservationResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> List(
+        [FromQuery] string? nic,
+        [FromQuery] string? status,
+        [FromQuery] string? stationId)
+    {
+        var result = await reservationService.ListAsync(nic, status, stationId, CallerNic, CallerRole);
+        return ToResponse(result, reservations => Ok(reservations));
+    }
+
+    // Returns a single reservation.
+    [HttpGet("{id}")]
+    [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetById(string id)
+    {
+        var result = await reservationService.GetByIdAsync(id, CallerNic, CallerRole);
+        return ToResponse(result, reservation => Ok(reservation));
     }
 }
