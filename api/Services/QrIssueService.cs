@@ -13,6 +13,11 @@ public class QrIssueService(ReservationRepository reservationRepository, IOption
 
     public async Task<Result<QrTokenResponse>> IssueAsync(string reservationId)
     {
+        if (!ObjectIds.IsValid(reservationId))
+        {
+            return QrErrors.ReservationNotFound;
+        }
+
         var reservation = await reservationRepository.FindByIdAsync(reservationId);
         if (reservation is null)
         {
@@ -44,12 +49,25 @@ public class QrIssueService(ReservationRepository reservationRepository, IOption
         return new QrTokenResponse(reservation.Id, token, expiresAt);
     }
 
-    public async Task<Result<QrTokenResponse>> GetAsync(string reservationId)
+    public async Task<Result<QrTokenResponse>> GetAsync(
+        string reservationId, string? callerNic, string? callerRole)
     {
+        if (!ObjectIds.IsValid(reservationId))
+        {
+            return QrErrors.ReservationNotFound;
+        }
+
         var reservation = await reservationRepository.FindByIdAsync(reservationId);
         if (reservation is null)
         {
             return QrErrors.ReservationNotFound;
+        }
+
+        // A prosumer may only fetch the token for their own reservation.
+        if (callerRole == RoleNames.Prosumer &&
+            !string.Equals(callerNic, reservation.Nic, StringComparison.OrdinalIgnoreCase))
+        {
+            return QrErrors.NotTokenOwner;
         }
 
         if (string.IsNullOrEmpty(reservation.QrToken))
