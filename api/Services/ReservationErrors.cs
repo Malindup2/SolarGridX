@@ -1,9 +1,3 @@
-/*
- * ReservationErrors.cs
- * Expected failures returned by ReservationService, following the Result
- * pattern described in README section 10.1.
- */
-
 using MicrogridApi.Common;
 
 namespace MicrogridApi.Services;
@@ -67,4 +61,17 @@ public static class ReservationErrors
             "RESERVATION_WINDOW_EXCEEDED",
             "Reservations must be scheduled within 7 days.",
             [$"reservationDate: {reservationDate:yyyy-MM-dd} is {daysAhead} days from today"]);
+
+    // BR-02 and BR-03: changes need at least 12 hours' notice.
+    public static Error NoticeTooShort(double hoursRemaining) =>
+        Error.Validation(
+            "RESERVATION_NOTICE_TOO_SHORT",
+            "Changes require at least 12 hours' notice before the slot starts.",
+            [$"startTime: the slot starts in {hoursRemaining:0.#} hours"]);
+
+    public static Error NotModifiable(string status) =>
+        Error.Conflict("RESERVATION_NOT_MODIFIABLE", $"A {status} reservation can no longer be changed.");
+
+    public static readonly Error SameSlot =
+        Error.Validation("RESERVATION_SAME_SLOT", "The reservation already uses this slot.");
 }

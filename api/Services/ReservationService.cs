@@ -1,3 +1,4 @@
+using System.Globalization;
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Reservations;
 using MicrogridApi.Models;
@@ -13,6 +14,9 @@ public class ReservationService(
 {
     
     private const int BookingWindowDays = 7;
+
+    // BR-02 and BR-03: changes need at least this many hours' notice.
+    private const int MinimumNoticeHours = 12;
 
     // Creates a Pending reservation against an available slot.
     public async Task<Result<ReservationResponse>> CreateAsync(
@@ -115,6 +119,120 @@ public class ReservationService(
     }
 
     // A prosumer may only act on their own NIC
+    // Changes the energy booked on a Pending reservation. BR-02 applies.
+    public async Task<Result<ReservationResponse>> UpdateAsync(
+        string id, UpdateReservationRequest request, string? callerNic, string? callerRole)
+    {
+        var loaded = await LoadModifiableAsync(id, callerNic, callerRole);
+        if (loaded.Error is not null)
+        {
+            return loaded.Error;
+        }
+
+        var reservation = loaded.Reservation!;
+
+        var slot = await slotRepository.FindByIdAsync(reservation.SlotId);
+        if (slot is null)
+        {
+            return ReservationErrors.SlotNotFound;
+        }
+
+        if (request.EnergyKwh > slot.CapacityKwh)
+        {
+            return ReservationErrors.EnergyExceedsSlotCapacity(request.EnergyKwh, slot.CapacityKwh);
+        }
+
+        reservation.EnergyKwh = request.EnergyKwh;
+        reservation.UpdatedAt = DateTime.UtcNow;
+        await reservationRepository.ReplaceAsync(reservation);
+
+        var station = await stationRepository.FindByIdAsync(reservation.StationId);
+        return ToResponse(reservation, station?.StationName ?? string.Empty);
+    }
+
+    // Moves a Pending reservation onto a different slot. BR-01 and BR-02 apply.
+    public async Task<Result<ReservationResponse>> RescheduleAsync(
+        string id, RescheduleReservationRequest request, string? callerNic, string? callerRole)
+    {
+        var loaded = await LoadModifiableAsync(id, callerNic, callerRole);
+        if (loaded.Error is not null)
+        {
+            return loaded.Error;
+        }
+
+        var reservation = loaded.Reservation!;
+
+        if (reservation.SlotId == request.SlotId)
+        {
+            return ReservationErrors.SameSlot;
+        }
+
+        var slot = await slotRepository.FindByIdAsync(request.SlotId);
+        if (slot is null)
+        {
+            return ReservationErrors.SlotNotFound;
+        }
+
+        if (!slot.IsAvailable)
+        {
+            return ReservationErrors.SlotUnavailable;
+        }
+
+        var station = await stationRepository.FindByIdAsync(slot.StationId);
+        if (station is null)
+        {
+            return ReservationErrors.StationNotFound;
+        }
+
+        if (station.Status != StationStatus.Active)
+        {
+            return ReservationErrors.StationInactive;
+        }
+
+        // The new slot must satisfy both the booking window and the notice rule.
+        var windowError = ValidateBookingWindow(slot.SlotDate);
+        if (windowError is not null)
+        {
+            return windowError;
+        }
+
+        var noticeError = ValidateNotice(slot.SlotDate, slot.StartTime);
+        if (noticeError is not null)
+        {
+            return noticeError;
+        }
+
+        if (reservation.EnergyKwh > slot.CapacityKwh)
+        {
+            return ReservationErrors.EnergyExceedsSlotCapacity(reservation.EnergyKwh, slot.CapacityKwh);
+        }
+
+        if (station.BatterySlotCount > 0 && slot.ReservedCount >= station.BatterySlotCount)
+        {
+            return ReservationErrors.SlotFull;
+        }
+
+        if (await reservationRepository.ExistsLiveForSlotAsync(reservation.Nic, slot.Id))
+        {
+            return ReservationErrors.AlreadyReserved(reservation.Nic);
+        }
+
+        var previousSlotId = reservation.SlotId;
+
+        reservation.SlotId = slot.Id;
+        reservation.StationId = slot.StationId;
+        reservation.ReservationDate = slot.SlotDate;
+        reservation.StartTime = slot.StartTime;
+        reservation.EndTime = slot.EndTime;
+        reservation.UpdatedAt = DateTime.UtcNow;
+
+        await reservationRepository.ReplaceAsync(reservation);
+        await slotRepository.AdjustReservedCountAsync(slot.Id, 1);
+        await slotRepository.AdjustReservedCountAsync(previousSlotId, -1);
+
+        return ToResponse(reservation, station.StationName);
+    }
+
     // Lists reservations. A prosumer only ever sees their own, whatever the
     // query string asks for.
     public async Task<Result<List<ReservationResponse>>> ListAsync(
@@ -168,6 +286,51 @@ public class ReservationService(
     {
         var stations = await stationRepository.GetAllAsync();
         return stations.ToDictionary(s => s.Id, s => s.StationName);
+    }
+
+    // Shared guard for the change endpoints: the reservation must exist, belong
+    // to the caller, still be Pending, and leave enough notice (BR-02).
+    private async Task<(EnergyReservation? Reservation, Error? Error)> LoadModifiableAsync(
+        string id, string? callerNic, string? callerRole)
+    {
+        var reservation = await reservationRepository.FindByIdAsync(id);
+        if (reservation is null)
+        {
+            return (null, ReservationErrors.NotFound);
+        }
+
+        if (!IsOwnRecord(callerRole, callerNic, reservation.Nic))
+        {
+            return (null, ReservationErrors.NotOwner);
+        }
+
+        if (reservation.Status != ReservationStatus.Pending)
+        {
+            return (null, ReservationErrors.NotModifiable(reservation.Status.ToString()));
+        }
+
+        var noticeError = ValidateNotice(reservation.ReservationDate, reservation.StartTime);
+        return noticeError is not null ? (null, noticeError) : (reservation, null);
+    }
+
+    // BR-02 and BR-03: at least 12 hours before the slot starts.
+    private static Error? ValidateNotice(DateTime reservationDate, string startTime)
+    {
+        var hoursRemaining = (CombineDateAndTime(reservationDate, startTime) - DateTime.UtcNow).TotalHours;
+
+        return hoursRemaining < MinimumNoticeHours
+            ? ReservationErrors.NoticeTooShort(hoursRemaining)
+            : null;
+    }
+
+    // Slot times are stored as "HH:mm" against a UTC date.
+    private static DateTime CombineDateAndTime(DateTime date, string time)
+    {
+        var parts = time.Split(':');
+        var hour = int.Parse(parts[0], CultureInfo.InvariantCulture);
+        var minute = int.Parse(parts[1], CultureInfo.InvariantCulture);
+
+        return new DateTime(date.Year, date.Month, date.Day, hour, minute, 0, DateTimeKind.Utc);
     }
 
     private static bool IsOwnRecord(string? callerRole, string? callerNic, string recordNic) =>

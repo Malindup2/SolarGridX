@@ -11,7 +11,9 @@ namespace MicrogridApi.Controllers;
 [Authorize]
 public class ReservationsController(
     ReservationService reservationService,
-    IValidator<CreateReservationRequest> createValidator) : ApiControllerBase
+    IValidator<CreateReservationRequest> createValidator,
+    IValidator<UpdateReservationRequest> updateValidator,
+    IValidator<RescheduleReservationRequest> rescheduleValidator) : ApiControllerBase
 {
     // Creates a Pending reservation for an available slot.
     [HttpPost]
@@ -58,6 +60,48 @@ public class ReservationsController(
     public async Task<IActionResult> GetById(string id)
     {
         var result = await reservationService.GetByIdAsync(id, CallerNic, CallerRole);
+        return ToResponse(result, reservation => Ok(reservation));
+    }
+
+    // Changes the energy booked on a Pending reservation (BR-02).
+    [HttpPut("{id}")]
+    [Authorize(Roles = RoleNames.Prosumer)]
+    [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Update(string id, UpdateReservationRequest request)
+    {
+        var invalid = await ValidateAsync(updateValidator, request);
+        if (invalid is not null)
+        {
+            return ToErrorResponse(invalid);
+        }
+
+        var result = await reservationService.UpdateAsync(id, request, CallerNic, CallerRole);
+        return ToResponse(result, reservation => Ok(reservation));
+    }
+
+    // Moves a Pending reservation onto a different slot (BR-01 and BR-02).
+    [HttpPatch("{id}/reschedule")]
+    [Authorize(Roles = RoleNames.Prosumer)]
+    [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reschedule(string id, RescheduleReservationRequest request)
+    {
+        var invalid = await ValidateAsync(rescheduleValidator, request);
+        if (invalid is not null)
+        {
+            return ToErrorResponse(invalid);
+        }
+
+        var result = await reservationService.RescheduleAsync(id, request, CallerNic, CallerRole);
         return ToResponse(result, reservation => Ok(reservation));
     }
 }
