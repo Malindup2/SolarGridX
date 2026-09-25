@@ -141,6 +141,22 @@ builder.Services.AddAuthentication(options =>
             if (string.IsNullOrEmpty(tokenId) || await revokedTokens.IsRevokedAsync(tokenId))
             {
                 context.Fail("The token has no identifier or has been revoked.");
+                return;
+            }
+
+            // Tokens outlive account changes, so the account is re-checked on every request with the same rules as login.
+            var userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? context.Principal?.FindFirstValue(JwtRegisteredClaimNames.Sub);
+            var user = ObjectId.TryParse(userId, out _)
+                ? await context.HttpContext.RequestServices.GetRequiredService<UserRepository>().FindByIdAsync(userId!)
+                : null;
+
+            if (user is null
+                || user.Status == UserStatus.Deactivated
+                || (user.Role != Role.Prosumer && user.Status != UserStatus.Active)
+                || user.Role.ToString() != context.Principal?.FindFirstValue(ClaimTypes.Role))
+            {
+                context.Fail("The account no longer exists, is not active, or its role has changed.");
             }
         },
         OnChallenge = async context =>

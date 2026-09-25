@@ -1,0 +1,292 @@
+{
+  "info": {
+    "name": "SolarGridX - Identity (Users & Prosumers)",
+    "description": "Member 2 endpoints. Run the folders top to bottom: 0 logs in and stores the token, later requests reuse the saved ids.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:5187/api" },
+    { "key": "adminEmail", "value": "admin@solargridx.com" },
+    { "key": "adminPassword", "value": "Admin@12345" },
+    { "key": "token", "value": "" },
+    { "key": "prosumerToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "prosumerNic", "value": "200012345678" },
+    { "key": "createdProsumerNic", "value": "199912345678" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "item": [
+    {
+      "name": "0. Auth",
+      "item": [
+        {
+          "name": "Login as Backoffice admin",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('token', pm.response.json().token);"
+            ] }
+          }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-Client-Type", "value": "web" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\"\n}" }
+          }
+        },
+        {
+          "name": "Register prosumer (mobile flow, starts Pending)",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 Created (409 if already registered)', () => pm.expect(pm.response.code).to.be.oneOf([200, 201, 409]));"
+            ] }
+          }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/auth/register",
+            "body": { "mode": "raw", "raw": "{\n  \"nic\": \"{{prosumerNic}}\",\n  \"password\": \"Prosumer@123\",\n  \"fullName\": \"Kamal Silva\",\n  \"email\": \"kamal@example.com\",\n  \"phone\": \"0771234567\",\n  \"address\": \"12 Temple Rd, Kandy\"\n}" }
+          }
+        },
+        {
+          "name": "Login as that prosumer",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('200 OK', () => pm.response.to.have.status(200));",
+              "pm.collectionVariables.set('prosumerToken', pm.response.json().token);"
+            ] }
+          }],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }, { "key": "X-Client-Type", "value": "mobile" }],
+            "url": "{{baseUrl}}/auth/login",
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"kamal@example.com\",\n  \"password\": \"Prosumer@123\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Users (Backoffice only)",
+      "item": [
+        {
+          "name": "Create Grid Operator",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": [
+              "pm.test('201 Created', () => pm.response.to.have.status(201));",
+              "if (pm.response.code === 201) pm.collectionVariables.set('userId', pm.response.json().id);"
+            ] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/users",
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Nimal Perera\",\n  \"email\": \"nimal@solargridx.com\",\n  \"password\": \"Temp@12345\",\n  \"role\": \"GridOperator\"\n}" }
+          }
+        },
+        {
+          "name": "List users",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+          }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/users" }
+        },
+        {
+          "name": "Update user",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+          }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/users/{{userId}}",
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Nimal Perera (updated)\",\n  \"email\": \"nimal@solargridx.com\",\n  \"role\": \"GridOperator\",\n  \"status\": \"Active\",\n  \"phone\": \"0711111111\"\n}" }
+          }
+        },
+        {
+          "name": "Create user with bad role -> 400",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('400 VALIDATION_FAILED', () => pm.response.to.have.status(400));"] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/users",
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Bad Role\",\n  \"email\": \"bad@solargridx.com\",\n  \"password\": \"Temp@12345\",\n  \"role\": \"Prosumer\"\n}" }
+          }
+        },
+        {
+          "name": "List users without token -> 401",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('401 Unauthorized', () => pm.response.to.have.status(401));"] }
+          }],
+          "request": { "auth": { "type": "noauth" }, "method": "GET", "url": "{{baseUrl}}/users" }
+        },
+        {
+          "name": "List users as prosumer -> 403",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"] }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{prosumerToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/users"
+          }
+        },
+        {
+          "name": "Delete user",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('204 No Content', () => pm.response.to.have.status(204));"] }
+          }],
+          "request": { "method": "DELETE", "url": "{{baseUrl}}/users/{{userId}}" }
+        }
+      ]
+    },
+    {
+      "name": "2. Prosumers",
+      "item": [
+        {
+          "name": "List prosumers",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+          }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/prosumers" }
+        },
+        {
+          "name": "List prosumers ?status=Active",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+          }],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/prosumers?status=Active", "host": ["{{baseUrl}}"], "path": ["prosumers"], "query": [{ "key": "status", "value": "Active" }] }
+          }
+        },
+        {
+          "name": "Pending queue",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+          }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/prosumers/pending" }
+        },
+        {
+          "name": "Create prosumer from admin console (BR-06)",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('201 Created (409 on re-run)', () => pm.expect(pm.response.code).to.be.oneOf([201, 409]));"] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/prosumers",
+            "body": { "mode": "raw", "raw": "{\n  \"nic\": \"{{createdProsumerNic}}\",\n  \"fullName\": \"Sunil Fernando\",\n  \"email\": \"sunil@example.com\",\n  \"password\": \"Temp@12345\",\n  \"phone\": \"0779876543\",\n  \"address\": \"5 Lake Rd, Galle\"\n}" }
+          }
+        },
+        {
+          "name": "Create same NIC again -> 409 (BR-06)",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('409 NIC_ALREADY_REGISTERED', () => pm.response.to.have.status(409));"] }
+          }],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/prosumers",
+            "body": { "mode": "raw", "raw": "{\n  \"nic\": \"{{createdProsumerNic}}\",\n  \"fullName\": \"Duplicate\",\n  \"email\": \"dupe@example.com\",\n  \"password\": \"Temp@12345\"\n}" }
+          }
+        },
+        {
+          "name": "Get prosumer by NIC",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+          }],
+          "request": { "method": "GET", "url": "{{baseUrl}}/prosumers/{{prosumerNic}}" }
+        },
+        {
+          "name": "Update prosumer (as Backoffice)",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+          }],
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": "{{baseUrl}}/prosumers/{{prosumerNic}}",
+            "body": { "mode": "raw", "raw": "{\n  \"fullName\": \"Kamal Silva\",\n  \"email\": \"kamal@example.com\",\n  \"phone\": \"0770000000\",\n  \"address\": \"99 New Rd, Kandy\"\n}" }
+          }
+        },
+        {
+          "name": "Prosumer views someone else's profile -> 403",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('403 NOT_OWN_PROFILE', () => pm.response.to.have.status(403));"] }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{prosumerToken}}", "type": "string" }] },
+            "method": "GET",
+            "url": "{{baseUrl}}/prosumers/{{createdProsumerNic}}"
+          }
+        },
+        {
+          "name": "Activate pending prosumer (BR-05)",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+          }],
+          "request": { "method": "PATCH", "url": "{{baseUrl}}/prosumers/{{prosumerNic}}/activate" }
+        },
+        {
+          "name": "Prosumer deactivates own account",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{prosumerToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "url": "{{baseUrl}}/prosumers/{{prosumerNic}}/deactivate"
+          }
+        },
+        {
+          "name": "Prosumer tries to reactivate -> 403 (BR-05)",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('403 Forbidden', () => pm.response.to.have.status(403));"] }
+          }],
+          "request": {
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{prosumerToken}}", "type": "string" }] },
+            "method": "PATCH",
+            "url": "{{baseUrl}}/prosumers/{{prosumerNic}}/activate"
+          }
+        },
+        {
+          "name": "Backoffice reactivates (BR-05)",
+          "event": [{
+            "listen": "test",
+            "script": { "exec": ["pm.test('200 OK', () => pm.response.to.have.status(200));"] }
+          }],
+          "request": { "method": "PATCH", "url": "{{baseUrl}}/prosumers/{{prosumerNic}}/activate" }
+        }
+      ]
+    }
+  ]
+}
