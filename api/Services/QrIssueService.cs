@@ -1,0 +1,78 @@
+using MicrogridApi.Common;
+using MicrogridApi.Configuration;
+using MicrogridApi.DTOs.Qr;
+using MicrogridApi.Models;
+using MicrogridApi.Repositories;
+using Microsoft.Extensions.Options;
+
+namespace MicrogridApi.Services;
+
+public class QrIssueService(ReservationRepository reservationRepository, IOptions<QrSettings> qrSettings)
+{
+    private readonly QrSettings _settings = qrSettings.Value;
+
+    public async Task<Result<QrTokenResponse>> IssueAsync(string reservationId)
+    {
+        var reservation = await reservationRepository.FindByIdAsync(reservationId);
+        if (reservation is null)
+        {
+            return QrErrors.ReservationNotFound;
+        }
+
+        // BR-07: only an Approved reservation may receive a QR code.
+        if (reservation.Status != ReservationStatus.Approved)
+        {
+            return QrErrors.ReservationNotApproved;
+        }
+
+        var issuedAt = DateTime.UtcNow;
+        var expiresAt = CombineDateAndTime(reservation.ReservationDate, reservation.EndTime);
+
+        var issuedAtIso = issuedAt.ToString("o");
+        var expIso = expiresAt.ToString("o");
+
+        var signature = QrTokenCodec.ComputeSignature(
+            _settings.HmacSecret, reservation.Id, reservation.Nic, reservation.StationId, issuedAtIso, expIso);
+
+        var payload = new QrTokenCodec.QrPayload(
+            reservation.Id, reservation.Nic, reservation.StationId, issuedAtIso, expIso, signature);
+
+        var token = QrTokenCodec.Encode(payload);
+
+        await reservationRepository.SetQrTokenAsync(reservation.Id, token);
+
+        return new QrTokenResponse(reservation.Id, token, expiresAt);
+    }
+
+    public async Task<Result<QrTokenResponse>> GetAsync(string reservationId)
+    {
+        var reservation = await reservationRepository.FindByIdAsync(reservationId);
+        if (reservation is null)
+        {
+            return QrErrors.ReservationNotFound;
+        }
+
+        if (string.IsNullOrEmpty(reservation.QrToken))
+        {
+            return QrErrors.QrNotIssued;
+        }
+
+        var payload = QrTokenCodec.TryDecode(reservation.QrToken);
+        if (payload is null)
+        {
+            return QrErrors.TokenMalformed;
+        }
+
+        var expiresAt = DateTime.Parse(payload.Exp, null, System.Globalization.DateTimeStyles.RoundtripKind);
+
+        return new QrTokenResponse(reservation.Id, reservation.QrToken, expiresAt);
+    }
+
+    private static DateTime CombineDateAndTime(DateTime date, string time)
+    {
+        var parts = time.Split(':');
+        var hour = int.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture);
+        var minute = int.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
+        return new DateTime(date.Year, date.Month, date.Day, hour, minute, 0, DateTimeKind.Utc);
+    }
+}

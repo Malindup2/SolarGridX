@@ -9,10 +9,15 @@ namespace MicrogridApi.Controllers;
 [ApiController]
 public abstract class ApiControllerBase : ControllerBase
 {
+    // Identity of the signed-in caller, read from the JWT.
     protected string? CallerId =>
         User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue(JwtRegisteredClaimNames.Sub);
 
     protected string? CallerRole => User.FindFirstValue(ClaimTypes.Role);
+
+    protected string? CallerNic => User.FindFirstValue("nic");
+
+    protected string? CallerName => User.FindFirstValue(ClaimTypes.Name);
 
     protected static async Task<Error?> ValidateAsync<T>(IValidator<T> validator, T instance)
     {

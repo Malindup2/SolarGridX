@@ -352,6 +352,9 @@ Edit `appsettings.Development.json`:
     "Audience": "SmartMicrogridClients",
     "ExpiryMinutes": 120
   },
+  "QrSettings": {
+    "HmacSecret": "<a-long-random-secret-at-least-32-characters>"
+  },
   "EmailSettings": {
     "Host": "smtp.gmail.com",
     "Port": 587,
@@ -369,7 +372,9 @@ Edit `appsettings.Development.json`:
 }
 ```
 
-> **First administrator.** On startup the API creates one `Backoffice` account from `SeedAdmin` if — and only if — no Backoffice user exists yet, so restarts never duplicate or overwrite it. That administrator signs in with the configured email and password and creates the Grid Operators (and any further Backoffice users) through `POST /users`. If `SeedAdmin` is not configured, the API logs a warning and creates nothing; there is no password built into the code.
+> **`QrSettings:HmacSecret` is required.** It signs the QR transaction tokens, and the API **refuses to start** without it, in the same way as `JwtSettings:Secret`. Every member and every deployment needs a value, and all of them must use the **same** value — a token signed with one secret fails verification against another.
+
+**First administrator.** On startup the API creates one `Backoffice` account from `SeedAdmin` if — and only if — no Backoffice user exists yet, so restarts never duplicate or overwrite it. That administrator signs in with the configured email and password and creates the Grid Operators (and any further Backoffice users) through `POST /users`. If `SeedAdmin` is not configured, the API logs a warning and creates nothing; there is no password built into the code.
 
 **Default administrator (development and demo)**
 
@@ -547,7 +552,7 @@ The output contains the API, `web.config` (the ASP.NET Core Module handler, in-p
 
 ### 8.3 Provide the API settings
 
-IIS runs the API as `Production`. Settings are read in this order, and **later sources win**: `appsettings.json` → `appsettings.Production.json` → `appsettings.Development.json` (loaded whenever the file is present) → environment variables. Provide `MongoDbSettings`, `JwtSettings`, `EmailSettings`, `SeedAdmin` and `Cors` (section 7.3) in one of these ways:
+IIS runs the API as `Production`. Settings are read in this order, and **later sources win**: `appsettings.json` → `appsettings.Production.json` → `appsettings.Development.json` (loaded whenever the file is present) → environment variables. Provide `MongoDbSettings`, `JwtSettings`, `QrSettings`, `EmailSettings`, `SeedAdmin` and `Cors` (section 7.3) in one of these ways:
 
 - **Simplest:** keep your `appsettings.Development.json` in `api/` before publishing — it is copied into the publish folder and picked up automatically.
 - Add an `appsettings.Production.json` to the publish folder, or
