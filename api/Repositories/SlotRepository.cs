@@ -13,10 +13,6 @@ public class SlotRepository
         _slots = context.GetCollection<EnergyBookingSlot>("EnergyBookingSlots");
     }
 
-    // Ensures every date used for storage or comparison is an unambiguous
-    // UTC midnight value, regardless of how it arrived (JSON body, existing
-    // document, etc.). This avoids inconsistent timezone conversion by the
-    // MongoDB driver when DateTime.Kind is Unspecified.
     private static DateTime NormalizeDate(DateTime date) =>
         DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
 
@@ -56,10 +52,6 @@ public class SlotRepository
         return await _slots.Find(filter).SortBy(s => s.SlotDate).ThenBy(s => s.StartTime).ToListAsync();
     }
 
-    // Interval-overlap check: an existing slot overlaps a candidate slot when
-    // existing.Start < candidate.End AND existing.End > candidate.Start.
-    // Works correctly because times are stored as zero-padded "HH:mm" strings,
-    // which sort/compare lexically the same as they would numerically.
     public Task<bool> HasOverlapAsync(string stationId, DateTime date, string startTime, string endTime, string? excludeId = null)
     {
         var normalized = NormalizeDate(date);
@@ -94,13 +86,18 @@ public class SlotRepository
                 .Set(s => s.IsAvailable, isAvailable)
                 .Set(s => s.UpdatedAt, DateTime.UtcNow));
 
-    
-    public Task AdjustReservedCountAsync(string id, int delta) =>
+    public Task DeleteAsync(string id) => _slots.DeleteOneAsync(s => s.Id == id);
+
+    // Atomically increments (positive delta) or decrements (negative delta)
+    // a slot's reserved count. Called by Member 1's ReservationService when a
+    // reservation is created, rejected, cancelled, or rescheduled onto a
+    // different slot — this is the single place ReservedCount is mutated, so
+    // BR-09's delete/capacity-reduction checks in this file always see a
+    // consistent value.
+    public Task AdjustReservedCountAsync(string slotId, int delta) =>
         _slots.UpdateOneAsync(
-            s => s.Id == id && s.ReservedCount >= (delta < 0 ? -delta : 0),
+            s => s.Id == slotId,
             Builders<EnergyBookingSlot>.Update
                 .Inc(s => s.ReservedCount, delta)
                 .Set(s => s.UpdatedAt, DateTime.UtcNow));
-
-    public Task DeleteAsync(string id) => _slots.DeleteOneAsync(s => s.Id == id);
 }
