@@ -17,6 +17,8 @@ public abstract class ApiControllerBase : ControllerBase
 
     protected string? CallerNic => User.FindFirstValue("nic");
 
+    protected string? CallerName => User.FindFirstValue(ClaimTypes.Name);
+
     protected static async Task<Error?> ValidateAsync<T>(IValidator<T> validator, T instance)
     {
         var result = await validator.ValidateAsync(instance);

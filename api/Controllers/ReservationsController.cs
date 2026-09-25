@@ -13,7 +13,8 @@ public class ReservationsController(
     ReservationService reservationService,
     IValidator<CreateReservationRequest> createValidator,
     IValidator<UpdateReservationRequest> updateValidator,
-    IValidator<RescheduleReservationRequest> rescheduleValidator) : ApiControllerBase
+    IValidator<RescheduleReservationRequest> rescheduleValidator,
+    IValidator<RejectReservationRequest> rejectValidator) : ApiControllerBase
 {
     // Creates a Pending reservation for an available slot.
     [HttpPost]
@@ -116,6 +117,41 @@ public class ReservationsController(
     public async Task<IActionResult> Cancel(string id)
     {
         var result = await reservationService.CancelAsync(id, CallerNic, CallerRole);
+        return ToResponse(result, reservation => Ok(reservation));
+    }
+
+    // Approves a Pending reservation and issues its QR token (BR-07).
+    [HttpPatch("{id}/approve")]
+    [Authorize(Roles = RoleNames.GridOperator)]
+    [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Approve(string id)
+    {
+        var result = await reservationService.ApproveAsync(id, CallerName);
+        return ToResponse(result, reservation => Ok(reservation));
+    }
+
+    // Rejects a Pending reservation with a reason and frees the slot.
+    [HttpPatch("{id}/reject")]
+    [Authorize(Roles = RoleNames.GridOperator)]
+    [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Reject(string id, RejectReservationRequest request)
+    {
+        var invalid = await ValidateAsync(rejectValidator, request);
+        if (invalid is not null)
+        {
+            return ToErrorResponse(invalid);
+        }
+
+        var result = await reservationService.RejectAsync(id, request, CallerName);
         return ToResponse(result, reservation => Ok(reservation));
     }
 }

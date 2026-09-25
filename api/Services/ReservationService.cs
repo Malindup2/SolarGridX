@@ -10,7 +10,8 @@ public class ReservationService(
     ReservationRepository reservationRepository,
     SlotRepository slotRepository,
     StationRepository stationRepository,
-    UserRepository userRepository)
+    UserRepository userRepository,
+    QrIssueService qrIssueService)
 {
     
     private const int BookingWindowDays = 7;
@@ -231,6 +232,71 @@ public class ReservationService(
         await slotRepository.AdjustReservedCountAsync(previousSlotId, -1);
 
         return ToResponse(reservation, station.StationName);
+    }
+
+    // Grid Operator approves a Pending reservation. BR-07 then allows the QR
+    // token to be issued, which happens here so the prosumer can fetch it
+    // straight away.
+    public async Task<Result<ReservationResponse>> ApproveAsync(string id, string? approvedBy)
+    {
+        var reservation = await reservationRepository.FindByIdAsync(id);
+        if (reservation is null)
+        {
+            return ReservationErrors.NotFound;
+        }
+
+        if (reservation.Status != ReservationStatus.Pending)
+        {
+            return ReservationErrors.AlreadyDecided(reservation.Status.ToString());
+        }
+
+        reservation.Status = ReservationStatus.Approved;
+        reservation.ApprovedBy = approvedBy;
+        reservation.RejectionReason = null;
+        reservation.UpdatedAt = DateTime.UtcNow;
+        await reservationRepository.ReplaceAsync(reservation);
+
+        var issued = await qrIssueService.IssueAsync(reservation.Id);
+        if (!issued.IsSuccess)
+        {
+            // Put the reservation back so it is never left approved without a token.
+            reservation.Status = ReservationStatus.Pending;
+            reservation.ApprovedBy = null;
+            reservation.UpdatedAt = DateTime.UtcNow;
+            await reservationRepository.ReplaceAsync(reservation);
+
+            return issued.Error!;
+        }
+
+        var approvedStation = await stationRepository.FindByIdAsync(reservation.StationId);
+        return ToResponse(reservation, approvedStation?.StationName ?? string.Empty);
+    }
+
+    // Grid Operator rejects a Pending reservation and frees the slot again.
+    public async Task<Result<ReservationResponse>> RejectAsync(
+        string id, RejectReservationRequest request, string? rejectedBy)
+    {
+        var reservation = await reservationRepository.FindByIdAsync(id);
+        if (reservation is null)
+        {
+            return ReservationErrors.NotFound;
+        }
+
+        if (reservation.Status != ReservationStatus.Pending)
+        {
+            return ReservationErrors.AlreadyDecided(reservation.Status.ToString());
+        }
+
+        reservation.Status = ReservationStatus.Rejected;
+        reservation.RejectionReason = request.Reason;
+        reservation.ApprovedBy = rejectedBy;
+        reservation.UpdatedAt = DateTime.UtcNow;
+
+        await reservationRepository.ReplaceAsync(reservation);
+        await slotRepository.AdjustReservedCountAsync(reservation.SlotId, -1);
+
+        var station = await stationRepository.FindByIdAsync(reservation.StationId);
+        return ToResponse(reservation, station?.StationName ?? string.Empty);
     }
 
     // Cancels a Pending or Approved reservation and releases its slot. BR-03

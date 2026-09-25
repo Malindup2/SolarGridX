@@ -75,6 +75,9 @@ public static class ReservationErrors
     public static Error NotCancellable(string status) =>
         Error.Conflict("RESERVATION_NOT_CANCELLABLE", $"A {status} reservation can no longer be cancelled.");
 
+    public static Error AlreadyDecided(string status) =>
+        Error.Conflict("RESERVATION_ALREADY_DECIDED", $"This reservation is already {status}.");
+
     public static readonly Error SameSlot =
         Error.Validation("RESERVATION_SAME_SLOT", "The reservation already uses this slot.");
 }
