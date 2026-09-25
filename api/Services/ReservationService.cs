@@ -233,6 +233,43 @@ public class ReservationService(
         return ToResponse(reservation, station.StationName);
     }
 
+    // Cancels a Pending or Approved reservation and releases its slot. BR-03
+    // applies. A Backoffice officer may cancel on a prosumer's behalf.
+    public async Task<Result<ReservationResponse>> CancelAsync(
+        string id, string? callerNic, string? callerRole)
+    {
+        var reservation = await reservationRepository.FindByIdAsync(id);
+        if (reservation is null)
+        {
+            return ReservationErrors.NotFound;
+        }
+
+        if (!IsOwnRecord(callerRole, callerNic, reservation.Nic))
+        {
+            return ReservationErrors.NotOwner;
+        }
+
+        if (reservation.Status is not (ReservationStatus.Pending or ReservationStatus.Approved))
+        {
+            return ReservationErrors.NotCancellable(reservation.Status.ToString());
+        }
+
+        var noticeError = ValidateNotice(reservation.ReservationDate, reservation.StartTime);
+        if (noticeError is not null)
+        {
+            return noticeError;
+        }
+
+        reservation.Status = ReservationStatus.Cancelled;
+        reservation.UpdatedAt = DateTime.UtcNow;
+
+        await reservationRepository.ReplaceAsync(reservation);
+        await slotRepository.AdjustReservedCountAsync(reservation.SlotId, -1);
+
+        var station = await stationRepository.FindByIdAsync(reservation.StationId);
+        return ToResponse(reservation, station?.StationName ?? string.Empty);
+    }
+
     // Lists reservations. A prosumer only ever sees their own, whatever the
     // query string asks for.
     public async Task<Result<List<ReservationResponse>>> ListAsync(

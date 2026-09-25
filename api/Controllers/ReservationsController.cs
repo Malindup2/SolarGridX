@@ -104,4 +104,18 @@ public class ReservationsController(
         var result = await reservationService.RescheduleAsync(id, request, CallerNic, CallerRole);
         return ToResponse(result, reservation => Ok(reservation));
     }
+
+    // Cancels a reservation and releases its slot 
+    [Authorize(Roles = $"{RoleNames.Prosumer},{RoleNames.Backoffice}")]
+    [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Cancel(string id)
+    {
+        var result = await reservationService.CancelAsync(id, CallerNic, CallerRole);
+        return ToResponse(result, reservation => Ok(reservation));
+    }
 }
