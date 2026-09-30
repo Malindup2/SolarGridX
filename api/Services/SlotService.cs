@@ -10,22 +10,11 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
     // Slot duration is fixed at 1 hour per the current project decision.
     private static readonly TimeSpan SlotDuration = TimeSpan.FromHours(1);
 
-    // Sri Lanka is UTC+5:30. Matches the offset Member 3's StationService
-    // already uses for "current local time" comparisons (GetUpcomingSlotsAsync),
-    // so both features agree on what "today" and "now" mean near date/time
-    // boundaries rather than one using UTC and the other local time.
-    private static readonly TimeSpan SriLankaOffset = TimeSpan.FromMinutes(330);
-
+    
     private static DateTime NormalizeDate(DateTime date) =>
         DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
 
-    private static (DateTime today, TimeSpan currentTime) GetSriLankaNow()
-    {
-        var localNow = DateTimeOffset.UtcNow.ToOffset(SriLankaOffset);
-        var today = DateTime.SpecifyKind(localNow.Date, DateTimeKind.Utc);
-        var currentTime = localNow.TimeOfDay;
-        return (today, currentTime);
-    }
+    
 
     // ---------- Manual single-slot creation ----------
 
@@ -74,9 +63,11 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         }
 
         var targetDate = NormalizeDate(request.Date);
-        var (today, currentTime) = GetSriLankaNow();
+        var utcNow = DateTime.UtcNow;
+        var today = utcNow.Date;
+        var currentTime = utcNow.TimeOfDay;
 
-        // Reject any date strictly before today (Sri Lanka local time).
+        // Reject dates before today in UTC.
         if (targetDate < today)
         {
             return SlotErrors.PastDateNotAllowed;

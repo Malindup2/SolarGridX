@@ -20,20 +20,17 @@ public sealed class StationService(
     IValidator<UpdateStationRequest> updateValidator,
     IValidator<StationScheduleRequest> scheduleValidator)
 {
+    // Validates and creates a station.
     public async Task<Result<StationResponse>> CreateAsync(
         CreateStationRequest request)
     {
-        // Validate the complete request before creating a station document
+
         var validation = await createValidator.ValidateAsync(request);
         if (!validation.IsValid)
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "One or more validation errors occurred.",
-                validation.Errors
-                    .Select(error =>
-                        $"{error.PropertyName}: {error.ErrorMessage}")
-                    .ToArray());
+            return StationErrors.ValidationFailed(validation.Errors
+                .Select(error => $"{error.PropertyName}: {error.ErrorMessage}")
+                .ToArray());
         }
 
         var schedule = request.OperationalSchedule!;
@@ -83,9 +80,10 @@ public sealed class StationService(
             station.UpdatedAt);
     }
 
+    // Returns all stations sorted by name.
     public async Task<Result<List<StationResponse>>> GetAllAsync()
     {
-        // Read station records and return all
+
         var stations = await stationRepository.GetAllAsync();
 
         return stations.Select(station => new StationResponse(
@@ -106,28 +104,24 @@ public sealed class StationService(
             station.UpdatedAt)).ToList();
     }
 
-
+    // Finds active stations within the requested radius, nearest first.
     public async Task<Result<List<StationResponse>>> GetNearbyAsync(
         double? lat, double? lng, double? radiusKm)
     {
-        // Validate the search area before looking up active stations.
+
         var query = new NearbyStationsQuery(lat, lng, radiusKm);
         var validation = await nearbyValidator.ValidateAsync(query);
 
         if (!validation.IsValid)
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "One or more validation errors occurred.",
-                validation.Errors
-                    .Select(error =>
-                        $"{error.PropertyName}: {error.ErrorMessage}")
-                    .ToArray());
+            return StationErrors.ValidationFailed(validation.Errors
+                .Select(error => $"{error.PropertyName}: {error.ErrorMessage}")
+                .ToArray());
         }
 
         var activeStations = await stationRepository.GetActiveAsync();
 
-        // Keep stations within the requested distance and put the nearest first.
+
         var nearby = activeStations
             .Select(station => new
             {
@@ -160,27 +154,22 @@ public sealed class StationService(
         return nearby;
     }
 
-
+    // Retrieves a station by ID.
     public async Task<Result<StationResponse>> GetByIdAsync(string id)
     {
-        // Reject an invalid MongoDB ID before querying the station collection.
+
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var station = await stationRepository.FindByIdAsync(id);
         if (station is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
         }
 
-        // Return the station.
+
         return new StationResponse(
             station.Id,
             station.StationName,
@@ -200,59 +189,45 @@ public sealed class StationService(
     }
 
 
+    // Updates station details without invalidating upcoming slots.
     public async Task<Result<StationResponse>> UpdateAsync(
         string id, UpdateStationRequest request)
     {
-        // Validate the station ID and requested values before changing any data.
+
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var validation = await updateValidator.ValidateAsync(request);
         if (!validation.IsValid)
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "One or more validation errors occurred.",
-                validation.Errors
-                    .Select(error =>
-                        $"{error.PropertyName}: {error.ErrorMessage}")
-                    .ToArray());
+            return StationErrors.ValidationFailed(validation.Errors
+                .Select(error => $"{error.PropertyName}: {error.ErrorMessage}")
+                .ToArray());
         }
 
         var current = await stationRepository.FindByIdAsync(id);
         if (current is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
         }
 
-        var reducingCapacity =
+        var changeAffectsUpcomingSlots =
             request.CapacityKwh!.Value < current.CapacityKwh ||
-            request.BatterySlotCount!.Value < current.BatterySlotCount;
+            request.BatterySlotCount!.Value != current.BatterySlotCount;
 
-        if (reducingCapacity)
+        if (changeAffectsUpcomingSlots)
         {
-            // A reduction is unsafe only when an upcoming slot exceeds a new limit.
-            var upcomingSlots = await GetUpcomingSlotsAsync(id);
-            var incompatibleSlot = upcomingSlots.Any(slot =>
-                slot.CapacityKwh > request.CapacityKwh!.Value ||
-                slot.ReservedCount > request.BatterySlotCount!.Value);
 
-            if (incompatibleSlot)
+            var upcomingSlots = await GetUpcomingSlotsAsync(id);
+            if (upcomingSlots.Count > 0)
             {
-                return Error.Conflict(
-                    "STATION_CAPACITY_REDUCTION_BLOCKED",
-                    "An upcoming slot exceeds the proposed station capacity or battery-slot count.");
+                return StationErrors.CapacityChangeBlocked;
             }
         }
 
-        // Translate the validated request into values the repository can save.
+
         var updated = await stationRepository.UpdateDetailsAsync(
             id,
             request.StationName!.Trim(),
@@ -265,9 +240,7 @@ public sealed class StationService(
 
         if (updated is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "The station was removed before it could be updated.");
+            return StationErrors.RemovedBeforeUpdate;
         }
 
         return new StationResponse(
@@ -288,37 +261,28 @@ public sealed class StationService(
             updated.UpdatedAt);
     }
 
-
+    // Updates operating hours and days when upcoming slots remain valid.
     public async Task<Result<StationResponse>> UpdateScheduleAsync(
         string id, StationScheduleRequest request)
     {
-        // Validate the station ID and proposed schedule first.
+
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var validation = await scheduleValidator.ValidateAsync(request);
         if (!validation.IsValid)
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "One or more validation errors occurred.",
-                validation.Errors
-                    .Select(error =>
-                        $"{error.PropertyName}: {error.ErrorMessage}")
-                    .ToArray());
+            return StationErrors.ValidationFailed(validation.Errors
+                .Select(error => $"{error.PropertyName}: {error.ErrorMessage}")
+                .ToArray());
         }
 
         var current = await stationRepository.FindByIdAsync(id);
         if (current is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
         }
 
         var activeDays = request.ActiveDays!
@@ -328,7 +292,7 @@ public sealed class StationService(
         var activeDaySet = activeDays.ToHashSet(
             StringComparer.OrdinalIgnoreCase);
 
-        // Reject only a schedule that excludes an upcoming generated slot.
+
         var upcomingSlots = await GetUpcomingSlotsAsync(id);
         var incompatibleSlot = upcomingSlots.Any(slot =>
             !activeDaySet.Contains(slot.SlotDate.DayOfWeek.ToString()) ||
@@ -337,9 +301,7 @@ public sealed class StationService(
 
         if (incompatibleSlot)
         {
-            return Error.Conflict(
-                "STATION_SCHEDULE_CONFLICT",
-                "An upcoming slot falls outside the proposed operating days or hours.");
+            return StationErrors.ScheduleConflict;
         }
 
         var schedule = new OperationalSchedule
@@ -350,62 +312,53 @@ public sealed class StationService(
         };
 
         var updated = await stationRepository.UpdateScheduleAsync(id, schedule);
-            if (updated is null)
-            {
-                return Error.NotFound(
-                    "STATION_NOT_FOUND",
-                    "The station was removed before its schedule could be updated.");
-            }
-
-            // Return the station with its saved schedule.
-            return new StationResponse(
-                updated.Id,
-                updated.StationName,
-                updated.Location,
-                updated.Latitude,
-                updated.Longitude,
-                updated.CapacityKwh,
-                updated.BatterySlotCount,
-                updated.Type.ToString(),
-                new StationScheduleResponse(
-                    updated.OperationalSchedule.OpenTime,
-                    updated.OperationalSchedule.CloseTime,
-                    updated.OperationalSchedule.ActiveDays),
-                updated.Status.ToString(),
-                updated.CreatedAt,
-                updated.UpdatedAt);
+        if (updated is null)
+        {
+            return StationErrors.RemovedBeforeScheduleUpdate;
         }
-   
 
+
+        return new StationResponse(
+            updated.Id,
+            updated.StationName,
+            updated.Location,
+            updated.Latitude,
+            updated.Longitude,
+            updated.CapacityKwh,
+            updated.BatterySlotCount,
+            updated.Type.ToString(),
+            new StationScheduleResponse(
+                updated.OperationalSchedule.OpenTime,
+                updated.OperationalSchedule.CloseTime,
+                updated.OperationalSchedule.ActiveDays),
+            updated.Status.ToString(),
+            updated.CreatedAt,
+            updated.UpdatedAt);
+    }
+
+    // Activates a station.
     public async Task<Result<StationResponse>> ActivateAsync(string id)
     {
-        // Validate the ID and find the station before changing its status.
+
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var station = await stationRepository.FindByIdAsync(id);
         if (station is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
         }
 
-        // An already-active station needs no database update.
+
         var activeStation = station.Status == StationStatus.Active
             ? station
             : await stationRepository.SetStatusAsync(id, StationStatus.Active);
 
         if (activeStation is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "The station was removed before it could be activated.");
+            return StationErrors.RemovedBeforeActivation;
         }
 
         return new StationResponse(
@@ -427,27 +380,22 @@ public sealed class StationService(
     }
 
 
-
+    // Deactivates a station unless active reservations block it.
     public async Task<Result<StationResponse>> DeactivateAsync(string id)
     {
         // Validate the ID and find the station.
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var station = await stationRepository.FindByIdAsync(id);
         if (station is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
         }
 
-        // An already-inactive station needs no database update.
+
         if (station.Status == StationStatus.Inactive)
         {
             return new StationResponse(
@@ -473,7 +421,7 @@ public sealed class StationService(
 
         if (blockingReservations.Count > 0)
         {
-            
+
             var details = blockingReservations
                 .Select(reservation =>
                     $"Reservation {reservation.Id}: {reservation.Status}, " +
@@ -481,23 +429,17 @@ public sealed class StationService(
                     $"{reservation.StartTime}-{reservation.EndTime}")
                 .ToArray();
 
-            return new Error(
-                "STATION_HAS_ACTIVE_RESERVATIONS",
-                "The station cannot be deactivated while active reservations exist.",
-                ErrorType.Conflict,
-                details);
+            return StationErrors.ActiveReservations(details);
         }
 
         var inactiveStation = await stationRepository.SetStatusAsync(
             id, StationStatus.Inactive);
         if (inactiveStation is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "The station was removed before it could be deactivated.");
+            return StationErrors.RemovedBeforeDeactivation;
         }
 
-        // Return the saved station without changing its schedule or capacity.
+
         return new StationResponse(
             inactiveStation.Id,
             inactiveStation.StationName,
@@ -516,27 +458,22 @@ public sealed class StationService(
             inactiveStation.UpdatedAt);
     }
 
-
+    // Deletes a station only when no slots or reservations reference it.
     public async Task<Result> DeleteAsync(string id)
     {
-        // Validate the ID and confirm the station exists.
+
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var station = await stationRepository.FindByIdAsync(id);
         if (station is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
         }
 
-        // Preserve stations referenced by slots or reservations.
+
         var hasSlots = await stationRepository.HasAnySlotsAsync(id);
         var hasReservations =
             await stationRepository.HasAnyReservationsAsync(id);
@@ -554,47 +491,37 @@ public sealed class StationService(
                 details.Add("Reservations reference this station.");
             }
 
-            return new Error(
-                "STATION_HAS_DEPENDENCIES",
-                "The station cannot be deleted while slots or reservations reference it.",
-                ErrorType.Conflict,
-                details.ToArray());
+            return StationErrors.Dependencies(details.ToArray());
         }
 
         var deleted = await stationRepository.DeleteByIdAsync(id);
         if (!deleted)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "The station was removed before it could be deleted.");
+            return StationErrors.RemovedBeforeDeletion;
         }
 
         return Result.Success();
     }
 
-
+    // Finds slots that have not ended using UTC dates and times.
     private async Task<List<EnergyBookingSlot>> GetUpcomingSlotsAsync(string id)
     {
-        
-        var localNow = DateTimeOffset.UtcNow.ToOffset(
-            TimeSpan.FromMinutes(330));
-        var today = new DateTime(
-            localNow.Year, localNow.Month, localNow.Day,
-            0, 0, 0, DateTimeKind.Utc);
-        var currentTime = localNow.ToString(
-            "HH:mm", CultureInfo.InvariantCulture);
+
+        var utcNow = DateTime.UtcNow;
+        var utcToday = utcNow.Date;
+        var utcTime = utcNow.ToString("HH:mm", CultureInfo.InvariantCulture);
 
         return await stationRepository.GetUpcomingSlotsAsync(
-            id, today, currentTime);
+            id, utcToday, utcTime);
     }
 
 
-
+    // Calculates the great-circle distance between two GPS points.
     private static double DistanceKm(
         double fromLat, double fromLng,
         double toLat, double toLng)
     {
-        // Use the great-circle distance between two GPS points.
+
         const double earthRadiusKm = 6371.0;
         const double radiansPerDegree = Math.PI / 180.0;
 
