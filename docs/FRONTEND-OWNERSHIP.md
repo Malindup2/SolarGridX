@@ -78,23 +78,48 @@ Everything else belongs to whoever owns the feature.
 | Cancel confirmation | `PATCH /reservations/{id}/cancel` |
 | Prosumer dashboard cards | `GET /dashboard/prosumer/{nic}` |
 | Operator dashboard + **station picker** | `GET /dashboard/operator/{stationId}` |
+| Completion / summary page after each action | response of the call just made |
 
 ### Mobile screens
 
 | Screen | Endpoint |
 |---|---|
 | Prosumer home | `GET /dashboard/prosumer/{nic}` |
-| Energy input + confirm booking | `POST /reservations` |
+| **Operator home** (station picker + today's counts) | `GET /dashboard/operator/{stationId}` |
+| Energy input, then booking confirmation (review before submit) | `POST /reservations` |
+| **Booking summary** after create / reschedule / cancel — **scored, 2 marks** | response of the call just made |
 | My bookings (Upcoming / History tabs) | `GET /reservations` |
 | Booking details — Pending / Approved / Rejected / Completed | `GET /reservations/{id}` |
 | Reschedule | `PATCH /reservations/{id}/reschedule` |
 | Cancel | `PATCH /reservations/{id}/cancel` |
 | Operator reservation review + approve/reject | `PATCH .../approve`, `.../reject` |
+| Transfer completion view (prosumer sees a completed booking) | `GET /reservations/{id}` |
+
+> **The summary screen is worth 2 marks on its own.** The marking scheme asks
+> for a summary page after *every* action — create, update, cancel. One reusable
+> screen that takes the response of the call you just made covers all three.
 
 ### Also yours
 
-Shared web layout, `routes.tsx`, and the `components/ui` kit everyone uses.
+The **web layout shell and navigation** (sidebar, header, role-aware menu),
+`routes.tsx`, and the `components/ui` kit everyone uses.
 **Build the shared components first** — three people are waiting on them.
+
+### Not buildable — do not attempt
+
+README section 13 lists **"create reservation"** under Member 1's *web* screens.
+It cannot exist: `POST /reservations` is **Prosumer-only**, and prosumers cannot
+sign in on the web application at all (README 10.2). Reservation creation lives
+on **mobile** only.
+
+If someone wants it on web, the API would have to let a Backoffice user book on
+a prosumer's behalf — a backend change, agreed as a team, not a frontend
+workaround.
+
+### Deliberately cut
+
+**"Edit reservation" as its own screen.** `PUT /reservations/{id}` only changes
+`energyKwh`, so make it an inline edit on Booking Details instead of a route.
 
 ### Do NOT build
 
@@ -132,6 +157,7 @@ QR display · QR scanner · Login or registration
 | Profile | `GET /prosumers/{nic}` |
 | Edit profile | `PUT /prosumers/{nic}` |
 | Self-deactivate | `PATCH /prosumers/{nic}/deactivate` |
+| Account status (role, status badge, member since) | `GET /prosumers/{nic}` |
 
 ### Also yours — the app shell
 
@@ -229,6 +255,7 @@ Login
 | Available slots for a station and date | `GET /stations/{id}/slots` or `GET /slots?date=&available=` |
 | Slot selection → hands off to M1's energy input | — |
 | QR display with a generated QR image (ZXing) | `GET /qr/{reservationId}` |
+| **Operator slot update** — toggle a slot offline from the phone | `PATCH /slots/{id}/availability` |
 | QR status — Valid / Expired / Used (**one screen**) | same response |
 
 All slot write endpoints are **GridOperator only**. A Backoffice token gets
