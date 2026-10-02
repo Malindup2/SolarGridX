@@ -9,7 +9,7 @@ import type { ApiErrorResponse } from '../types/auth'
 
 export default function ChangePasswordPage() {
   const navigate = useNavigate()
-  const { auth, markPasswordChanged } = useAuth()
+  const { auth, login } = useAuth()
   const { requestLogout, dialog } = useLogoutConfirm()
 
   const [currentPassword, setCurrentPassword] = useState('')
@@ -33,8 +33,9 @@ export default function ChangePasswordPage() {
 
     setIsLoading(true)
     try {
-      await authService.changePassword({ currentPassword, newPassword })
-      markPasswordChanged()
+      // The old token stopped working with the change; keep the new session the API returned.
+      const session = await authService.changePassword({ currentPassword, newPassword })
+      login(session)
       toast.success('Password updated successfully.')
       navigate(auth?.homeRoute || '/', { replace: true })
     } catch (err: unknown) {
