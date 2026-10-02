@@ -10,7 +10,8 @@ public class AuthService(
     UserRepository userRepository,
     RevokedTokenRepository revokedTokenRepository,
     JwtTokenService jwtTokenService,
-    EmailService emailService)
+    EmailService emailService,
+    ActivityService activityService)
 {
     public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request, ClientType client)
     {
@@ -36,6 +37,11 @@ public class AuthService(
             return AuthErrors.AccountNotActive(user.Status);
         }
 
+        return ToLoginResponse(user);
+    }
+
+    private LoginResponse ToLoginResponse(User user)
+    {
         var token = jwtTokenService.GenerateToken(user);
 
         return new LoginResponse(
@@ -88,10 +94,19 @@ public class AuthService(
         }
 
         await emailService.SendRegistrationSuccessEmailAsync(user.Email!, user.FullName);
+
+        await activityService.RecordAsync(
+            AuditKinds.Users, user.Id, "AccountRegistered",
+            $"New prosumer registration: {user.FullName} ({user.Nic}) is waiting for activation.",
+            NotificationCategory.Account, ActivityActions.Prosumer,
+            Recipients.ForRole(Role.Backoffice), resourceId: user.Nic);
+
         return Result.Success();
     }
 
-    public async Task<Result> ChangePasswordAsync(string? userId, ChangePasswordRequest request)
+    // Changing the password signs out every other device (SecurityVersion goes up), so the
+    // caller gets a fresh session in the response instead of being signed out as well.
+    public async Task<Result<LoginResponse>> ChangePasswordAsync(string? userId, ChangePasswordRequest request)
     {
         var user = string.IsNullOrEmpty(userId) ? null : await userRepository.FindByIdAsync(userId);
 
@@ -110,8 +125,20 @@ public class AuthService(
             return AuthErrors.PasswordUnchanged;
         }
 
-        await userRepository.UpdatePasswordAsync(user.Id, BCrypt.Net.BCrypt.HashPassword(request.NewPassword));
-        return Result.Success();
+        await userRepository.ReplacePasswordAsync(user.Id, BCrypt.Net.BCrypt.HashPassword(request.NewPassword));
+
+        await activityService.RecordAsync(
+            AuditKinds.Users, user.Id, "PasswordChanged",
+            "Your password was changed. Other signed-in devices were signed out.",
+            NotificationCategory.Security, ActivityActions.Profile, Recipients.ForUser(user.Id));
+
+        if (!string.IsNullOrEmpty(user.Email))
+        {
+            await emailService.SendPasswordChangedAsync(user.Email, user.FullName);
+        }
+
+        var refreshed = await userRepository.FindByIdAsync(user.Id);
+        return ToLoginResponse(refreshed!);
     }
 
     public async Task<Result> LogoutAsync(string? tokenId, DateTime expiresAtUtc)

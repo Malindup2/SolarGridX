@@ -13,6 +13,26 @@ public class QrVerificationController(
     QrVerificationService qrVerificationService,
     IValidator<QrVerifyRequest> verifyValidator) : ApiControllerBase
 {
+    // Read-only check of a scanned token: shows the operator the booking before they confirm.
+    // Never completes anything; POST /qr/verify does that.
+    [HttpPost("preview")]
+    [Authorize(Roles = RoleNames.GridOperator)]
+    [ProducesResponseType(typeof(QrVerifyResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Preview(QrVerifyRequest request)
+    {
+        var invalid = await ValidateAsync(verifyValidator, request);
+        if (invalid is not null)
+        {
+            return ToErrorResponse(invalid);
+        }
+
+        var result = await qrVerificationService.PreviewAsync(request);
+        return ToResponse(result, preview => Ok(preview));
+    }
+
     // Verifies a scanned token and finalises the energy transfer (BR-08).
     [HttpPost("verify")]
     [Authorize(Roles = RoleNames.GridOperator)]

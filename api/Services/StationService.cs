@@ -18,7 +18,8 @@ public sealed class StationService(
     IValidator<CreateStationRequest> createValidator,
     IValidator<NearbyStationsQuery> nearbyValidator,
     IValidator<UpdateStationRequest> updateValidator,
-    IValidator<StationScheduleRequest> scheduleValidator)
+    IValidator<StationScheduleRequest> scheduleValidator,
+    ActivityService activityService)
 {
     // Validates and creates a station.
     public async Task<Result<StationResponse>> CreateAsync(
@@ -53,7 +54,8 @@ public sealed class StationService(
                 ActiveDays = schedule.ActiveDays!
                     .Select(day => Enum.Parse<DayOfWeek>(
                         day.Trim(), ignoreCase: true).ToString())
-                    .ToList()
+                    .ToList(),
+                DayHours = ToDayHours(schedule.DayHours)
             },
             Status = StationStatus.Active,
             CreatedAt = now,
@@ -61,6 +63,10 @@ public sealed class StationService(
         };
 
         await stationRepository.CreateAsync(station);
+
+        await activityService.RecordAsync(
+            AuditKinds.Stations, station.Id, "StationCreated", $"New microgrid node {station.StationName} is open for bookings.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.ForRole(Role.GridOperator));
 
         return new StationResponse(
             station.Id,
@@ -71,10 +77,7 @@ public sealed class StationService(
             station.CapacityKwh,
             station.BatterySlotCount,
             station.Type.ToString(),
-            new StationScheduleResponse(
-                station.OperationalSchedule.OpenTime,
-                station.OperationalSchedule.CloseTime,
-                station.OperationalSchedule.ActiveDays),
+            ScheduleResponse(station.OperationalSchedule),
             station.Status.ToString(),
             station.CreatedAt,
             station.UpdatedAt);
@@ -95,10 +98,7 @@ public sealed class StationService(
             station.CapacityKwh,
             station.BatterySlotCount,
             station.Type.ToString(),
-            new StationScheduleResponse(
-                station.OperationalSchedule.OpenTime,
-                station.OperationalSchedule.CloseTime,
-                station.OperationalSchedule.ActiveDays),
+            ScheduleResponse(station.OperationalSchedule),
             station.Status.ToString(),
             station.CreatedAt,
             station.UpdatedAt)).ToList();
@@ -142,10 +142,7 @@ public sealed class StationService(
                 item.Station.CapacityKwh,
                 item.Station.BatterySlotCount,
                 item.Station.Type.ToString(),
-                new StationScheduleResponse(
-                    item.Station.OperationalSchedule.OpenTime,
-                    item.Station.OperationalSchedule.CloseTime,
-                    item.Station.OperationalSchedule.ActiveDays),
+                ScheduleResponse(item.Station.OperationalSchedule),
                 item.Station.Status.ToString(),
                 item.Station.CreatedAt,
                 item.Station.UpdatedAt))
@@ -179,10 +176,7 @@ public sealed class StationService(
             station.CapacityKwh,
             station.BatterySlotCount,
             station.Type.ToString(),
-            new StationScheduleResponse(
-                station.OperationalSchedule.OpenTime,
-                station.OperationalSchedule.CloseTime,
-                station.OperationalSchedule.ActiveDays),
+            ScheduleResponse(station.OperationalSchedule),
             station.Status.ToString(),
             station.CreatedAt,
             station.UpdatedAt);
@@ -211,6 +205,11 @@ public sealed class StationService(
         if (current is null)
         {
             return StationErrors.NotFound;
+        }
+
+        if (Versioning.IsStale(request.ExpectedUpdatedAt, current.UpdatedAt))
+        {
+            return StationErrors.Changed;
         }
 
         var changeAffectsUpcomingSlots =
@@ -243,6 +242,10 @@ public sealed class StationService(
             return StationErrors.RemovedBeforeUpdate;
         }
 
+        await activityService.RecordAsync(
+            AuditKinds.Stations, updated.Id, "StationUpdated", $"{updated.StationName} details were updated.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.ForRole(Role.GridOperator));
+
         return new StationResponse(
             updated.Id,
             updated.StationName,
@@ -252,10 +255,7 @@ public sealed class StationService(
             updated.CapacityKwh,
             updated.BatterySlotCount,
             updated.Type.ToString(),
-            new StationScheduleResponse(
-                updated.OperationalSchedule.OpenTime,
-                updated.OperationalSchedule.CloseTime,
-                updated.OperationalSchedule.ActiveDays),
+            ScheduleResponse(updated.OperationalSchedule),
             updated.Status.ToString(),
             updated.CreatedAt,
             updated.UpdatedAt);
@@ -285,6 +285,11 @@ public sealed class StationService(
             return StationErrors.NotFound;
         }
 
+        if (Versioning.IsStale(request.ExpectedUpdatedAt, current.UpdatedAt))
+        {
+            return StationErrors.Changed;
+        }
+
         var activeDays = request.ActiveDays!
             .Select(day => Enum.Parse<DayOfWeek>(
                 day.Trim(), ignoreCase: true).ToString())
@@ -293,29 +298,43 @@ public sealed class StationService(
             StringComparer.OrdinalIgnoreCase);
 
 
+        var schedule = new OperationalSchedule
+        {
+            OpenTime = request.OpenTime!,
+            CloseTime = request.CloseTime!,
+            ActiveDays = activeDays,
+            DayHours = ToDayHours(request.DayHours)
+        };
+
+        // Upcoming slots must still fall inside the hours of their own weekday.
         var upcomingSlots = await GetUpcomingSlotsAsync(id);
         var incompatibleSlot = upcomingSlots.Any(slot =>
-            !activeDaySet.Contains(slot.SlotDate.DayOfWeek.ToString()) ||
-            string.CompareOrdinal(slot.StartTime, request.OpenTime!) < 0 ||
-            string.CompareOrdinal(slot.EndTime, request.CloseTime!) > 0);
+        {
+            var day = slot.SlotDate.DayOfWeek.ToString();
+            if (!activeDaySet.Contains(day))
+            {
+                return true;
+            }
+
+            var (open, close) = schedule.HoursFor(day);
+            return string.CompareOrdinal(slot.StartTime, open) < 0 ||
+                   string.CompareOrdinal(slot.EndTime, close) > 0;
+        });
 
         if (incompatibleSlot)
         {
             return StationErrors.ScheduleConflict;
         }
 
-        var schedule = new OperationalSchedule
-        {
-            OpenTime = request.OpenTime!,
-            CloseTime = request.CloseTime!,
-            ActiveDays = activeDays
-        };
-
         var updated = await stationRepository.UpdateScheduleAsync(id, schedule);
         if (updated is null)
         {
             return StationErrors.RemovedBeforeScheduleUpdate;
         }
+
+        await activityService.RecordAsync(
+            AuditKinds.Stations, updated.Id, "StationScheduleUpdated", $"{updated.StationName} now operates {updated.OperationalSchedule.OpenTime}-{updated.OperationalSchedule.CloseTime}.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.ForRole(Role.GridOperator));
 
 
         return new StationResponse(
@@ -327,10 +346,7 @@ public sealed class StationService(
             updated.CapacityKwh,
             updated.BatterySlotCount,
             updated.Type.ToString(),
-            new StationScheduleResponse(
-                updated.OperationalSchedule.OpenTime,
-                updated.OperationalSchedule.CloseTime,
-                updated.OperationalSchedule.ActiveDays),
+            ScheduleResponse(updated.OperationalSchedule),
             updated.Status.ToString(),
             updated.CreatedAt,
             updated.UpdatedAt);
@@ -361,6 +377,10 @@ public sealed class StationService(
             return StationErrors.RemovedBeforeActivation;
         }
 
+        await activityService.RecordAsync(
+            AuditKinds.Stations, activeStation.Id, "StationActivated", $"{activeStation.StationName} is active again.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.ForRole(Role.GridOperator));
+
         return new StationResponse(
             activeStation.Id,
             activeStation.StationName,
@@ -370,10 +390,7 @@ public sealed class StationService(
             activeStation.CapacityKwh,
             activeStation.BatterySlotCount,
             activeStation.Type.ToString(),
-            new StationScheduleResponse(
-                activeStation.OperationalSchedule.OpenTime,
-                activeStation.OperationalSchedule.CloseTime,
-                activeStation.OperationalSchedule.ActiveDays),
+            ScheduleResponse(activeStation.OperationalSchedule),
             activeStation.Status.ToString(),
             activeStation.CreatedAt,
             activeStation.UpdatedAt);
@@ -407,10 +424,7 @@ public sealed class StationService(
                 station.CapacityKwh,
                 station.BatterySlotCount,
                 station.Type.ToString(),
-                new StationScheduleResponse(
-                    station.OperationalSchedule.OpenTime,
-                    station.OperationalSchedule.CloseTime,
-                    station.OperationalSchedule.ActiveDays),
+                ScheduleResponse(station.OperationalSchedule),
                 station.Status.ToString(),
                 station.CreatedAt,
                 station.UpdatedAt);
@@ -439,6 +453,10 @@ public sealed class StationService(
             return StationErrors.RemovedBeforeDeactivation;
         }
 
+        await activityService.RecordAsync(
+            AuditKinds.Stations, inactiveStation.Id, "StationDeactivated", $"{inactiveStation.StationName} has been deactivated.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.ForRole(Role.GridOperator));
+
 
         return new StationResponse(
             inactiveStation.Id,
@@ -449,10 +467,7 @@ public sealed class StationService(
             inactiveStation.CapacityKwh,
             inactiveStation.BatterySlotCount,
             inactiveStation.Type.ToString(),
-            new StationScheduleResponse(
-                inactiveStation.OperationalSchedule.OpenTime,
-                inactiveStation.OperationalSchedule.CloseTime,
-                inactiveStation.OperationalSchedule.ActiveDays),
+            ScheduleResponse(inactiveStation.OperationalSchedule),
             inactiveStation.Status.ToString(),
             inactiveStation.CreatedAt,
             inactiveStation.UpdatedAt);
@@ -500,6 +515,10 @@ public sealed class StationService(
             return StationErrors.RemovedBeforeDeletion;
         }
 
+        await activityService.RecordAsync(
+            AuditKinds.Stations, station.Id, "StationDeleted", $"{station.StationName} was removed.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.None);
+
         return Result.Success();
     }
 
@@ -539,4 +558,21 @@ public sealed class StationService(
             Math.Asin(Math.Min(1.0, Math.Sqrt(a)));
     }
 
+
+    // Per-day hours from a request, with weekday names normalised ("monday" -> "Monday").
+    private static List<DayHours> ToDayHours(List<DayHoursRequest>? entries) =>
+        (entries ?? [])
+            .Select(entry => new DayHours
+            {
+                Day = Enum.Parse<DayOfWeek>(entry.Day!.Trim(), ignoreCase: true).ToString(),
+                OpenTime = entry.OpenTime!,
+                CloseTime = entry.CloseTime!
+            })
+            .ToList();
+
+    private static StationScheduleResponse ScheduleResponse(OperationalSchedule schedule) => new(
+        schedule.OpenTime,
+        schedule.CloseTime,
+        schedule.ActiveDays,
+        schedule.DayHours.Select(d => new DayHoursResponse(d.Day, d.OpenTime, d.CloseTime)).ToList());
 }

@@ -32,6 +32,8 @@ services:
       EmailSettings__User: ${EMAIL_USER}
       EmailSettings__Pass: ${EMAIL_PASS}
       Cors__AllowedOrigins__0: ${WEB_ORIGIN}
+      # Password reset emails link back to the web app.
+      Web__BaseUrl: ${WEB_ORIGIN}
     ports:
       - "5000:8080"
 

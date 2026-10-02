@@ -41,6 +41,24 @@ public sealed class StationRepository
             .ToListAsync();
     }
 
+    // Name or address contains the (already escaped) pattern, case-insensitive.
+    public Task<List<SolarStationInfo>> SearchAsync(string pattern, bool activeOnly, int limit)
+    {
+        var builder = Builders<SolarStationInfo>.Filter;
+        var regex = new MongoDB.Bson.BsonRegularExpression(pattern, "i");
+        var filter = builder.Or(builder.Regex(s => s.StationName, regex), builder.Regex(s => s.Location, regex));
+
+        if (activeOnly)
+        {
+            filter &= builder.Eq(s => s.Status, StationStatus.Active);
+        }
+
+        return _stations.Find(filter, new FindOptions { MaxTime = TimeSpan.FromSeconds(2) })
+            .SortBy(s => s.StationName)
+            .Limit(limit)
+            .ToListAsync();
+    }
+
     // Returns active stations.
     public Task<List<SolarStationInfo>> GetActiveAsync()
     {

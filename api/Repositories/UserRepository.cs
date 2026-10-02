@@ -56,6 +56,74 @@ public class UserRepository
         return _users.Find(filter).SortByDescending(u => u.CreatedAt).ToListAsync();
     }
 
+    // Ids of every Active account in the given role (notification fan-out).
+    public Task<List<string>> ActiveIdsByRoleAsync(Role role) =>
+        _users.Find(u => u.Role == role && u.Status == UserStatus.Active)
+            .Project(u => u.Id)
+            .ToListAsync();
+
+    // NIC lookups accept either case of the old-format V/X suffix.
+    public async Task<User?> FindProsumerByNicAnyCaseAsync(string nic)
+    {
+        var trimmed = nic.Trim();
+        return await FindProsumerByNicAsync(trimmed.ToUpperInvariant())
+            ?? await FindProsumerByNicAsync(trimmed.ToLowerInvariant());
+    }
+
+    public Task<User?> FindByResetTokenHashAsync(string hash) =>
+        _users.Find(u => u.PasswordResetTokenHash == hash).FirstOrDefaultAsync()!;
+
+    public Task SetPasswordResetAsync(string id, string hash, DateTime expiresAt, DateTime requestedAt) =>
+        _users.UpdateOneAsync(
+            u => u.Id == id,
+            Builders<User>.Update
+                .Set(u => u.PasswordResetTokenHash, hash)
+                .Set(u => u.PasswordResetExpiresAt, expiresAt)
+                .Set(u => u.PasswordResetRequestedAt, requestedAt));
+
+    // Sets a new password, clears any reset token and signs out every existing session.
+    public Task ReplacePasswordAsync(string id, string passwordHash) =>
+        _users.UpdateOneAsync(
+            u => u.Id == id,
+            Builders<User>.Update
+                .Set(u => u.PasswordHash, passwordHash)
+                .Set(u => u.MustChangePassword, false)
+                .Unset(u => u.PasswordResetTokenHash)
+                .Unset(u => u.PasswordResetExpiresAt)
+                .Inc(u => u.SecurityVersion, 1)
+                .Set(u => u.UpdatedAt, DateTime.UtcNow));
+
+    public Task SetAvatarAsync(string id, byte[]? bytes, string? contentType) =>
+        _users.UpdateOneAsync(
+            u => u.Id == id,
+            Builders<User>.Update
+                .Set(u => u.AvatarBytes, bytes)
+                .Set(u => u.AvatarContentType, contentType)
+                .Set(u => u.AvatarVersion, bytes is null ? null : Guid.NewGuid().ToString("N"))
+                .Set(u => u.UpdatedAt, DateTime.UtcNow));
+
+    public Task<User?> FindWithoutAvatarAsync(string id) =>
+        _users.Find(u => u.Id == id)
+            .Project<User>(Builders<User>.Projection.Exclude(u => u.AvatarBytes))
+            .FirstOrDefaultAsync()!;
+
+    // Escaped, case-insensitive "contains" search used by the command palette.
+    public Task<List<User>> SearchAsync(string pattern, bool prosumers, int limit)
+    {
+        var regex = new MongoDB.Bson.BsonRegularExpression(pattern, "i");
+        var builder = Builders<User>.Filter;
+        var filter = (prosumers ? builder.Eq(u => u.Role, Role.Prosumer) : builder.Ne(u => u.Role, Role.Prosumer))
+            & builder.Or(
+                builder.Regex(u => u.FullName, regex),
+                builder.Regex(u => u.Email, regex),
+                builder.Regex(u => u.Nic, regex));
+
+        return _users.Find(filter, new FindOptions { MaxTime = TimeSpan.FromSeconds(2) })
+            .Project<User>(Builders<User>.Projection.Exclude(u => u.AvatarBytes).Exclude(u => u.PasswordHash))
+            .Limit(limit)
+            .ToListAsync();
+    }
+
     public Task CreateAsync(User user) => _users.InsertOneAsync(user);
 
     public Task ReplaceAsync(User user) =>

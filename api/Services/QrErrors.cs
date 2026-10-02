@@ -38,6 +38,14 @@ public static class QrErrors
             "RESERVATION_NOT_TRANSFERABLE",
             $"A {status} reservation cannot be finalised at the node.");
 
+    // BR-33: a code only works from the moment its slot starts.
+    public static Error TokenNotYetValid(DateTime startsAt) =>
+        new Error(
+            "QR_TOKEN_NOT_YET_VALID",
+            "This QR code cannot be used before its slot starts.",
+            ErrorType.Conflict,
+            [$"slot starts at {startsAt:yyyy-MM-dd HH:mm} UTC"]);
+
     public static readonly Error TokenStationMismatch =
         Error.Validation("QR_STATION_MISMATCH", "This QR code was issued for a different microgrid node.");
 

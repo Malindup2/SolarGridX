@@ -22,4 +22,7 @@ public sealed record StationResponse(
 public sealed record StationScheduleResponse(
     string OpenTime,
     string CloseTime,
-    List<string> ActiveDays);
+    List<string> ActiveDays,
+    List<DayHoursResponse> DayHours);
+
+public sealed record DayHoursResponse(string Day, string OpenTime, string CloseTime);

@@ -18,6 +18,11 @@ public static class StationErrors
             details);
     }
 
+    // Someone else saved this station after the editor opened it.
+    public static readonly Error Changed = Error.Conflict(
+        "STATION_CHANGED",
+        "This station was changed by someone else. Reload it and try again.");
+
     public static readonly Error InvalidId = Error.Validation(
         "VALIDATION_FAILED",
         "The station ID is invalid.",

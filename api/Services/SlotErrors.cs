@@ -22,6 +22,9 @@ public static class SlotErrors
     public static readonly Error SlotHasReservations =
         Error.Conflict("SLOT_HAS_RESERVATIONS", "This slot cannot be deleted, or have its capacity reduced, while it has active reservations.");
 
+    public static readonly Error Changed =
+        Error.Conflict("SLOT_CHANGED", "This slot was changed by someone else. Reload it and try again.");
+
     public static readonly Error PastDateNotAllowed =
         Error.Validation("PAST_DATE_NOT_ALLOWED", "Slots cannot be generated for a date in the past.");
 

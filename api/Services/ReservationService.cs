@@ -11,7 +11,8 @@ public class ReservationService(
     SlotRepository slotRepository,
     StationRepository stationRepository,
     UserRepository userRepository,
-    QrIssueService qrIssueService)
+    QrIssueService qrIssueService,
+    ActivityService activityService)
 {
     
     private const int BookingWindowDays = 7;
@@ -109,6 +110,18 @@ public class ReservationService(
             return ReservationErrors.AlreadyReserved(request.Nic);
         }
 
+        // BR-31: no two live bookings that overlap in time, whatever slot they use.
+        if (await reservationRepository.ExistsOverlappingAsync(request.Nic, slot.SlotDate, slot.StartTime, slot.EndTime))
+        {
+            return ReservationErrors.Overlap;
+        }
+
+        // BR-13: take the bay first, in one atomic step, so the last bay can never be sold twice.
+        if (!await slotRepository.TryReserveAsync(slot.Id, station.BatterySlotCount))
+        {
+            return slot.IsAvailable ? ReservationErrors.SlotFull : ReservationErrors.SlotUnavailable;
+        }
+
         var reservation = new EnergyReservation
         {
             Nic = request.Nic,
@@ -123,8 +136,20 @@ public class ReservationService(
             UpdatedAt = DateTime.UtcNow
         };
 
-        await reservationRepository.CreateAsync(reservation);
-        await slotRepository.AdjustReservedCountAsync(slot.Id, 1);
+        try
+        {
+            await reservationRepository.CreateAsync(reservation);
+        }
+        catch
+        {
+            // The bay was already taken: give it back so a failed insert cannot leak capacity.
+            await slotRepository.AdjustReservedCountAsync(slot.Id, -1);
+            throw;
+        }
+
+        await RecordAsync(reservation, "ReservationCreated",
+            $"New reservation at {station.StationName} for {Describe(reservation)}.",
+            Recipients.ForProsumer(reservation.Nic).And(Recipients.ForRole(Role.GridOperator)));
 
         return ToResponse(reservation, station.StationName);
     }
@@ -134,7 +159,7 @@ public class ReservationService(
     public async Task<Result<ReservationResponse>> UpdateAsync(
         string id, UpdateReservationRequest request, string? callerNic, string? callerRole)
     {
-        var loaded = await LoadModifiableAsync(id, callerNic, callerRole);
+        var loaded = await LoadModifiableAsync(id, callerNic, callerRole, request.ExpectedUpdatedAt);
         if (loaded.Error is not null)
         {
             return loaded.Error;
@@ -153,11 +178,23 @@ public class ReservationService(
             return ReservationErrors.EnergyExceedsSlotCapacity(request.EnergyKwh, slot.CapacityKwh);
         }
 
+        var loadedAt = reservation.UpdatedAt;
+        var wasApproved = BackToPending(reservation);
         reservation.EnergyKwh = request.EnergyKwh;
         reservation.UpdatedAt = DateTime.UtcNow;
-        await reservationRepository.ReplaceAsync(reservation);
+        if (!await reservationRepository.ReplaceIfUnchangedAsync(reservation, loadedAt))
+        {
+            return ReservationErrors.Changed;
+        }
 
         var station = await stationRepository.FindByIdAsync(reservation.StationId);
+
+        await RecordAsync(reservation, "ReservationUpdated",
+            wasApproved
+                ? $"Reservation updated and sent back for approval: {Describe(reservation)}."
+                : $"Reservation updated: {Describe(reservation)}.",
+            Recipients.ForProsumer(reservation.Nic).And(Recipients.ForRole(Role.GridOperator)));
+
         return ToResponse(reservation, station?.StationName ?? string.Empty);
     }
 
@@ -165,7 +202,7 @@ public class ReservationService(
     public async Task<Result<ReservationResponse>> RescheduleAsync(
         string id, RescheduleReservationRequest request, string? callerNic, string? callerRole)
     {
-        var loaded = await LoadModifiableAsync(id, callerNic, callerRole);
+        var loaded = await LoadModifiableAsync(id, callerNic, callerRole, request.ExpectedUpdatedAt);
         if (loaded.Error is not null)
         {
             return loaded.Error;
@@ -233,7 +270,21 @@ public class ReservationService(
             return ReservationErrors.AlreadyReserved(reservation.Nic);
         }
 
+        if (await reservationRepository.ExistsOverlappingAsync(
+                reservation.Nic, slot.SlotDate, slot.StartTime, slot.EndTime, excludeReservationId: reservation.Id))
+        {
+            return ReservationErrors.Overlap;
+        }
+
+        // Take the new bay atomically before anything is saved.
+        if (!await slotRepository.TryReserveAsync(slot.Id, station.BatterySlotCount))
+        {
+            return ReservationErrors.SlotFull;
+        }
+
         var previousSlotId = reservation.SlotId;
+        var loadedAt = reservation.UpdatedAt;
+        var wasApproved = BackToPending(reservation);
 
         reservation.SlotId = slot.Id;
         reservation.StationId = slot.StationId;
@@ -242,9 +293,19 @@ public class ReservationService(
         reservation.EndTime = slot.EndTime;
         reservation.UpdatedAt = DateTime.UtcNow;
 
-        await reservationRepository.ReplaceAsync(reservation);
-        await slotRepository.AdjustReservedCountAsync(slot.Id, 1);
+        if (!await reservationRepository.ReplaceIfUnchangedAsync(reservation, loadedAt))
+        {
+            await slotRepository.AdjustReservedCountAsync(slot.Id, -1);
+            return ReservationErrors.Changed;
+        }
+
         await slotRepository.AdjustReservedCountAsync(previousSlotId, -1);
+
+        await RecordAsync(reservation, "ReservationRescheduled",
+            wasApproved
+                ? $"Reservation moved to {station.StationName} on {Describe(reservation)} and sent back for approval."
+                : $"Reservation moved to {station.StationName} on {Describe(reservation)}.",
+            Recipients.ForProsumer(reservation.Nic).And(Recipients.ForRole(Role.GridOperator)));
 
         return ToResponse(reservation, station.StationName);
     }
@@ -270,11 +331,22 @@ public class ReservationService(
             return ReservationErrors.AlreadyDecided(reservation.Status.ToString());
         }
 
+        // BR-32: approving a booking whose slot has already started would issue a code for the past.
+        if (ReservationViewService.StartsAt(reservation) <= DateTime.UtcNow)
+        {
+            return ReservationErrors.AlreadyStarted;
+        }
+
+        var loadedAt = reservation.UpdatedAt;
         reservation.Status = ReservationStatus.Approved;
         reservation.ApprovedBy = approvedBy;
         reservation.RejectionReason = null;
         reservation.UpdatedAt = DateTime.UtcNow;
-        await reservationRepository.ReplaceAsync(reservation);
+        if (!await reservationRepository.ReplaceIfUnchangedAsync(reservation, loadedAt))
+        {
+            // Someone cancelled, rejected or edited it while we were deciding.
+            return ReservationErrors.Changed;
+        }
 
         var issued = await qrIssueService.IssueAsync(reservation.Id);
         if (!issued.IsSuccess)
@@ -289,6 +361,11 @@ public class ReservationService(
         }
 
         var approvedStation = await stationRepository.FindByIdAsync(reservation.StationId);
+
+        await RecordAsync(reservation, "ReservationApproved",
+            $"Your reservation at {approvedStation?.StationName} for {Describe(reservation)} was approved. Your QR code is ready.",
+            Recipients.ForProsumer(reservation.Nic));
+
         return ToResponse(reservation, approvedStation?.StationName ?? string.Empty);
     }
 
@@ -312,15 +389,25 @@ public class ReservationService(
             return ReservationErrors.AlreadyDecided(reservation.Status.ToString());
         }
 
+        var loadedAt = reservation.UpdatedAt;
         reservation.Status = ReservationStatus.Rejected;
         reservation.RejectionReason = request.Reason;
         reservation.ApprovedBy = rejectedBy;
         reservation.UpdatedAt = DateTime.UtcNow;
 
-        await reservationRepository.ReplaceAsync(reservation);
+        if (!await reservationRepository.ReplaceIfUnchangedAsync(reservation, loadedAt))
+        {
+            return ReservationErrors.Changed;
+        }
+
         await slotRepository.AdjustReservedCountAsync(reservation.SlotId, -1);
 
         var station = await stationRepository.FindByIdAsync(reservation.StationId);
+
+        await RecordAsync(reservation, "ReservationRejected",
+            $"Your reservation at {station?.StationName} for {Describe(reservation)} was rejected: {request.Reason}",
+            Recipients.ForProsumer(reservation.Nic));
+
         return ToResponse(reservation, station?.StationName ?? string.Empty);
     }
 
@@ -356,13 +443,23 @@ public class ReservationService(
             return noticeError;
         }
 
+        var loadedAt = reservation.UpdatedAt;
         reservation.Status = ReservationStatus.Cancelled;
         reservation.UpdatedAt = DateTime.UtcNow;
 
-        await reservationRepository.ReplaceAsync(reservation);
+        if (!await reservationRepository.ReplaceIfUnchangedAsync(reservation, loadedAt))
+        {
+            return ReservationErrors.Changed;
+        }
+
         await slotRepository.AdjustReservedCountAsync(reservation.SlotId, -1);
 
         var station = await stationRepository.FindByIdAsync(reservation.StationId);
+
+        await RecordAsync(reservation, "ReservationCancelled",
+            $"Reservation at {station?.StationName} for {Describe(reservation)} was cancelled.",
+            Recipients.ForProsumer(reservation.Nic).And(Recipients.ForRole(Role.GridOperator)));
+
         return ToResponse(reservation, station?.StationName ?? string.Empty);
     }
 
@@ -553,7 +650,7 @@ public class ReservationService(
     // Shared guard for the change endpoints: the reservation must exist, belong
     // to the caller, still be Pending, and leave enough notice (BR-02).
     private async Task<(EnergyReservation? Reservation, Error? Error)> LoadModifiableAsync(
-        string id, string? callerNic, string? callerRole)
+        string id, string? callerNic, string? callerRole, DateTime? expectedUpdatedAt = null)
     {
         if (!ObjectIds.IsValid(id))
         {
@@ -571,9 +668,15 @@ public class ReservationService(
             return (null, ReservationErrors.NotOwner);
         }
 
-        if (reservation.Status != ReservationStatus.Pending)
+        // BR-16: Pending and Approved bookings can be changed; an approved one goes back to Pending.
+        if (reservation.Status is not (ReservationStatus.Pending or ReservationStatus.Approved))
         {
             return (null, ReservationErrors.NotModifiable(reservation.Status.ToString()));
+        }
+
+        if (Versioning.IsStale(expectedUpdatedAt, reservation.UpdatedAt))
+        {
+            return (null, ReservationErrors.Changed);
         }
 
         var noticeError = ValidateNotice(reservation.ReservationDate, reservation.StartTime);
@@ -620,6 +723,30 @@ public class ReservationService(
     }
 
     
+    // An approved booking that is changed needs approving again, and its old QR code must die.
+    // Returns true when it was Approved (so the notification can say so).
+    private static bool BackToPending(EnergyReservation reservation)
+    {
+        if (reservation.Status != ReservationStatus.Approved)
+        {
+            return false;
+        }
+
+        reservation.Status = ReservationStatus.Pending;
+        reservation.QrToken = null;
+        reservation.ApprovedBy = null;
+        return true;
+    }
+
+    private Task RecordAsync(EnergyReservation reservation, string @event, string message, Recipients recipients) =>
+        activityService.RecordAsync(
+            AuditKinds.Reservations, reservation.Id, @event, message,
+            NotificationCategory.Reservation, ActivityActions.Reservation, recipients);
+
+    // "Sat 3 Oct 09:00-10:00, 12.5 kWh"
+    private static string Describe(EnergyReservation reservation) =>
+        $"{reservation.ReservationDate:ddd d MMM} {reservation.StartTime}-{reservation.EndTime}, {reservation.EnergyKwh} kWh";
+
     private static ReservationResponse ToResponse(EnergyReservation reservation, string stationName) =>
         ReservationMapper.ToResponse(reservation, stationName);
 }

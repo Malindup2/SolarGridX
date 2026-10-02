@@ -13,4 +13,5 @@ public sealed record UpdateStationRequest(
     double? Longitude,
     double? CapacityKwh,
     int? BatterySlotCount,
-    string? Type);
+    string? Type,
+    DateTime? ExpectedUpdatedAt = null);
