@@ -1,0 +1,120 @@
+name: CI
+
+# Builds and tests all three codebases on every pull request and on pushes to the
+# integration branches. A red run blocks the merge, so `dev` always builds.
+on:
+  pull_request:
+    branches: [dev, develop, main]
+  push:
+    branches: [dev, develop, main]
+
+permissions:
+  contents: read
+
+# A newer push to the same branch cancels the run it replaces.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  api:
+    name: API (build + tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mongodb:
+        image: mongo:8
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 6
+    env:
+      # Integration tests create and drop their own throw-away database here.
+      MICROGRID_TEST_MONGO: mongodb://localhost:27017
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - name: Restore
+        run: dotnet restore tests/MicrogridApi.Tests
+      - name: Build
+        run: dotnet build tests/MicrogridApi.Tests --configuration Release --no-restore
+      - name: Test
+        run: dotnet test tests/MicrogridApi.Tests --configuration Release --no-build --logger "trx;LogFileName=api-tests.trx"
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-test-results
+          path: tests/MicrogridApi.Tests/TestResults/*.trx
+          if-no-files-found: ignore
+
+  web:
+    name: Web (lint + typecheck + tests + build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Unit tests
+        run: npm test
+      - name: Build
+        env:
+          VITE_API_BASE_URL: https://example.invalid/api
+        run: npm run build
+
+  mobile:
+    name: Mobile (unit tests + debug build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - name: Install the SDK level the project compiles against
+        run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: ${{ github.event_name == 'pull_request' }}
+      - name: Make the Gradle wrapper executable
+        run: chmod +x ./gradlew
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --no-daemon
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon
+      - name: Upload test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mobile-test-report
+          path: mobile/app/build/reports/tests/testDebugUnitTest
+          if-no-files-found: ignore
