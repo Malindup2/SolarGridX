@@ -9,5 +9,6 @@
     <include app:graph="@navigation/nav_identity" />
     <include app:graph="@navigation/nav_stations" />
     <include app:graph="@navigation/nav_slots" />
+    <include app:graph="@navigation/nav_scan" />
 
 </navigation>

@@ -16,5 +16,9 @@ data class SolarStationInfo(
 data class OperationalSchedule(
     val openTime: String,
     val closeTime: String,
-    val activeDays: List<String>
+    val activeDays: List<String>,
+    /** Per-day overrides of the default hours; null or empty when every day uses them. */
+    val dayHours: List<DayHours>? = null
 )
+
+data class DayHours(val day: String, val openTime: String, val closeTime: String)

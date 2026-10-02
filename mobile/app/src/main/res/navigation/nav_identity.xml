@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Identity: Profile tab, edit profile, notifications and change password reached from Profile. -->
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -8,7 +9,47 @@
     <fragment
         android:id="@+id/identityHomeFragment"
         android:name="com.solargridx.mobile.identity.IdentityHomeFragment"
-        android:label="Identity"
-        tools:layout="@layout/fragment_placeholder" />
+        android:label="Profile"
+        tools:layout="@layout/fragment_profile">
+        <action
+            android:id="@+id/action_identityHome_to_editProfile"
+            app:destination="@id/editProfileFragment"
+            app:enterAnim="@anim/res_enter"
+            app:exitAnim="@anim/res_exit"
+            app:popEnterAnim="@anim/res_pop_enter"
+            app:popExitAnim="@anim/res_pop_exit" />
+        <action
+            android:id="@+id/action_identityHome_to_inbox"
+            app:destination="@id/inboxFragment"
+            app:enterAnim="@anim/res_enter"
+            app:exitAnim="@anim/res_exit"
+            app:popEnterAnim="@anim/res_pop_enter"
+            app:popExitAnim="@anim/res_pop_exit" />
+        <action
+            android:id="@+id/action_identityHome_to_changePassword"
+            app:destination="@id/profileChangePasswordFragment"
+            app:enterAnim="@anim/res_enter"
+            app:exitAnim="@anim/res_exit"
+            app:popEnterAnim="@anim/res_pop_enter"
+            app:popExitAnim="@anim/res_pop_exit" />
+    </fragment>
 
+    <fragment
+        android:id="@+id/editProfileFragment"
+        android:name="com.solargridx.mobile.identity.EditProfileFragment"
+        android:label="Edit profile"
+        tools:layout="@layout/fragment_edit_profile" />
+
+    <fragment
+        android:id="@+id/inboxFragment"
+        android:name="com.solargridx.mobile.identity.InboxFragment"
+        android:label="Notifications"
+        tools:layout="@layout/fragment_inbox" />
+
+    <!-- The existing change-password screen; when not forced it pops back here on success. -->
+    <fragment
+        android:id="@+id/profileChangePasswordFragment"
+        android:name="com.solargridx.mobile.auth.ChangePasswordFragment"
+        android:label="Change password"
+        tools:layout="@layout/fragment_change_password" />
 </navigation>

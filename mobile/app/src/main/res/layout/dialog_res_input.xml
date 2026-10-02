@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Single text field used inside dialogs (edit energy, rejection reason). -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:paddingStart="@dimen/res_space_xxl"
+    android:paddingTop="@dimen/res_space_sm"
+    android:paddingEnd="@dimen/res_space_xxl">
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/dialogInputLayout"
+        style="@style/Widget.SolarGridX.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/dialogInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Body" />
+    </com.google.android.material.textfield.TextInputLayout>
+</FrameLayout>

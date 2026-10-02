@@ -13,10 +13,18 @@ class SessionManager(context: Context) {
         nic: String?,
         displayName: String,
         homeRoute: String,
-        mustChangePassword: Boolean
+        mustChangePassword: Boolean,
+        status: String? = null
     ) {
-        dbHelper.saveSession(token, role, nic, displayName, homeRoute, mustChangePassword)
+        dbHelper.saveSession(token, role, nic, displayName, homeRoute, mustChangePassword, status)
     }
+
+    fun getStatus(): String? = dbHelper.readSession()?.status
+
+    fun updateStatus(status: String) = dbHelper.updateStatus(status)
+
+    /** A prosumer who registered but hasn't been activated by the Backoffice yet. */
+    fun isPendingProsumer(): Boolean = getRole() == "Prosumer" && getStatus() == "Pending"
 
     fun getToken(): String? = dbHelper.readSession()?.token
 
@@ -25,6 +33,8 @@ class SessionManager(context: Context) {
     fun getHomeRoute(): String? = dbHelper.readSession()?.homeRoute
 
     fun getDisplayName(): String? = dbHelper.readSession()?.displayName
+
+    fun getNic(): String? = dbHelper.readSession()?.nic
 
     fun mustChangePassword(): Boolean = dbHelper.readSession()?.mustChangePassword == true
 

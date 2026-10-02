@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Account screens: forgot password, pending account, notifications inbox, profile photo. -->
+<resources>
+    <!-- Forgot password -->
+    <string name="forgot_password_link">Forgot password?</string>
+    <string name="forgot_password_title">Forgot your password?</string>
+    <string name="forgot_password_subtitle">Enter the email you sign in with. We\'ll send a link to choose a new password; open it on any browser.</string>
+    <string name="forgot_password_button">Send reset link</string>
+    <string name="forgot_password_sent_title">Check your email</string>
+    <string name="forgot_password_sent_body">The link works once and expires after 20 minutes. After resetting, come back and sign in with the new password.</string>
+    <string name="forgot_password_back">Back to sign in</string>
+
+    <!-- Pending account -->
+    <string name="pending_title">Waiting for activation</string>
+    <string name="pending_body">Thanks for registering, %1$s. The SolarGridX Backoffice checks every new account before it can book energy transfers. You\'ll get an email as soon as yours is active.</string>
+    <string name="pending_check">Check again</string>
+    <string name="pending_still_waiting">Not active yet. We\'ll email you when it is.</string>
+    <string name="pending_now_active">Your account is active. Welcome!</string>
+    <string name="pending_deactivated">This account has been deactivated. Contact the Backoffice to reactivate it.</string>
+
+    <!-- Notifications -->
+    <string name="inbox_title">Notifications</string>
+    <string name="inbox_mark_all">Mark all read</string>
+    <string name="inbox_filter_all">All</string>
+    <string name="inbox_filter_unread">Unread</string>
+    <string name="inbox_filter_high">High priority</string>
+    <string name="inbox_empty_title">You\'re all caught up</string>
+    <string name="inbox_empty_body">Booking decisions, account changes and completed transfers show up here.</string>
+    <string name="inbox_unread_badge">%1$d unread</string>
+    <string name="profile_row_notifications">Notifications</string>
+    <string name="inbox_item_cd">%1$s, %2$s</string>
+    <string name="inbox_item_unread">unread</string>
+
+    <!-- Changing an approved booking -->
+    <string name="res_change_booking">Change booking</string>
+    <string name="res_change_approved_warning">This booking is approved. Changing it sends it back to Pending for approval again, and its QR code stops working. What do you want to change?</string>
+
+    <!-- Profile photo -->
+    <string name="avatar_change">Change photo</string>
+    <string name="avatar_add">Add photo</string>
+    <string name="avatar_remove">Remove photo</string>
+    <string name="avatar_updated">Photo updated.</string>
+    <string name="avatar_removed">Photo removed.</string>
+    <string name="avatar_too_large">The photo must be 1 MB or smaller.</string>
+    <string name="avatar_wrong_type">Choose a JPEG or PNG photo.</string>
+    <string name="avatar_cd">Profile photo</string>
+</resources>

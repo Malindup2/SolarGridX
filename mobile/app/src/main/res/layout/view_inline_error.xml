@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- API error shown in place on a form: server message, then details. -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/inlineError"
+    style="@style/Widget.SolarGridX.Res.Card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="@dimen/res_space_lg"
+    android:accessibilityLiveRegion="assertive"
+    android:visibility="gone"
+    app:cardBackgroundColor="@color/status_rejected_container"
+    app:cardElevation="0dp"
+    app:strokeColor="@color/status_rejected">
+
+    <TextView
+        android:id="@+id/inlineErrorText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:drawablePadding="@dimen/res_space_md"
+        android:drawableStart="@drawable/ic_res_error"
+        android:drawableTint="@color/status_rejected"
+        android:padding="@dimen/res_space_lg"
+        android:textAppearance="@style/TextAppearance.SolarGridX.Res.Body" />
+</com.google.android.material.card.MaterialCardView>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Operator: what the scanned code is for, then "Confirm transfer"; or why it can't be used. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        style="@style/Widget.SolarGridX.Res.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/res_screen_padding">
+
+            <ProgressBar
+                android:id="@+id/progress"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="40dp"
+                android:indeterminateTint="@color/color_primary" />
+
+            <!-- Result banner: success or failure -->
+            <LinearLayout
+                android:id="@+id/resultBlock"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_horizontal"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <ImageView
+                    android:id="@+id/resultIcon"
+                    android:layout_width="88dp"
+                    android:layout_height="88dp"
+                    android:background="@drawable/bg_res_circle"
+                    android:importantForAccessibility="no"
+                    android:padding="24dp" />
+
+                <TextView
+                    android:id="@+id/resultTitle"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/res_space_lg"
+                    android:accessibilityHeading="true"
+                    android:accessibilityLiveRegion="polite"
+                    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Title" />
+
+                <TextView
+                    android:id="@+id/resultBody"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/res_space_sm"
+                    android:gravity="center"
+                    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Body" />
+            </LinearLayout>
+
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/detailsCard"
+                style="@style/Widget.SolarGridX.Res.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/res_space_lg"
+                android:visibility="gone">
+
+                <LinearLayout
+                    android:id="@+id/factsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="@dimen/res_card_padding" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <TextView
+                android:id="@+id/confirmNote"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/res_space_md"
+                android:text="@string/scan_confirm_note"
+                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/confirmButton"
+                style="@style/Widget.SolarGridX.Res.Button"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/res_button_height"
+                android:layout_marginTop="@dimen/res_space_lg"
+                android:text="@string/scan_confirm"
+                android:visibility="gone" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/nextButton"
+                style="@style/Widget.SolarGridX.Res.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/res_button_height"
+                android:layout_marginTop="@dimen/res_space_sm"
+                android:text="@string/scan_next"
+                android:visibility="gone" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

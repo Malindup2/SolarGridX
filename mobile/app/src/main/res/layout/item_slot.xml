@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One slot: large time, per-booking limit, and a bar showing how many bays are taken. -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.SolarGridX.Res.Card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/res_space_md"
+    android:clickable="true"
+    android:focusable="true"
+    app:cardCornerRadius="18dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/res_space_lg">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <ImageView
+                android:layout_width="@dimen/res_icon_circle"
+                android:layout_height="@dimen/res_icon_circle"
+                android:background="@drawable/bg_res_circle"
+                android:backgroundTint="@color/status_approved_container"
+                android:importantForAccessibility="no"
+                android:padding="@dimen/res_space_sm"
+                android:src="@drawable/ic_res_clock"
+                app:tint="@color/color_primary" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="@dimen/res_space_md"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/slotTime"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="@font/poppins_semibold"
+                    android:textColor="?attr/colorOnSurface"
+                    android:textSize="18sp" />
+
+                <TextView
+                    android:id="@+id/slotCapacity"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="2dp"
+                    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/slotOffline"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/bg_res_pill"
+                android:backgroundTint="@color/status_cancelled_container"
+                android:paddingStart="@dimen/res_space_md"
+                android:paddingTop="@dimen/res_space_xs"
+                android:paddingEnd="@dimen/res_space_md"
+                android:paddingBottom="@dimen/res_space_xs"
+                android:text="@string/res_slot_unavailable"
+                android:fontFamily="@font/poppins_semibold"
+                android:textColor="@color/status_cancelled"
+                android:textSize="12sp"
+                android:visibility="gone" />
+
+            <ImageView
+                android:id="@+id/slotChevron"
+                android:layout_width="@dimen/res_icon_md"
+                android:layout_height="@dimen/res_icon_md"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_res_chevron_right"
+                app:tint="?attr/colorOnSurfaceVariant" />
+        </LinearLayout>
+
+        <com.google.android.material.progressindicator.LinearProgressIndicator
+            android:id="@+id/slotBays"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_md"
+            android:importantForAccessibility="no"
+            app:indicatorColor="@color/color_primary"
+            app:trackColor="@color/color_border"
+            app:trackCornerRadius="4dp"
+            app:trackThickness="6dp" />
+
+        <TextView
+            android:id="@+id/slotBaysText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_xs"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

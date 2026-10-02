@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TEMPORARY slot picker, standing in for Member 4's slot selection screen. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        style="@style/Widget.SolarGridX.Res.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/res_screen_padding">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/res_slot_picker_note"
+                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/stationLayout"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox.ExposedDropdownMenu"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/res_space_lg"
+                android:hint="@string/res_label_station"
+                app:boxCornerRadiusBottomEnd="@dimen/res_button_radius"
+                app:boxCornerRadiusBottomStart="@dimen/res_button_radius"
+                app:boxCornerRadiusTopEnd="@dimen/res_button_radius"
+                app:boxCornerRadiusTopStart="@dimen/res_button_radius"
+                app:boxStrokeColor="@color/sl_input_box_stroke"
+                app:hintTextColor="@color/sl_input_hint_color"
+                app:startIconDrawable="@drawable/ic_location"
+                app:startIconTint="@color/sl_input_icon_tint">
+
+                <AutoCompleteTextView
+                    android:id="@+id/stationInput"
+                    tools:ignore="LabelFor"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="none"
+                    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Body" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <HorizontalScrollView
+                android:id="@+id/dayScroller"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/res_space_md"
+                android:scrollbars="none"
+                android:visibility="gone">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/dayChips"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:selectionRequired="true"
+                    app:singleLine="true"
+                    app:singleSelection="true" />
+            </HorizontalScrollView>
+
+            <include layout="@layout/view_state" />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:id="@+id/slotList"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/res_space_md"
+                android:nestedScrollingEnabled="false" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>
