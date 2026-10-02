@@ -9,6 +9,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Button, Card, DataTable, EmptyState, ErrorAlert, Icon, PageHeader, type Column } from '../../components/ui'
+import { BarChart, ChartCard, PieChart } from '../../components/charts'
 import { useAuth } from '../../context/AuthContext'
 import { useApiQuery } from '../../hooks/useApiQuery'
 import { formatSlotDate, formatSlotTime } from '../../lib/format'
@@ -57,6 +58,45 @@ export default function OperatorDashboardPage() {
     () => (data ? data.pendingReservations.filter((row) => matches(row, query)) : null),
     [data, query],
   )
+
+  // Workload Donut Slices
+  const queueSlices = useMemo(() => {
+    const pending = data?.pendingCount ?? 0
+    const approved = data?.approvedFutureCount ?? 0
+    return [
+      { label: 'Pending Review', value: pending, color: '#f59e0b' },
+      { label: 'Approved Future', value: approved, color: '#49b02d' },
+    ]
+  }, [data])
+
+  // Slot-by-Slot Energy Bar Chart
+  const slotEnergyBars = useMemo(() => {
+    const pendingList = data?.pendingReservations ?? []
+    const slotsMap: Record<string, { energy: number; count: number }> = {}
+
+    const defaultSlots = ['08:00 - 10:00', '10:00 - 12:00', '12:00 - 14:00', '14:00 - 16:00', '16:00 - 18:00']
+    defaultSlots.forEach((slot) => {
+      slotsMap[slot] = { energy: 0, count: 0 }
+    })
+
+    pendingList.forEach((res) => {
+      const slotLabel = formatSlotTime(res.startTime, res.endTime)
+      if (!slotsMap[slotLabel]) {
+        slotsMap[slotLabel] = { energy: 0, count: 0 }
+      }
+      slotsMap[slotLabel].energy += res.energyKwh
+      slotsMap[slotLabel].count += 1
+    })
+
+    return Object.entries(slotsMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([slot, info]) => ({
+        label: slot.split(' - ')[0] || slot,
+        subLabel: slot.split(' - ')[1] ? `to ${slot.split(' - ')[1]}` : undefined,
+        value: Math.round(info.energy),
+        hint: `${info.count} pending (${Math.round(info.energy)} kWh)`,
+      }))
+  }, [data])
 
   const actionColumn: Column<ReservationResponse> = {
     key: 'actions',
@@ -115,6 +155,33 @@ export default function OperatorDashboardPage() {
         </div>
 
         <ErrorAlert error={error} onRetry={reload} />
+
+        {/* Visual Analytics Grid */}
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ChartCard
+            title="Station Workload & Queue"
+            subtitle="Pending decisions vs approved upcoming bookings"
+            loading={loading}
+          >
+            <PieChart
+              data={queueSlices}
+              centerLabel="Active"
+              centerValue={(data?.pendingCount ?? 0) + (data?.approvedFutureCount ?? 0)}
+            />
+          </ChartCard>
+
+          <ChartCard
+            title="Pending Solar Load by Time Window"
+            subtitle="Hourly energy demand awaiting check-in (kWh)"
+            loading={loading}
+          >
+            <BarChart
+              data={slotEnergyBars}
+              unit="kWh"
+              height={200}
+            />
+          </ChartCard>
+        </div>
 
         <Card title="Pending queue" padded={false}>
           <DataTable

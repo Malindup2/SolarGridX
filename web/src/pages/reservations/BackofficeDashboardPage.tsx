@@ -6,7 +6,8 @@
  */
 
 import { Link, useNavigate } from 'react-router-dom'
-import { Card, DataTable, EmptyState, ErrorAlert, Icon, PageHeader, StatCard } from '../../components/ui'
+import { Card, DataTable, EmptyState, ErrorAlert, Icon, PageHeader } from '../../components/ui'
+import { BarChart, ChartCard, PieChart } from '../../components/charts'
 import HeroCard from './components/HeroCard'
 import { useAuth } from '../../context/AuthContext'
 import { useApiQuery } from '../../hooks/useApiQuery'
@@ -40,6 +41,36 @@ export default function BackofficeDashboardPage() {
   const count = (status: ReservationStatus) => data?.filter((row) => row.status === status).length ?? 0
   const pending = (data ?? []).filter((row) => row.status === 'Pending').slice(0, RECENT_LIMIT)
 
+  // Donut chart status breakdown
+  const statusSlices = [
+    { label: 'Pending', value: count('Pending'), color: '#f59e0b' },
+    { label: 'Approved', value: count('Approved'), color: '#49b02d' },
+    { label: 'Completed', value: count('Completed'), color: '#0c8ce9' },
+    { label: 'Rejected', value: count('Rejected'), color: '#dc2626' },
+    { label: 'Cancelled', value: count('Cancelled'), color: '#64748b' },
+  ].filter((s) => s.value > 0 || (data && data.length === 0))
+
+  // 7-day daily energy demand bar chart
+  const dailyBars = Array.from({ length: WINDOW_DAYS + 1 }, (_, i) => {
+    const d = new Date()
+    d.setDate(d.getDate() + i)
+    const iso = d.toISOString().slice(0, 10)
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tmrw' : d.toLocaleDateString('en-GB', { weekday: 'short' })
+    const subLabel = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    const dayRows = (data ?? []).filter((r) => r.reservationDate?.startsWith(iso))
+    const energy = Math.round(
+      dayRows
+        .filter((r) => r.status !== 'Cancelled' && r.status !== 'Rejected')
+        .reduce((sum, r) => sum + r.energyKwh, 0),
+    )
+    return {
+      label,
+      subLabel,
+      value: energy,
+      hint: `${dayRows.length} booking${dayRows.length === 1 ? '' : 's'}`,
+    }
+  })
+
   return (
     <>
       <PageHeader
@@ -47,6 +78,7 @@ export default function BackofficeDashboardPage() {
         subtitle="Bookings across the grid for today and the next six days."
       />
 
+      {/* Quick Overview Hero */}
       <div className="mb-6">
         <HeroCard
           eyebrow="Next 7 days"
@@ -60,43 +92,149 @@ export default function BackofficeDashboardPage() {
         />
       </div>
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-3">
-        <Link to="/prosumers?status=Pending" className="focus-ring rounded-[var(--radius-xl)]">
-          <StatCard
-            label="Prosumers awaiting activation"
-            tone="pending"
-            icon={<Icon name="user" />}
-            value={pendingProsumers.data?.length ?? '—'}
-            loading={pendingProsumers.loading}
-            hint="Open the activation queue"
-          />
+      {/* High-Density System Management Strip */}
+      <div className="mb-6 grid gap-3 sm:grid-cols-3">
+        <Link
+          to="/prosumers?status=Pending"
+          className="focus-ring group flex items-center justify-between rounded-[var(--radius-lg)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-float)] transition-all hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-amber-500/15 text-amber-500">
+              <Icon name="user" size={18} />
+            </span>
+            <div className="truncate">
+              <p className="truncate text-xs font-medium text-[var(--color-muted)]">Awaiting Activation</p>
+              <p className="text-lg font-bold text-[var(--color-ink)]">
+                {pendingProsumers.loading ? '…' : pendingProsumers.data?.length ?? 0}
+              </p>
+            </div>
+          </div>
+          <span className="shrink-0 text-xs font-semibold text-amber-600 opacity-80 group-hover:opacity-100">
+            Review →
+          </span>
         </Link>
-        <Link to="/stations" className="focus-ring rounded-[var(--radius-xl)]">
-          <StatCard
-            label="Active stations"
-            tone="approved"
-            icon={<Icon name="pin" />}
-            value={stations.data ? `${stations.data.filter((st) => st.status === 'Active').length} of ${stations.data.length}` : '—'}
-            loading={stations.loading}
-          />
+
+        <Link
+          to="/stations"
+          className="focus-ring group flex items-center justify-between rounded-[var(--radius-lg)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-float)] transition-all hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-emerald-500/15 text-emerald-600">
+              <Icon name="pin" size={18} />
+            </span>
+            <div className="truncate">
+              <p className="truncate text-xs font-medium text-[var(--color-muted)]">Active Stations</p>
+              <p className="text-lg font-bold text-[var(--color-ink)]">
+                {stations.loading ? '…' : stations.data ? `${stations.data.filter((st) => st.status === 'Active').length} / ${stations.data.length}` : '—'}
+              </p>
+            </div>
+          </div>
+          <span className="shrink-0 text-xs font-semibold text-[var(--color-muted)] group-hover:text-[var(--color-ink)]">
+            Manage →
+          </span>
         </Link>
-        <Link to="/users" className="focus-ring rounded-[var(--radius-xl)]">
-          <StatCard
-            label="Grid operators"
-            icon={<Icon name="user" />}
-            value={users.data?.filter((u) => u.role === 'GridOperator' && u.status === 'Active').length ?? '—'}
-            loading={users.loading}
-          />
+
+        <Link
+          to="/users"
+          className="focus-ring group flex items-center justify-between rounded-[var(--radius-lg)] bg-[var(--color-surface)] px-4 py-3.5 shadow-[var(--shadow-float)] transition-all hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-blue-500">
+              <Icon name="user" size={18} />
+            </span>
+            <div className="truncate">
+              <p className="truncate text-xs font-medium text-[var(--color-muted)]">Grid Operators</p>
+              <p className="text-lg font-bold text-[var(--color-ink)]">
+                {users.loading ? '…' : users.data?.filter((u) => u.role === 'GridOperator' && u.status === 'Active').length ?? 0}
+              </p>
+            </div>
+          </div>
+          <span className="shrink-0 text-xs font-semibold text-[var(--color-muted)] group-hover:text-[var(--color-ink)]">
+            Staff →
+          </span>
         </Link>
       </div>
 
       <ErrorAlert error={error} onRetry={reload} className="mb-6" />
 
-      <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Pending review" tone="pending" icon={<Icon name="hourglass" />} value={count('Pending')} loading={loading} />
-        <StatCard label="Approved" tone="approved" icon={<Icon name="check" />} value={count('Approved')} loading={loading} />
-        <StatCard label="Completed" tone="completed" icon={<Icon name="checkCircle" />} value={count('Completed')} loading={loading} />
-        <StatCard label="Rejected or cancelled" tone="rejected" icon={<Icon name="close" />} value={count('Rejected') + count('Cancelled')} loading={loading} />
+      {/* Compact Status Ribbon Bar */}
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-lg)] bg-[var(--color-surface)] p-2.5 shadow-[var(--shadow-float)] sm:flex-nowrap">
+        <Link
+          to={`/bookings?dateFrom=${dateFrom}&dateTo=${dateTo}&status=Pending`}
+          className="focus-ring flex flex-1 items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-amber-500/10"
+        >
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-amber-500 animate-pulse" />
+            <span className="text-xs font-medium text-[var(--color-muted)]">Pending</span>
+          </div>
+          <span className="text-sm font-bold text-amber-600">{count('Pending')}</span>
+        </Link>
+
+        <div className="hidden h-5 w-px bg-[var(--color-border)] sm:block" />
+
+        <Link
+          to={`/bookings?dateFrom=${dateFrom}&dateTo=${dateTo}&status=Approved`}
+          className="focus-ring flex flex-1 items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-emerald-500/10"
+        >
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-emerald-500" />
+            <span className="text-xs font-medium text-[var(--color-muted)]">Approved</span>
+          </div>
+          <span className="text-sm font-bold text-emerald-600">{count('Approved')}</span>
+        </Link>
+
+        <div className="hidden h-5 w-px bg-[var(--color-border)] sm:block" />
+
+        <Link
+          to={`/bookings?dateFrom=${dateFrom}&dateTo=${dateTo}&status=Completed`}
+          className="focus-ring flex flex-1 items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-blue-500/10"
+        >
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-blue-500" />
+            <span className="text-xs font-medium text-[var(--color-muted)]">Completed</span>
+          </div>
+          <span className="text-sm font-bold text-blue-600">{count('Completed')}</span>
+        </Link>
+
+        <div className="hidden h-5 w-px bg-[var(--color-border)] sm:block" />
+
+        <Link
+          to={`/bookings?dateFrom=${dateFrom}&dateTo=${dateTo}`}
+          className="focus-ring flex flex-1 items-center justify-between rounded-md px-3 py-2 transition-colors hover:bg-rose-500/10"
+        >
+          <div className="flex items-center gap-2">
+            <span className="h-2.5 w-2.5 rounded-full bg-rose-500" />
+            <span className="text-xs font-medium text-[var(--color-muted)]">Cancelled / Rejected</span>
+          </div>
+          <span className="text-sm font-bold text-rose-600">{count('Rejected') + count('Cancelled')}</span>
+        </Link>
+      </div>
+
+      {/* Visual Analytics Grid */}
+      <div className="mb-6 grid gap-6 lg:grid-cols-2">
+        <ChartCard
+          title="Booking Status Distribution"
+          subtitle="Proportion of reservations across the 7-day grid window"
+          loading={loading}
+        >
+          <PieChart
+            data={statusSlices}
+            centerLabel="Total"
+            centerValue={data?.length ?? 0}
+          />
+        </ChartCard>
+
+        <ChartCard
+          title="7-Day Energy Demand"
+          subtitle="Daily booked solar energy feed & draw (kWh)"
+          loading={loading}
+        >
+          <BarChart
+            data={dailyBars}
+            unit="kWh"
+            height={200}
+          />
+        </ChartCard>
       </div>
 
       <Card

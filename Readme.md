@@ -16,6 +16,19 @@ Sri Lanka Institute of Information Technology — Year 4, Semester 2, 2026
 
 ---
 
+##  Project Documentation & Handover Suite
+
+| Document | File Link | Description |
+|---|---|---|
+| **Handover Report** | [docs/HANDOVER_REPORT.md](docs/HANDOVER_REPORT.md) | Executive project summary, deliverables matrix & evaluation guide |
+| **System Architecture** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | C4 architecture diagrams, layered design & sequence flows |
+| **Database & ER Diagram** | [docs/DATABASE.md](docs/DATABASE.md) | Complete Mermaid ER diagram, MongoDB schemas & index strategies |
+| **API Contract** | [docs/API-CONTRACT.md](docs/API-CONTRACT.md) | OpenAPI REST endpoint specifications & JSON payload models |
+| **E2E Testing Runbook** | [HAPPY_PATH_E2E_GUIDE.md](HAPPY_PATH_E2E_GUIDE.md) | Complete step-by-step verification guide across all 3 roles |
+
+
+---
+
 ## Table of Contents
 1. [Project Overview](#1-project-overview)
 2. [System Architecture](#2-system-architecture)
