@@ -52,11 +52,10 @@ export default function BackofficeDashboardPage() {
 
   // 7-day daily energy demand bar chart
   const dailyBars = Array.from({ length: WINDOW_DAYS + 1 }, (_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() + i)
-    const iso = d.toISOString().slice(0, 10)
-    const label = i === 0 ? 'Today' : i === 1 ? 'Tmrw' : d.toLocaleDateString('en-GB', { weekday: 'short' })
-    const subLabel = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+    const iso = isoDate(i)
+    const d = new Date(`${iso}T00:00:00Z`)
+    const label = i === 0 ? 'Today' : i === 1 ? 'Tmrw' : d.toLocaleDateString('en-GB', { weekday: 'short', timeZone: 'UTC' })
+    const subLabel = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
     const dayRows = (data ?? []).filter((r) => r.reservationDate?.startsWith(iso))
     const energy = Math.round(
       dayRows

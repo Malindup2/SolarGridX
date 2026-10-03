@@ -12,6 +12,7 @@ import { useAuth } from '../context/AuthContext'
 import { useLogoutConfirm } from '../components/auth/useLogoutConfirm'
 import Avatar from '../components/Avatar'
 import CommandPalette from '../components/CommandPalette'
+import LiveClock from '../components/LiveClock'
 import NotificationBell from '../components/NotificationBell'
 import { NotificationsProvider } from '../context/NotificationsContext'
 import { ProfileProvider, useProfile } from '../context/ProfileContext'
@@ -244,7 +245,8 @@ export default function AppLayout() {
                 <path d="M4 6h16M4 12h16M4 18h16" strokeLinecap="round" />
               </svg>
             </button>
-            <span className="text-sm font-semibold text-[var(--color-muted)] lg:hidden">SolarGridX</span>
+            <span className="hidden text-sm font-semibold text-[var(--color-muted)] min-[420px]:inline lg:hidden">SolarGridX</span>
+            <LiveClock />
           </div>
           <div className="flex items-center gap-2 sm:gap-3">
             <CommandPalette />

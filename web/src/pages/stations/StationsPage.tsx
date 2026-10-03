@@ -61,7 +61,7 @@ export default function StationsPage() {
     { key: 'type', header: 'Type', hideOnMobile: true, render: (s) => s.type },
     {
       key: 'hours',
-      header: 'Hours (UTC)',
+      header: 'Hours (Sri Lanka)',
       hideOnMobile: true,
       render: (s) => (
         <span>

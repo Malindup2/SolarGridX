@@ -36,7 +36,7 @@ const ALL_COLUMNS: Record<ColumnKey, Column<ReservationResponse>> = {
     key: 'energy',
     header: 'Energy',
     align: 'right',
-    render: (row) => <span className="tabular-nums">{formatKwh(row.energyKwh)}</span>,
+    render: (row) => <span className="whitespace-nowrap tabular-nums">{formatKwh(row.energyKwh)}</span>,
   },
   status: {
     key: 'status',

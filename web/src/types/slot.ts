@@ -1,7 +1,7 @@
 export interface SlotResponse {
   id: string
   stationId: string
-  /** ISO UTC midnight of the slot day. */
+  /** ISO midnight of the slot day (a calendar day). */
   slotDate: string
   /** "HH:mm" */
   startTime: string

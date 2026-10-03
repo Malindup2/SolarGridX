@@ -6,9 +6,9 @@
 
 import type { SlotResponse } from '../../../types/slot'
 
-/** Slot start as a UTC instant (slot days and times are stored in UTC). */
+/** Slot start as an exact instant (slot days and times are Sri Lanka time, UTC+05:30). */
 export function slotStart(slot: Pick<SlotResponse, 'slotDate' | 'startTime'>): Date {
-  return new Date(`${slot.slotDate.slice(0, 10)}T${slot.startTime}:00Z`)
+  return new Date(`${slot.slotDate.slice(0, 10)}T${slot.startTime}:00+05:30`)
 }
 
 export function slotProblem(slot: SlotResponse, bays: number, now: Date): string | null {

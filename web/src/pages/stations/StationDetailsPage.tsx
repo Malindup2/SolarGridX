@@ -169,7 +169,7 @@ export default function StationDetailsPage() {
             }
           >
             {s && !schedule && (
-              <ul className="space-y-1 text-sm text-[var(--color-ink)]" aria-label="Opening hours by day (UTC)">
+              <ul className="space-y-1 text-sm text-[var(--color-ink)]" aria-label="Opening hours by day (Sri Lanka time)">
                 {WEEKDAYS.filter((day) => s.operationalSchedule.activeDays.includes(day)).map((day) => (
                   <li key={day} className="flex justify-between gap-4">
                     <span>{day}</span>
@@ -181,7 +181,7 @@ export default function StationDetailsPage() {
                     </span>
                   </li>
                 ))}
-                <li className="pt-1 text-caption text-[var(--color-muted)]">Times are UTC. Other days are closed.</li>
+                <li className="pt-1 text-caption text-[var(--color-muted)]">Times are Sri Lanka time. Other days are closed.</li>
               </ul>
             )}
             {schedule && (

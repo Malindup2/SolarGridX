@@ -1,7 +1,7 @@
 /*
  * ErrorAlert.tsx
  * The one place API errors are rendered: the server's `message`, then its
- * `details` underneath when present (FRONTEND-OWNERSHIP gotcha 8).
+ * `details` underneath when present.
  */
 
 import type { ApiError } from '../../services/api'

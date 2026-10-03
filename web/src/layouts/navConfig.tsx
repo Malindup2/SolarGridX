@@ -2,7 +2,6 @@
  * navConfig.tsx
  * Role-aware sidebar menu for the signed-in web app. Every item is a real
  * route, so sections can be linked, bookmarked and opened in a new tab.
- * Owners add their section here by asking M1 (see FRONTEND-OWNERSHIP §3).
  */
 
 import type { ReactNode } from 'react'

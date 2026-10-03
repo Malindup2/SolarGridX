@@ -1,7 +1,6 @@
 /*
- * Shared UI kit (owner: M1). Import from here:
+ * Shared UI kit. Import from here:
  *   import { Button, Card, ErrorAlert } from '../components/ui'
- * Ask M1 before adding a component so we don't end up with two of anything.
  */
 
 export { default as Button } from './Button'

@@ -1,6 +1,6 @@
 /*
  * StationPicker.tsx
- * Operators are not assigned to a station (FRONTEND-OWNERSHIP gotcha 4), so
+ * Operators are not assigned to a station, so
  * every operator view picks one. Remembers the last choice per browser.
  */
 

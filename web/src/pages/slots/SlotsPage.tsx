@@ -124,7 +124,7 @@ export default function SlotsPage() {
         />
       ),
     },
-    { key: 'time', header: 'Time (UTC)', render: (slot) => <span className="tabular-nums font-semibold">{slot.startTime}–{slot.endTime}</span> },
+    { key: 'time', header: 'Time (Sri Lanka)', render: (slot) => <span className="tabular-nums font-semibold">{slot.startTime}–{slot.endTime}</span> },
     { key: 'capacity', header: 'Per booking', align: 'right', render: (slot) => `up to ${formatKwh(slot.capacityKwh)}` },
     {
       key: 'bays',
@@ -168,7 +168,7 @@ export default function SlotsPage() {
     <>
       <PageHeader
         title="Slots"
-        subtitle="One-hour energy transfer slots per station. Times are UTC, like the station schedule."
+        subtitle="One-hour energy transfer slots per station. Times are Sri Lanka time, like the station schedule."
         actions={
           stationId && (
             <>
@@ -190,7 +190,7 @@ export default function SlotsPage() {
         </div>
         {station.data && (
           <p className="mt-3 text-caption text-[var(--color-muted)]">
-            {station.data.stationName} operates {station.data.operationalSchedule.openTime}–{station.data.operationalSchedule.closeTime} UTC on{' '}
+            {station.data.stationName} operates {station.data.operationalSchedule.openTime}–{station.data.operationalSchedule.closeTime} (Sri Lanka time) on{' '}
             {station.data.operationalSchedule.activeDays.join(', ')} · {bays} battery bays.
           </p>
         )}

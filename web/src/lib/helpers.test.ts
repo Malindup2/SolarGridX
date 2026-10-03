@@ -86,17 +86,17 @@ describe('slotProblem', () => {
     updatedAt: '2026-10-01T00:00:00Z',
     ...overrides,
   })
-  const before = new Date('2026-10-05T08:59:00Z')
+  const before = new Date('2026-10-05T03:29:00Z') // 08:59 in Sri Lanka
 
-  it('reads the slot start as UTC', () => {
-    expect(slotStart(slot()).toISOString()).toBe('2026-10-05T09:00:00.000Z')
+  it('reads the slot start as Sri Lanka time', () => {
+    expect(slotStart(slot()).toISOString()).toBe('2026-10-05T03:30:00.000Z')
   })
 
   it('explains why a slot cannot be picked', () => {
     expect(slotProblem(slot(), 4, before)).toBeNull()
     expect(slotProblem(slot({ isAvailable: false }), 4, before)).toBe('Offline')
     expect(slotProblem(slot({ reservedCount: 4 }), 4, before)).toBe('Full')
-    expect(slotProblem(slot(), 4, new Date('2026-10-05T09:00:00Z'))).toBe('Already started')
+    expect(slotProblem(slot(), 4, new Date('2026-10-05T03:30:00Z'))).toBe('Already started')
   })
 })
 

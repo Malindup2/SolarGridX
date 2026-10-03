@@ -18,7 +18,7 @@ export interface ReservationResponse {
   stationId: string
   stationName: string
   slotId: string
-  /** ISO-8601 UTC midnight of the slot day, e.g. "2026-10-03T00:00:00Z". */
+  /** ISO-8601 midnight of the slot day (a calendar day), e.g. "2026-10-03T00:00:00Z". */
   reservationDate: string
   /** "HH:mm" */
   startTime: string

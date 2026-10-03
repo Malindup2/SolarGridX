@@ -31,10 +31,9 @@ function guard(roles: UserRole[], element: ReactNode) {
   return <ProtectedRoute allowedRoles={roles}>{element}</ProtectedRoute>
 }
 
-// Signed-in web app. Each section belongs to the member named next to it
-// (docs/FRONTEND-OWNERSHIP.md); owners send M1 their page to swap in.
+// Signed-in web app, grouped by area.
 const appRoutes: RouteObject[] = [
-  // M1 — dashboards, reservations, bookings
+  // Dashboards, reservations, bookings
   { path: 'backoffice/dashboard', element: guard(['Backoffice'], <BackofficeDashboardPage />) },
   { path: 'operator/home', element: guard(['GridOperator'], <OperatorDashboardPage />) },
   { path: 'reservations', element: guard(STAFF, <ReservationListPage />) },
@@ -47,16 +46,16 @@ const appRoutes: RouteObject[] = [
   { path: 'profile', element: guard(STAFF, <ProfilePage />) },
   { path: 'notifications', element: guard(STAFF, <NotificationsPage />) },
 
-  // M2 — identity
+  // Identity
   { path: 'users', element: guard(['Backoffice'], <UsersPage />) },
   { path: 'prosumers', element: guard(STAFF, <ProsumersPage />) },
   { path: 'prosumers/:nic', element: guard(STAFF, <ProsumerDetailsPage />) },
 
-  // M3 — stations
+  // Stations
   { path: 'stations', element: guard(STAFF, <StationsPage />) },
   { path: 'stations/:id', element: guard(STAFF, <StationDetailsPage />) },
 
-  // M4 — slots (write endpoints are GridOperator only)
+  // Slots (write endpoints are GridOperator only)
   { path: 'slots', element: guard(['GridOperator'], <SlotsPage />) },
 ]
 

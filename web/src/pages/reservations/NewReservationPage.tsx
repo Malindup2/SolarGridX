@@ -80,7 +80,7 @@ export default function NewReservationPage() {
               ['Prosumer', `${prosumer!.fullName} (${prosumer!.nic})`],
               ['Station', station.data?.stationName ?? ''],
               ['Day', formatSlotDate(slot!.slotDate)],
-              ['Slot (UTC)', `${slot!.startTime}–${slot!.endTime}`],
+              ['Slot (Sri Lanka time)', `${slot!.startTime}–${slot!.endTime}`],
               ['Energy', formatKwh(energyValue)],
               ['Status after booking', 'Pending: an operator still approves it'],
             ].map(([label, value]) => (

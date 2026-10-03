@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatDateTime, formatKwh, formatSlotDate, formatSlotTime, isoDate, slotDayKey } from './format'
+import { clockLabel, timeLabel, formatDateTime, formatKwh, formatSlotDate, formatSlotTime, isoDate, slotDayKey } from './format'
 
 describe('formatSlotDate', () => {
   it('formats a slot day', () => {
@@ -66,5 +66,22 @@ describe('isoDate', () => {
 
   it('goes backwards for negative offsets', () => {
     expect(isoDate(-1) < isoDate(0)).toBe(true)
+  })
+})
+
+describe('clockLabel', () => {
+  it('shows the date and time in Sri Lanka whatever the browser zone is', () => {
+    // 14:30 UTC is 20:00 in Sri Lanka.
+    expect(clockLabel(new Date('2026-10-03T14:30:00Z'))).toBe('Saturday 3 October · 20:00')
+  })
+
+  it('rolls over to the next day after midnight in Sri Lanka', () => {
+    expect(clockLabel(new Date('2026-10-03T19:00:00Z'))).toBe('Sunday 4 October · 00:30')
+  })
+})
+
+describe('timeLabel', () => {
+  it('shows only the Sri Lanka time', () => {
+    expect(timeLabel(new Date('2026-10-03T14:30:00Z'))).toBe('20:00')
   })
 })

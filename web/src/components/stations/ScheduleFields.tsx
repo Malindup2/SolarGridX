@@ -1,6 +1,6 @@
 /*
  * ScheduleFields.tsx
- * Opening hours (UTC, as the API stores them) and the days a station operates.
+ * Opening hours (Sri Lanka time, as the API stores them) and the days a station operates.
  */
 
 import { TextField } from '../ui'
@@ -44,7 +44,7 @@ export default function ScheduleFields({ value, onChange, error }: ScheduleField
 
   return (
     <fieldset className="space-y-3">
-      <legend className="text-sm font-medium text-[var(--color-ink)]">Operating schedule (UTC)</legend>
+      <legend className="text-sm font-medium text-[var(--color-ink)]">Operating schedule (Sri Lanka time)</legend>
       <div className="grid grid-cols-2 gap-3">
         <TextField label="Opens" type="time" value={value.openTime} onChange={(e) => onChange({ ...value, openTime: e.target.value })} />
         <TextField label="Closes" type="time" value={value.closeTime} onChange={(e) => onChange({ ...value, closeTime: e.target.value })} />

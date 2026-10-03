@@ -67,8 +67,8 @@ export default function SlotFormDialog({ open, stationId, date, slot, onClose, o
     >
       <form id="slot-form" noValidate onSubmit={submit} className="grid grid-cols-2 gap-4">
         <TextField label="Day" type="date" value={draft.slotDate} error={errors.slotDate} onChange={(e) => set('slotDate', e.target.value)} containerClassName="col-span-2" />
-        <TextField label="Starts (UTC)" type="time" value={draft.startTime} error={errors.startTime} onChange={(e) => set('startTime', e.target.value)} />
-        <TextField label="Ends (UTC)" type="time" value={draft.endTime} error={errors.endTime} onChange={(e) => set('endTime', e.target.value)} />
+        <TextField label="Starts (Sri Lanka time)" type="time" value={draft.startTime} error={errors.startTime} onChange={(e) => set('startTime', e.target.value)} />
+        <TextField label="Ends (Sri Lanka time)" type="time" value={draft.endTime} error={errors.endTime} onChange={(e) => set('endTime', e.target.value)} />
         <TextField
           label="Max energy per booking (kWh)"
           type="number"

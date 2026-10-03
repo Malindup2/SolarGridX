@@ -1,9 +1,14 @@
 /*
  * format.ts
- * Display formatting for dates, slot times and energy. Slot dates come back
- * as UTC midnight, so they are read with UTC parts; local time would shift
- * them to the previous day west of UTC.
+ * Display formatting for dates, slot times and energy. The system runs on Sri
+ * Lanka time (UTC+05:30): a slot's date and "HH:mm" times are Sri Lanka
+ * wall-clock values, and "today" is read in that zone whatever the browser's
+ * is. Slot dates come back as midnight and are only a calendar day, so they are
+ * read with UTC parts to keep the day. Real timestamps are exact instants and
+ * are shown in Sri Lanka time.
  */
+
+export const SRI_LANKA_TIME_ZONE = 'Asia/Colombo'
 
 const SLOT_DATE_FORMAT = new Intl.DateTimeFormat('en-GB', {
   weekday: 'short',
@@ -19,6 +24,31 @@ const DATE_TIME_FORMAT = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
+  timeZone: SRI_LANKA_TIME_ZONE,
+})
+
+const TODAY_FORMAT = new Intl.DateTimeFormat('en-GB', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  timeZone: SRI_LANKA_TIME_ZONE,
+})
+
+const CLOCK_FORMAT = new Intl.DateTimeFormat('en-GB', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  hour: '2-digit',
+  minute: '2-digit',
+  hour12: false,
+  timeZone: SRI_LANKA_TIME_ZONE,
+})
+
+const SRI_LANKA_DAY_FORMAT = new Intl.DateTimeFormat('en-CA', {
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  timeZone: SRI_LANKA_TIME_ZONE,
 })
 
 const KWH_FORMAT = new Intl.NumberFormat('en-GB', { maximumFractionDigits: 2 })
@@ -40,7 +70,7 @@ export function formatSlotTime(startTime: string, endTime: string): string {
   return `${startTime}–${endTime}`
 }
 
-/** Local date and time for audit timestamps (createdAt, completedAt). */
+/** Sri Lanka date and time for audit timestamps (createdAt, completedAt). */
 export function formatDateTime(value: string | null | undefined): string {
   const date = parse(value)
   return date ? DATE_TIME_FORMAT.format(date) : '—'
@@ -55,11 +85,29 @@ export function slotDayKey(value: string): string {
   return value.slice(0, 10)
 }
 
-/** Local calendar date as yyyy-MM-dd, offset by `days`. */
+/** The Sri Lanka calendar date of a moment, as yyyy-MM-dd. */
+export function slDayKey(moment: Date): string {
+  return SRI_LANKA_DAY_FORMAT.format(moment)
+}
+
+/** The Sri Lanka calendar date as yyyy-MM-dd, offset by `days`. */
 export function isoDate(days = 0): string {
-  const date = new Date()
-  date.setDate(date.getDate() + days)
-  const month = String(date.getMonth() + 1).padStart(2, '0')
-  const day = String(date.getDate()).padStart(2, '0')
-  return `${date.getFullYear()}-${month}-${day}`
+  return slDayKey(new Date(Date.now() + days * 24 * 60 * 60 * 1000))
+}
+
+const TIME_FORMAT = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: SRI_LANKA_TIME_ZONE })
+
+/** "20:52": the time of a moment in Sri Lanka, for narrow screens. */
+export function timeLabel(moment: Date): string {
+  return TIME_FORMAT.format(moment)
+}
+
+/** "Saturday 3 October · 20:52": a moment in Sri Lanka time, for the top bar clock. */
+export function clockLabel(moment: Date): string {
+  return CLOCK_FORMAT.format(moment).replace(' at ', ' · ')
+}
+
+/** "Saturday 3 October": today's date in Sri Lanka, for dashboard headers. */
+export function todayLabel(): string {
+  return TODAY_FORMAT.format(new Date())
 }
