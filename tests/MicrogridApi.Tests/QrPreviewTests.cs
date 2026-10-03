@@ -1,3 +1,4 @@
+using MicrogridApi.Common;
 using System.Net;
 using System.Net.Http.Json;
 using MicrogridApi.DTOs.Activity;
@@ -65,7 +66,7 @@ public class QrPreviewTests(ApiFixture api)
         var prosumerClient = await api.ClientForAsync(prosumer);
         var operatorClient = await api.ClientForAsync(await api.SeedOperatorAsync());
         var station = await api.SeedStationAsync();
-        var slot = await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddMinutes(-10));
+        var slot = await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddMinutes(-10));
         var reservation = await api.SeedReservationAsync(prosumer.Nic, slot, MicrogridApi.Models.ReservationStatus.Approved);
 
         (await operatorClient.PostAsync($"/api/qr/issue/{reservation.Id}", null)).EnsureSuccessStatusCode();

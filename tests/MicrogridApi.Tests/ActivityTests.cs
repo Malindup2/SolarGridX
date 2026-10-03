@@ -1,3 +1,4 @@
+using MicrogridApi.Common;
 using System.Net;
 using System.Net.Http.Json;
 using MicrogridApi.DTOs.Activity;
@@ -156,7 +157,7 @@ public class ActivityTests(ApiFixture api)
         var prosumerClient = await api.ClientForAsync(prosumer);
         var operatorClient = await api.ClientForAsync(await api.SeedOperatorAsync());
         var station = await api.SeedStationAsync();
-        var slot = await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddHours(30));
+        var slot = await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddHours(30));
 
         var reservation = await (await prosumerClient.PostAsJsonAsync("/api/reservations", HttpExtensions.BookingFor(prosumer.Nic, slot)))
             .ShouldSucceedAsync(HttpStatusCode.Created);

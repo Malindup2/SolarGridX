@@ -1,3 +1,4 @@
+using MicrogridApi.Common;
 using System.Net;
 using System.Net.Http.Json;
 using MicrogridApi.DTOs.Reservations;
@@ -18,7 +19,7 @@ public class ReservationLifecycleTests(ApiFixture api)
         var prosumerClient = await api.ClientForAsync(prosumer);
         var operatorClient = await api.ClientForAsync(await api.SeedOperatorAsync());
         var station = await api.SeedStationAsync();
-        var slot = await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddHours(30));
+        var slot = await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddHours(30));
 
         var created = await (await prosumerClient.PostAsJsonAsync("/api/reservations", HttpExtensions.BookingFor(prosumer.Nic, slot)))
             .ShouldSucceedAsync(HttpStatusCode.Created);
@@ -86,7 +87,7 @@ public class ReservationLifecycleTests(ApiFixture api)
         var prosumer = await api.SeedProsumerAsync();
         var client = await api.ClientForAsync(prosumer);
         var station = await api.SeedStationAsync();
-        var slot = await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddHours(30));
+        var slot = await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddHours(30));
         var reservation = await api.SeedReservationAsync(prosumer.Nic, slot, ReservationStatus.Pending);
 
         var approve = await client.PatchAsync($"/api/reservations/{reservation.Id}/approve");
@@ -101,7 +102,7 @@ public class ReservationLifecycleTests(ApiFixture api)
     {
         var prosumer = await api.SeedProsumerAsync();
         var station = await api.SeedStationAsync();
-        var slot = await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddHours(30));
+        var slot = await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddHours(30));
         var reservation = await api.SeedReservationAsync(prosumer.Nic, slot, ReservationStatus.Pending);
         var admin = await LoginAdminAsync();
 
@@ -136,8 +137,8 @@ public class ReservationLifecycleTests(ApiFixture api)
         var station = await api.SeedStationAsync();
         var mine = await api.SeedProsumerAsync();
         var theirs = await api.SeedProsumerAsync();
-        var slotA = await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddHours(30));
-        var slotB = await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddHours(32));
+        var slotA = await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddHours(30));
+        var slotB = await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddHours(32));
         await api.SeedReservationAsync(mine.Nic, slotA, ReservationStatus.Pending);
         await api.SeedReservationAsync(theirs.Nic, slotB, ReservationStatus.Pending);
         var client = await api.ClientForAsync(mine);
@@ -166,7 +167,7 @@ public class ReservationLifecycleTests(ApiFixture api)
         var prosumer = await api.SeedProsumerAsync();
         var prosumerClient = await api.ClientForAsync(prosumer);
         var station = await api.SeedStationAsync();
-        var slot = await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddHours(30));
+        var slot = await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddHours(30));
 
         var created = await (await prosumerClient.PostAsJsonAsync("/api/reservations", HttpExtensions.BookingFor(prosumer.Nic, slot)))
             .ShouldSucceedAsync(HttpStatusCode.Created);

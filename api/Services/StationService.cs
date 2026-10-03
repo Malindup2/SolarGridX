@@ -88,6 +88,7 @@ public sealed class StationService(
     {
 
         var stations = await stationRepository.GetAllAsync();
+        var openStationIds = await StationsWithOpenSlotsAsync(stations);
 
         return stations.Select(station => new StationResponse(
             station.Id,
@@ -101,7 +102,8 @@ public sealed class StationService(
             ScheduleResponse(station.OperationalSchedule),
             station.Status.ToString(),
             station.CreatedAt,
-            station.UpdatedAt)).ToList();
+            station.UpdatedAt,
+            openStationIds.Contains(station.Id))).ToList();
     }
 
     // Finds active stations within the requested radius, nearest first.
@@ -121,6 +123,8 @@ public sealed class StationService(
 
         var activeStations = await stationRepository.GetActiveAsync();
 
+
+        var openStationIds = await StationsWithOpenSlotsAsync(activeStations);
 
         var nearby = activeStations
             .Select(station => new
@@ -145,7 +149,8 @@ public sealed class StationService(
                 ScheduleResponse(item.Station.OperationalSchedule),
                 item.Station.Status.ToString(),
                 item.Station.CreatedAt,
-                item.Station.UpdatedAt))
+                item.Station.UpdatedAt,
+                openStationIds.Contains(item.Station.Id)))
             .ToList();
 
         return nearby;
@@ -166,6 +171,7 @@ public sealed class StationService(
             return StationErrors.NotFound;
         }
 
+        var openStationIds = await StationsWithOpenSlotsAsync([station]);
 
         return new StationResponse(
             station.Id,
@@ -179,7 +185,34 @@ public sealed class StationService(
             ScheduleResponse(station.OperationalSchedule),
             station.Status.ToString(),
             station.CreatedAt,
-            station.UpdatedAt);
+            station.UpdatedAt,
+            openStationIds.Contains(station.Id));
+    }
+
+    // Stations a prosumer can book right now. Uses the same rules the reservation service
+    // enforces: an active station, an online slot inside the 7-day window (BR-01), not yet
+    // started (BR-37), and at least one battery bay still free.
+    private async Task<HashSet<string>> StationsWithOpenSlotsAsync(IReadOnlyCollection<SolarStationInfo> stations)
+    {
+        var now = BusinessClock.Now;
+        var slots = await stationRepository.GetBookableWindowSlotsAsync(now.Date, now.Date.AddDays(7));
+        var bays = stations
+            .Where(station => station.Status == StationStatus.Active)
+            .ToDictionary(station => station.Id, station => station.BatterySlotCount);
+
+        return slots
+            .Where(slot => bays.TryGetValue(slot.StationId, out var bayCount) && slot.ReservedCount < bayCount)
+            .Where(slot => StartsAt(slot) > now)
+            .Select(slot => slot.StationId)
+            .ToHashSet();
+    }
+
+    private static DateTime StartsAt(EnergyBookingSlot slot)
+    {
+        var parts = slot.StartTime.Split(':');
+        return slot.SlotDate.Date
+            .AddHours(int.Parse(parts[0], CultureInfo.InvariantCulture))
+            .AddMinutes(int.Parse(parts[1], CultureInfo.InvariantCulture));
     }
 
 
@@ -522,16 +555,16 @@ public sealed class StationService(
         return Result.Success();
     }
 
-    // Finds slots that have not ended using UTC dates and times.
+    // Finds slots that have not ended, using Sri Lanka dates and times.
     private async Task<List<EnergyBookingSlot>> GetUpcomingSlotsAsync(string id)
     {
 
-        var utcNow = DateTime.UtcNow;
-        var utcToday = utcNow.Date;
-        var utcTime = utcNow.ToString("HH:mm", CultureInfo.InvariantCulture);
+        var now = BusinessClock.Now;
+        var today = now.Date;
+        var time = now.ToString("HH:mm", CultureInfo.InvariantCulture);
 
         return await stationRepository.GetUpcomingSlotsAsync(
-            id, utcToday, utcTime);
+            id, today, time);
     }
 
 

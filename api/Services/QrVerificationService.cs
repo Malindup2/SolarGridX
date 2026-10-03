@@ -131,7 +131,7 @@ public class QrVerificationService(
 
         // BR-33: the code only works from the moment its slot starts.
         var startsAt = ReservationViewService.StartsAt(reservation);
-        if (startsAt > DateTime.UtcNow)
+        if (startsAt > BusinessClock.Now)
         {
             return (null, QrErrors.TokenNotYetValid(startsAt));
         }

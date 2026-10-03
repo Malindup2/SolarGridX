@@ -46,7 +46,7 @@ public class ReservationViewService(ReservationRepository reservationRepository,
 
         // A prosumer only ever sees their own bookings, whatever the query string says.
         var effectiveNic = callerRole == RoleNames.Prosumer ? callerNic : nic;
-        var now = DateTime.UtcNow;
+        var now = BusinessClock.Now;
 
         IEnumerable<EnergyReservation> matches = view switch
         {
@@ -93,6 +93,6 @@ public class ReservationViewService(ReservationRepository reservationRepository,
         var parts = time.Split(':');
         var hour = int.Parse(parts[0], CultureInfo.InvariantCulture);
         var minute = int.Parse(parts[1], CultureInfo.InvariantCulture);
-        return new DateTime(date.Year, date.Month, date.Day, hour, minute, 0, DateTimeKind.Utc);
+        return new DateTime(date.Year, date.Month, date.Day, hour, minute, 0, DateTimeKind.Unspecified);
     }
 }

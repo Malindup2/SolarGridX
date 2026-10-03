@@ -40,8 +40,8 @@ public class SearchExportTests(ApiFixture api)
         var station = await api.SeedStationAsync();
         var mine = await api.SeedProsumerAsync();
         var theirs = await api.SeedProsumerAsync();
-        await api.SeedReservationAsync(mine.Nic, await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddDays(1)), ReservationStatus.Pending);
-        await api.SeedReservationAsync(theirs.Nic, await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddDays(1)), ReservationStatus.Pending);
+        await api.SeedReservationAsync(mine.Nic, await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddDays(1)), ReservationStatus.Pending);
+        await api.SeedReservationAsync(theirs.Nic, await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddDays(1)), ReservationStatus.Pending);
         var client = await api.ClientForAsync(mine);
 
         Assert.DoesNotContain(await Search(client, theirs.Nic), h => h.Kind == "reservation");
@@ -72,7 +72,7 @@ public class SearchExportTests(ApiFixture api)
     {
         var station = await api.SeedStationAsync();
         var prosumer = await api.SeedProsumerAsync();
-        var reservation = await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddDays(1)), ReservationStatus.Pending);
+        var reservation = await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddDays(1)), ReservationStatus.Pending);
         var client = await api.ClientForAsync(await api.SeedOperatorAsync());
 
         var response = await client.GetAsync($"/api/exports/reservations.csv?nic={prosumer.Nic}");

@@ -19,7 +19,8 @@ public sealed class ApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
 
     private static int _sequence = 100_000;
     private readonly string? _connection = Environment.GetEnvironmentVariable(MongoFactAttribute.EnvironmentVariable);
-    private readonly string _database = $"SolarGridX_Test_{Guid.NewGuid():N}";
+    // Atlas allows database names of at most 38 bytes, so only part of the GUID is used.
+    private readonly string _database = $"SolarGridX_Test_{Guid.NewGuid().ToString("N")[..12]}";
     private MongoDbContext? _context;
 
     public ApiFixture()
@@ -133,15 +134,15 @@ public sealed class ApiFixture : WebApplicationFactory<Program>, IAsyncLifetime
 
     // A one-hour slot that starts at the given UTC instant (to the minute).
     public async Task<EnergyBookingSlot> SeedSlotAsync(
-        string stationId, DateTime startsAtUtc, double capacityKwh = 30, bool available = true)
+        string stationId, DateTime startsAt, double capacityKwh = 30, bool available = true)
     {
         var slot = new EnergyBookingSlot
         {
             Id = ObjectId.GenerateNewId().ToString(),
             StationId = stationId,
-            SlotDate = DateTime.SpecifyKind(startsAtUtc.Date, DateTimeKind.Utc),
-            StartTime = startsAtUtc.ToString("HH:mm"),
-            EndTime = startsAtUtc.AddHours(1).ToString("HH:mm"),
+            SlotDate = DateTime.SpecifyKind(startsAt.Date, DateTimeKind.Utc),
+            StartTime = startsAt.ToString("HH:mm"),
+            EndTime = startsAt.AddHours(1).ToString("HH:mm"),
             CapacityKwh = capacityKwh,
             IsAvailable = available,
             ReservedCount = 0,

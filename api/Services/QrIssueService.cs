@@ -91,6 +91,7 @@ public class QrIssueService(ReservationRepository reservationRepository, IOption
         var parts = time.Split(':');
         var hour = int.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture);
         var minute = int.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);
-        return new DateTime(date.Year, date.Month, date.Day, hour, minute, 0, DateTimeKind.Utc);
+        // The slot time is Sri Lanka time; the token carries the exact UTC instant it ends.
+        return BusinessClock.ToUtc(new DateTime(date.Year, date.Month, date.Day, hour, minute, 0, DateTimeKind.Unspecified));
     }
 }

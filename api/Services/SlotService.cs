@@ -68,11 +68,11 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         }
 
         var targetDate = NormalizeDate(request.Date);
-        var utcNow = DateTime.UtcNow;
-        var today = utcNow.Date;
-        var currentTime = utcNow.TimeOfDay;
+        var now = BusinessClock.Now;
+        var today = now.Date;
+        var currentTime = now.TimeOfDay;
 
-        // Reject dates before today in UTC.
+        // Reject dates before today (Sri Lanka time).
         if (targetDate < today)
         {
             return SlotErrors.PastDateNotAllowed;

@@ -1,3 +1,4 @@
+using MicrogridApi.Common;
 using System.Net;
 using MicrogridApi.DTOs.Reservations;
 using MicrogridApi.Models;
@@ -15,7 +16,7 @@ public class ReservationViewTests(ApiFixture api)
     {
         var station = await api.SeedStationAsync();
         var prosumer = await api.SeedProsumerAsync();
-        var now = DateTime.UtcNow;
+        var now = BusinessClock.Now;
 
         var approvedFuture = await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, now.AddHours(5)), ReservationStatus.Approved);
         var approvedPast = await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, now.AddHours(-5)), ReservationStatus.Approved);
@@ -44,7 +45,7 @@ public class ReservationViewTests(ApiFixture api)
         var prosumer = await api.SeedProsumerAsync();
         for (var i = 1; i <= 5; i++)
         {
-            await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddDays(1).AddHours(i)), ReservationStatus.Pending);
+            await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddDays(1).AddHours(i)), ReservationStatus.Pending);
         }
 
         var client = await api.ClientForAsync(await api.SeedOperatorAsync());
@@ -63,8 +64,8 @@ public class ReservationViewTests(ApiFixture api)
         var station = await api.SeedStationAsync();
         var mine = await api.SeedProsumerAsync();
         var theirs = await api.SeedProsumerAsync();
-        await api.SeedReservationAsync(mine.Nic, await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddDays(1)), ReservationStatus.Pending);
-        await api.SeedReservationAsync(theirs.Nic, await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddDays(1)), ReservationStatus.Pending);
+        await api.SeedReservationAsync(mine.Nic, await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddDays(1)), ReservationStatus.Pending);
+        await api.SeedReservationAsync(theirs.Nic, await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddDays(1)), ReservationStatus.Pending);
         var client = await api.ClientForAsync(mine);
 
         var page = await View(client, "pending", theirs.Nic);

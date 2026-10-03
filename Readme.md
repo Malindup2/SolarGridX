@@ -602,7 +602,8 @@ Point the clients at the deployed address:
 
 ### 8.6 Redeploying and troubleshooting
 
-- **Republishing:** stop `SolarGridX_Pool` first (otherwise the DLL is locked), publish again, then start the pool.
+- **One-step redeploy:** double-click `scripts\deploy-iis.bat`. It asks for administrator rights, stops `SolarGridX_Pool`, publishes, starts the pool again and checks that the new build is live. It prints which database the deployed settings point at, so check that line before you rely on the result. `scripts\deploy-iis.ps1 -DryRun` publishes to a temporary folder without touching IIS.
+- **Republishing by hand:** stop `SolarGridX_Pool` first (otherwise the DLL is locked), publish again, then start the pool.
 - **Access to `C:\inetpub\...` is denied while publishing:** the PowerShell window is not elevated — reopen it with *Run as administrator*.
 - **`500.30` / `500.32`:** the Hosting Bundle is missing or too old — install the .NET 10 Hosting Bundle and run `iisreset`.
 - **`500.19`:** grant `IIS_IUSRS` read access to the publish folder (8.4, step 4).
@@ -1048,6 +1049,8 @@ All rules are enforced inside the Web API service layer. No client evaluates the
 | **BR-34** | Capacity, approval, rejection, cancellation, editing and completion are each decided in one atomic database step, so racing requests cannot oversell the last bay, decide a booking twice or complete a transfer twice | `SlotRepository.TryReserveAsync`, `ReservationRepository.ReplaceIfUnchangedAsync`, `TryCompleteAsync` | `SLOT_FULL`, `RESERVATION_CHANGED`, `QR_TOKEN_ALREADY_USED` |
 | **BR-35** | An edit may carry the `updatedAt` the editor last saw (`expectedUpdatedAt`). If the record changed since, the save is refused instead of overwriting the other change. Applies to reservations (update, reschedule), stations (update, schedule) and slots (update) | `Versioning.IsStale` | `RESERVATION_CHANGED`, `STATION_CHANGED`, `SLOT_CHANGED` |
 | **BR-36** | A station may have its own opening hours on individual days; slot generation and the schedule-change check use the hours of each slot's own weekday | `OperationalSchedule.HoursFor`, `SlotService.Generate`, `StationService.UpdateSchedule` | `STATION_SCHEDULE_CONFLICT` |
+| **BR-37** | A slot that has already started cannot be booked or moved onto | `ReservationService.ValidateBookingWindow` | `SLOT_ALREADY_STARTED` |
+| **BR-38** | The system runs on Sri Lanka time (UTC+05:30). Slot dates, slot and station hours are Sri Lanka wall-clock times, and "has it started?" is judged against that clock on the API, web and mobile. Real timestamps (created, approved, token expiry) stay exact UTC instants shown in Sri Lanka time | `BusinessClock`, `Formatters` (mobile), `lib/format.ts` (web) | |
 
 **Status lifecycle**
 
@@ -1192,6 +1195,7 @@ Run `docs/seed/seed.js` in `mongosh` to create two stations, one day of slots, o
 | `HTTP Error 500.19` on IIS | Hosting Bundle not installed | Install the ASP.NET Core 10 Hosting Bundle and restart IIS |
 | `HTTP Error 500.30` on IIS | App failed to start | Check `logs/stdout` after enabling `stdoutLogEnabled` in `web.config`; usually a bad connection string |
 | Android emulator cannot reach the API | `localhost` resolves to the emulator | Use `10.0.2.2` for the emulator, or run `adb reverse tcp:5187 tcp:5187` and use `localhost` |
+| App times out on an **Android 17 (API 37) emulator** with `http://10.0.2.2:...`, although `adb shell nc 10.0.2.2 <port>` works | The app's own user is refused on the `10.0.2.2` route while the shell user is not (`run-as com.solargridx.mobile` reproduces it; the app targets API 37). The cause is not confirmed | Use the tunnel instead: `adb reverse tcp:<port> tcp:<port>`, set `API_BASE_URL=http://localhost:<port>/api/`, then rebuild and reinstall |
 | App shows "Unable to connect to the microgrid API server" on a USB phone | The `adb reverse` tunnel was cleared (cable unplugged, phone or adb restarted) | Run `adb reverse tcp:5187 tcp:5187` again and confirm the API is running |
 | Changed `API_BASE_URL` but the app still uses the old address | The URL is compiled into the app | Rebuild and reinstall (`./gradlew installDebug`) |
 | `adb devices` shows `unauthorized` or nothing | USB debugging prompt not accepted, or no debugging enabled | Enable USB debugging, reconnect and accept the prompt on the phone |

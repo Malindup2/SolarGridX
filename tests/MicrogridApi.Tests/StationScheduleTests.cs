@@ -1,3 +1,4 @@
+using MicrogridApi.Common;
 using System.Net;
 using System.Net.Http.Json;
 using MicrogridApi.DTOs.Slots;
@@ -16,7 +17,7 @@ public class StationScheduleTests(ApiFixture api)
     // The next date (from tomorrow) that falls on the given weekday.
     private static DateTime Next(DayOfWeek day)
     {
-        var date = DateTime.UtcNow.Date.AddDays(1);
+        var date = BusinessClock.Today.AddDays(1);
         while (date.DayOfWeek != day)
         {
             date = date.AddDays(1);
@@ -174,7 +175,7 @@ public class StationScheduleTests(ApiFixture api)
     public async Task Editing_a_slot_with_an_old_version_is_refused()
     {
         var station = await api.SeedStationAsync();
-        var slot = await api.SeedSlotAsync(station.Id, DateTime.UtcNow.AddDays(2).Date.AddHours(9));
+        var slot = await api.SeedSlotAsync(station.Id, BusinessClock.Now.AddDays(2).Date.AddHours(9));
         var operatorClient = await api.ClientForAsync(await api.SeedOperatorAsync());
         var edit = (double kwh, DateTime? version) => new
         {

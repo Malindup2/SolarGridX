@@ -96,6 +96,18 @@ public sealed class StationRepository
         return await _slots.Find(filter).ToListAsync();
     }
 
+    // Online slots from today to the last bookable day, across every station. The caller
+    // narrows them to the ones that have not started and still have a free bay.
+    public async Task<List<EnergyBookingSlot>> GetBookableWindowSlotsAsync(
+        DateTime today, DateTime lastDay)
+    {
+        var filter = Builders<EnergyBookingSlot>.Filter.Eq(slot => slot.IsAvailable, true) &
+            Builders<EnergyBookingSlot>.Filter.Gte(slot => slot.SlotDate, today) &
+            Builders<EnergyBookingSlot>.Filter.Lte(slot => slot.SlotDate, lastDay);
+
+        return await _slots.Find(filter).ToListAsync();
+    }
+
     // Returns pending and approved reservations for a station.
     public Task<List<EnergyReservation>> GetActiveReservationsAsync(
         string stationId)

@@ -1,3 +1,4 @@
+using MicrogridApi.Common;
 using MicrogridApi.Configuration;
 using MicrogridApi.Models;
 using MongoDB.Driver;
@@ -171,7 +172,7 @@ public class ReservationRepository
 
         if (futureOnly)
         {
-            filter &= builder.Gte(r => r.ReservationDate, DateTime.SpecifyKind(DateTime.UtcNow.Date, DateTimeKind.Utc));
+            filter &= builder.Gte(r => r.ReservationDate, DateTime.SpecifyKind(BusinessClock.Today, DateTimeKind.Utc));
         }
 
         return _reservations.CountDocumentsAsync(filter);

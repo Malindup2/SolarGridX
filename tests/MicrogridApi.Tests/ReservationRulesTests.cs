@@ -1,3 +1,4 @@
+using MicrogridApi.Common;
 using System.Net;
 using System.Net.Http.Json;
 using MicrogridApi.DTOs.Reservations;
@@ -13,7 +14,7 @@ namespace MicrogridApi.Tests;
 [Collection(ApiCollection.Name)]
 public class ReservationRulesTests(ApiFixture api)
 {
-    private static DateTime Now => DateTime.UtcNow;
+    private static DateTime Now => BusinessClock.Now;
 
     // ---- BR-01: 7-day booking window ----
 

@@ -88,7 +88,7 @@ public class ReservationService(
             return ReservationErrors.StationInactive;
         }
 
-        var windowError = ValidateBookingWindow(slot.SlotDate);
+        var windowError = ValidateBookingWindow(slot.SlotDate, slot.StartTime);
         if (windowError is not null)
         {
             return windowError;
@@ -243,7 +243,7 @@ public class ReservationService(
         }
 
         // The new slot must satisfy both the booking window and the notice rule.
-        var windowError = ValidateBookingWindow(slot.SlotDate);
+        var windowError = ValidateBookingWindow(slot.SlotDate, slot.StartTime);
         if (windowError is not null)
         {
             return windowError;
@@ -332,7 +332,7 @@ public class ReservationService(
         }
 
         // BR-32: approving a booking whose slot has already started would issue a code for the past.
-        if (ReservationViewService.StartsAt(reservation) <= DateTime.UtcNow)
+        if (ReservationViewService.StartsAt(reservation) <= BusinessClock.Now)
         {
             return ReservationErrors.AlreadyStarted;
         }
@@ -596,7 +596,7 @@ public class ReservationService(
             return ReservationErrors.SlotFull;
         }
 
-        return ValidateBookingWindow(slot.SlotDate);
+        return ValidateBookingWindow(slot.SlotDate, slot.StartTime);
     }
 
     private static (ReservationStatus? Status, Error? Error) ParseStatus(string? status)
@@ -686,21 +686,21 @@ public class ReservationService(
     // BR-02 and BR-03: at least 12 hours before the slot starts.
     private static Error? ValidateNotice(DateTime reservationDate, string startTime)
     {
-        var hoursRemaining = (CombineDateAndTime(reservationDate, startTime) - DateTime.UtcNow).TotalHours;
+        var hoursRemaining = (CombineDateAndTime(reservationDate, startTime) - BusinessClock.Now).TotalHours;
 
         return hoursRemaining < MinimumNoticeHours
             ? ReservationErrors.NoticeTooShort(hoursRemaining)
             : null;
     }
 
-    // Slot times are stored as "HH:mm" against a UTC date.
+    // Slot times are stored as "HH:mm" Sri Lanka time against the slot date.
     private static DateTime CombineDateAndTime(DateTime date, string time)
     {
         var parts = time.Split(':');
         var hour = int.Parse(parts[0], CultureInfo.InvariantCulture);
         var minute = int.Parse(parts[1], CultureInfo.InvariantCulture);
 
-        return new DateTime(date.Year, date.Month, date.Day, hour, minute, 0, DateTimeKind.Utc);
+        return new DateTime(date.Year, date.Month, date.Day, hour, minute, 0, DateTimeKind.Unspecified);
     }
 
     private static bool IsOwnRecord(string? callerRole, string? callerNic, string recordNic) =>
@@ -708,17 +708,23 @@ public class ReservationService(
         string.Equals(callerNic, recordNic, StringComparison.OrdinalIgnoreCase);
 
     // slot must be today or later, and no more than 7 days ahead.
-    private static Error? ValidateBookingWindow(DateTime slotDate)
+    private static Error? ValidateBookingWindow(DateTime slotDate, string startTime)
     {
-        var daysAhead = (slotDate.Date - DateTime.UtcNow.Date).Days;
+        var daysAhead = (slotDate.Date - BusinessClock.Today).Days;
 
         if (daysAhead < 0)
         {
             return ReservationErrors.DateInPast;
         }
 
-        return daysAhead > BookingWindowDays
-            ? ReservationErrors.WindowExceeded(slotDate, daysAhead)
+        if (daysAhead > BookingWindowDays)
+        {
+            return ReservationErrors.WindowExceeded(slotDate, daysAhead);
+        }
+
+        // BR-37: a started slot could never be approved (BR-32), so it cannot be booked either.
+        return CombineDateAndTime(slotDate, startTime) <= BusinessClock.Now
+            ? ReservationErrors.SlotAlreadyStarted
             : null;
     }
 

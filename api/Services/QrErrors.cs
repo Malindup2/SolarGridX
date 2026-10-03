@@ -28,7 +28,7 @@ public static class QrErrors
         Error.Validation(
             "QR_TOKEN_EXPIRED",
             "This QR code expired at the end of its reserved slot.",
-            [$"exp: expired at {expiredAt:yyyy-MM-dd HH:mm} UTC"]);
+            [$"exp: expired at {BusinessClock.FromUtc(expiredAt):yyyy-MM-dd HH:mm} {BusinessClock.ZoneName}"]);
 
     public static readonly Error TokenAlreadyUsed =
         Error.Conflict("QR_TOKEN_ALREADY_USED", "This QR code has already been used to finalise an energy transfer.");
@@ -44,7 +44,7 @@ public static class QrErrors
             "QR_TOKEN_NOT_YET_VALID",
             "This QR code cannot be used before its slot starts.",
             ErrorType.Conflict,
-            [$"slot starts at {startsAt:yyyy-MM-dd HH:mm} UTC"]);
+            [$"slot starts at {startsAt:yyyy-MM-dd HH:mm} {BusinessClock.ZoneName}"]);
 
     public static readonly Error TokenStationMismatch =
         Error.Validation("QR_STATION_MISMATCH", "This QR code was issued for a different microgrid node.");

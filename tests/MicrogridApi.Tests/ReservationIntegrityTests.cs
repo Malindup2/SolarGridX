@@ -1,3 +1,4 @@
+using MicrogridApi.Common;
 using System.Net;
 using System.Net.Http.Json;
 using MicrogridApi.DTOs.Qr;
@@ -13,7 +14,7 @@ namespace MicrogridApi.Tests;
 [Collection(ApiCollection.Name)]
 public class ReservationIntegrityTests(ApiFixture api)
 {
-    private static DateTime Now => DateTime.UtcNow;
+    private static DateTime Now => BusinessClock.Now;
 
     // ---- BR-13: the last bay can never be sold twice ----
 

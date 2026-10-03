@@ -1,3 +1,4 @@
+using MicrogridApi.Common;
 using System.Net;
 using MicrogridApi.DTOs.Dashboards;
 using MicrogridApi.DTOs.Reservations;
@@ -18,7 +19,7 @@ public class DashboardAndSearchTests(ApiFixture api)
     {
         var station = await api.SeedStationAsync();
         var prosumer = await api.SeedProsumerAsync();
-        var today = DateTime.UtcNow.Date;
+        var today = BusinessClock.Today;
         await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, today.AddDays(2).AddHours(9)), ReservationStatus.Pending);
         await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, today.AddDays(3).AddHours(9)), ReservationStatus.Approved);
         await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, today.AddDays(-2).AddHours(9)), ReservationStatus.Approved);
@@ -76,7 +77,7 @@ public class DashboardAndSearchTests(ApiFixture api)
         var station = await api.SeedStationAsync();
         var elsewhere = await api.SeedStationAsync();
         var prosumer = await api.SeedProsumerAsync();
-        var today = DateTime.UtcNow.Date;
+        var today = BusinessClock.Today;
         await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, today.AddDays(2).AddHours(9)), ReservationStatus.Pending);
         await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, today.AddDays(3).AddHours(9)), ReservationStatus.Pending);
         await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, today.AddDays(4).AddHours(9)), ReservationStatus.Approved);
@@ -121,7 +122,7 @@ public class DashboardAndSearchTests(ApiFixture api)
         var station = await api.SeedStationAsync();
         var other = await api.SeedStationAsync();
         var prosumer = await api.SeedProsumerAsync();
-        var today = DateTime.UtcNow.Date;
+        var today = BusinessClock.Today;
         var pending = await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, today.AddDays(1).AddHours(9)), ReservationStatus.Pending);
         await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, today.AddDays(2).AddHours(9)), ReservationStatus.Approved);
         await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(other.Id, today.AddDays(1).AddHours(9)), ReservationStatus.Pending);
@@ -139,7 +140,7 @@ public class DashboardAndSearchTests(ApiFixture api)
     {
         var station = await api.SeedStationAsync();
         var prosumer = await api.SeedProsumerAsync();
-        var day = DateTime.UtcNow.Date;
+        var day = BusinessClock.Today;
         foreach (var offset in new[] { 1, 2, 3, 4 })
         {
             await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, day.AddDays(offset).AddHours(9)), ReservationStatus.Pending);
@@ -161,7 +162,7 @@ public class DashboardAndSearchTests(ApiFixture api)
     {
         var station = await api.SeedStationAsync();
         var prosumer = await api.SeedProsumerAsync();
-        var day = DateTime.UtcNow.Date;
+        var day = BusinessClock.Today;
         foreach (var offset in new[] { 3, 1, 2 })
         {
             await api.SeedReservationAsync(prosumer.Nic, await api.SeedSlotAsync(station.Id, day.AddDays(offset).AddHours(9)), ReservationStatus.Pending);
@@ -191,7 +192,7 @@ public class DashboardAndSearchTests(ApiFixture api)
         var station = await api.SeedStationAsync();
         var mine = await api.SeedProsumerAsync();
         var theirs = await api.SeedProsumerAsync();
-        var day = DateTime.UtcNow.Date;
+        var day = BusinessClock.Today;
         await api.SeedReservationAsync(mine.Nic, await api.SeedSlotAsync(station.Id, day.AddDays(1).AddHours(9)), ReservationStatus.Pending);
         await api.SeedReservationAsync(theirs.Nic, await api.SeedSlotAsync(station.Id, day.AddDays(2).AddHours(9)), ReservationStatus.Pending);
         var client = await api.ClientForAsync(mine);

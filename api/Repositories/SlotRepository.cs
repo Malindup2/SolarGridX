@@ -89,7 +89,7 @@ public class SlotRepository
     public Task DeleteAsync(string id) => _slots.DeleteOneAsync(s => s.Id == id);
 
     // Atomically increments (positive delta) or decrements (negative delta)
-    // a slot's reserved count. Called by Member 1's ReservationService when a
+    // a slot's reserved count. Called by ReservationService when a
     // reservation is created, rejected, cancelled, or rescheduled onto a
     // different slot — this is the single place ReservedCount is mutated, so
     // BR-09's delete/capacity-reduction checks in this file always see a
