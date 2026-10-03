@@ -7,11 +7,7 @@ import retrofit2.Response
 import retrofit2.http.GET
 import retrofit2.http.Path
 
-/**
- * TEMPORARY read-only lookups the reservation screens need before the owners'
- * APIs exist: StationApi (M3), SlotApi (M4) and ProsumerApi (M2) are still empty.
- * Once they land, switch ReservationRepository to theirs and delete this file.
- */
+/** Read-only lookups the reservation screens need: stations, a station's slots and prosumer names. */
 interface ReservationLookupApi {
 
     @GET("stations")

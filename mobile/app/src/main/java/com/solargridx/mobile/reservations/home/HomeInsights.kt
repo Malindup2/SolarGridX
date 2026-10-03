@@ -2,9 +2,7 @@ package com.solargridx.mobile.reservations.home
 
 import com.solargridx.mobile.dto.ReservationResponse
 import com.solargridx.mobile.reservations.ui.Formatters
-import java.text.SimpleDateFormat
 import java.util.Calendar
-import java.util.Locale
 
 /**
  * Numbers for the home charts, derived from the prosumer's own bookings (the
@@ -22,13 +20,11 @@ object HomeInsights {
 
     /** kWh booked per day for today and the next six days (the booking window). Cancelled / rejected excluded. */
     fun nextSevenDays(items: List<ReservationResponse>): List<DayEnergy> {
-        val keyFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        val labelFormat = SimpleDateFormat("EEE", Locale.getDefault())
         val counted = items.filter { it.status in live || it.status == "Completed" }
         return (0 until 7).map { offset ->
-            val day = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, offset) }.time
-            val key = keyFormat.format(day)
-            DayEnergy(key, labelFormat.format(day), counted.filter { Formatters.dayKey(it.reservationDate) == key }.sumOf { it.energyKwh })
+            val day = Formatters.sriLankaCalendar().apply { add(Calendar.DAY_OF_YEAR, offset) }.time
+            val key = Formatters.sriLankaDayKey(day)
+            DayEnergy(key, Formatters.sriLankaWeekday(day), counted.filter { Formatters.dayKey(it.reservationDate) == key }.sumOf { it.energyKwh })
         }
     }
 

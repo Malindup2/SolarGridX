@@ -2,7 +2,7 @@ package com.solargridx.mobile.dto
 
 /*
  * Reservation and dashboard shapes exchanged with the API
- * (api/DTOs/Reservations, api/DTOs/Dashboards). Dates are ISO-8601 UTC strings,
+ * (api/DTOs/Reservations, api/DTOs/Dashboards). Dates are ISO-8601 strings (instants in UTC),
  * times are "HH:mm".
  */
 

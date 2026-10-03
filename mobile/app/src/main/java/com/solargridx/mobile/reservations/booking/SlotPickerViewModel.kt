@@ -9,6 +9,7 @@ import com.solargridx.mobile.dto.EnergyBookingSlot
 import com.solargridx.mobile.dto.ReservationResponse
 import com.solargridx.mobile.dto.SolarStationInfo
 import com.solargridx.mobile.reservations.data.ReservationRepository
+import com.solargridx.mobile.reservations.data.SlotOpenings
 import com.solargridx.mobile.reservations.ui.Formatters
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -40,9 +41,12 @@ class SlotPickerViewModel(
         _stations.value = UiState.Loading
         viewModelScope.launch {
             _stations.value = when (val result = repository.stations()) {
-                // Only active stations take bookings; the API enforces it, this just avoids a dead end.
-                is ApiResult.Success -> UiState.Content(result.data.filter { it.status == "Active" })
                 is ApiResult.Failure -> UiState.Error(result.error)
+                is ApiResult.Success -> {
+                    // Only active stations with a slot open to book are offered, so picking a
+                    // station never leads to an empty screen.
+                    UiState.Content(SlotOpenings.withOpenSlots(result.data.filter { it.status == "Active" }))
+                }
             }
         }
     }
@@ -56,11 +60,13 @@ class SlotPickerViewModel(
             _slots.value = when (val result = repository.stationSlots(station.id)) {
                 is ApiResult.Failure -> UiState.Error(result.error)
                 is ApiResult.Success -> {
-                    // Past days can never be booked; showing them is only a dead end.
-                    val today = Formatters.todayKey()
+                    // Only days inside the 7-day window with something still bookable get a chip;
+                    // on those days, started or full slots stay visible but disabled.
+                    val bays = station.batterySlotCount
                     val byDay = result.data
-                        .filter { Formatters.dayKey(it.slotDate) >= today }
+                        .filter { SlotOpenings.inWindow(it) }
                         .groupBy { Formatters.dayKey(it.slotDate) }
+                        .filterValues { slots -> slots.any { SlotOpenings.isBookable(it, bays) } }
                         .mapValues { (_, slots) -> slots.sortedBy { it.startTime } }
                         .toSortedMap()
                     UiState.Content(StationSlots(station, byDay.keys.toList(), byDay))

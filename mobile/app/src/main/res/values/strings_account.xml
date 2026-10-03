@@ -27,7 +27,7 @@
     <string name="inbox_empty_title">You\'re all caught up</string>
     <string name="inbox_empty_body">Booking decisions, account changes and completed transfers show up here.</string>
     <string name="inbox_unread_badge">%1$d unread</string>
-    <string name="profile_row_notifications">Notifications</string>
+    <string name="inbox_bell_unread">Notifications, %1$d unread</string>
     <string name="inbox_item_cd">%1$s, %2$s</string>
     <string name="inbox_item_unread">unread</string>
 

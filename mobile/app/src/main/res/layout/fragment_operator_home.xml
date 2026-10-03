@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Operator home: greeting, search, green station hero with today's numbers, station pills, pending queue. -->
+<!--
+  Operator home, in order of use: header (photo, greeting) · search · station hero (awaiting review, approved) ·
+  station pills · quick actions · today's numbers · next transfer · pending queue (top 3) · demand and mix charts.
+-->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -11,8 +14,18 @@
         android:id="@+id/toolbar"
         style="@style/Widget.SolarGridX.Res.Toolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        app:menu="@menu/menu_operator_home" />
+        android:layout_height="wrap_content"
+        android:minHeight="72dp"
+        app:contentInsetEnd="@dimen/res_space_xs"
+        app:contentInsetStart="@dimen/res_screen_padding"
+        app:menu="@menu/menu_operator_home">
+
+        <include
+            layout="@layout/view_home_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|center_vertical" />
+    </com.google.android.material.appbar.MaterialToolbar>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -27,19 +40,6 @@
             android:paddingEnd="@dimen/res_screen_padding"
             android:paddingBottom="@dimen/res_screen_padding">
 
-            <TextView
-                android:id="@+id/greeting"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:accessibilityHeading="true"
-                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Display" />
-
-            <TextView
-                android:id="@+id/today"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
 
             <include
                 android:id="@+id/search"
@@ -209,14 +209,211 @@
                 android:orientation="vertical"
                 android:visibility="gone">
 
-                <TextView
-                    android:id="@+id/queueTitle"
-                    android:layout_width="wrap_content"
+                <!-- Quick actions -->
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="@dimen/res_space_lg"
-                    android:accessibilityHeading="true"
-                    android:text="@string/res_pending_queue"
-                    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section" />
+                    android:baselineAligned="false"
+                    android:orientation="horizontal">
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/quickScan"
+                        style="@style/Widget.SolarGridX.Res.Button.Outlined"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:paddingStart="@dimen/res_space_sm"
+                        android:paddingEnd="@dimen/res_space_sm"
+                        android:text="@string/res_quick_scan"
+                        android:textSize="13sp"
+                        app:icon="@drawable/ic_res_qr"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp" />
+
+                    <Space android:layout_width="@dimen/res_space_sm" android:layout_height="0dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/quickSlots"
+                        style="@style/Widget.SolarGridX.Res.Button.Outlined"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:paddingStart="@dimen/res_space_sm"
+                        android:paddingEnd="@dimen/res_space_sm"
+                        android:text="@string/res_quick_slots"
+                        android:textSize="13sp"
+                        app:icon="@drawable/ic_res_clock"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp" />
+
+                    <Space android:layout_width="@dimen/res_space_sm" android:layout_height="0dp" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/quickBookings"
+                        style="@style/Widget.SolarGridX.Res.Button.Outlined"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:minHeight="48dp"
+                        android:paddingStart="@dimen/res_space_sm"
+                        android:paddingEnd="@dimen/res_space_sm"
+                        android:text="@string/res_quick_bookings"
+                        android:textSize="13sp"
+                        app:icon="@drawable/ic_res_inbox"
+                        app:iconGravity="textStart"
+                        app:iconPadding="6dp" />
+                </LinearLayout>
+
+                <!-- Today at the station, then the next transfer. Hidden if the extra numbers could not be read. -->
+                <LinearLayout
+                    android:id="@+id/insightsTop"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <TextView
+                        android:id="@+id/todayTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/res_space_xl"
+                        android:layout_marginBottom="@dimen/res_space_sm"
+                        android:accessibilityHeading="true"
+                        android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section" />
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:baselineAligned="false"
+                        android:orientation="horizontal">
+
+                        <include android:id="@+id/statBookings" layout="@layout/view_stat" />
+
+                        <Space android:layout_width="@dimen/res_space_sm" android:layout_height="0dp" />
+
+                        <include android:id="@+id/statCompleted" layout="@layout/view_stat" />
+                    </LinearLayout>
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/res_space_sm"
+                        android:baselineAligned="false"
+                        android:orientation="horizontal">
+
+                        <include android:id="@+id/statEnergy" layout="@layout/view_stat" />
+
+                        <Space android:layout_width="@dimen/res_space_sm" android:layout_height="0dp" />
+
+                        <include android:id="@+id/statBays" layout="@layout/view_stat" />
+                    </LinearLayout>
+
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/nextCard"
+                        style="@style/Widget.SolarGridX.Res.Card"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/res_space_lg"
+                        android:clickable="true"
+                        android:focusable="true">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="@dimen/res_space_xl">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:accessibilityHeading="true"
+                                    android:text="@string/res_next_transfer"
+                                    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section" />
+
+                                <TextView
+                                    android:id="@+id/nextCountdown"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:background="@drawable/bg_res_pill"
+                                    android:backgroundTint="@color/status_approved_container"
+                                    android:fontFamily="@font/poppins_semibold"
+                                    android:paddingStart="@dimen/res_space_md"
+                                    android:paddingTop="2dp"
+                                    android:paddingEnd="@dimen/res_space_md"
+                                    android:paddingBottom="2dp"
+                                    android:textColor="@color/color_primary_hover"
+                                    android:textSize="12sp" />
+                            </LinearLayout>
+
+                            <TextView
+                                android:id="@+id/nextTime"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/res_space_md"
+                                android:fontFamily="@font/poppins_semibold"
+                                android:textColor="?attr/colorOnSurface"
+                                android:textSize="24sp" />
+
+                            <TextView
+                                android:id="@+id/nextWho"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Body" />
+
+                            <TextView
+                                android:id="@+id/nextMeta"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+
+                            <TextView
+                                android:id="@+id/nextEmpty"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/res_space_xs"
+                                android:text="@string/res_next_none_body"
+                                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting"
+                                android:visibility="gone" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+                </LinearLayout>
+
+                <!-- Pending queue: the top three, with a link to everything -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/res_space_xl"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/queueTitle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:accessibilityHeading="true"
+                        android:text="@string/res_pending_queue"
+                        android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section" />
+
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/queueSeeAll"
+                        style="@style/Widget.SolarGridX.Res.Button.Text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textColor="@color/color_primary_hover"
+                        android:visibility="gone" />
+                </LinearLayout>
 
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/queueList"
@@ -233,7 +430,7 @@
                     android:layout_height="wrap_content"
                     android:gravity="center_horizontal"
                     android:orientation="vertical"
-                    android:paddingTop="@dimen/res_space_xl"
+                    android:paddingTop="@dimen/res_space_lg"
                     android:visibility="gone">
 
                     <ImageView
@@ -272,6 +469,91 @@
                         android:layout_height="wrap_content"
                         android:text="@string/res_clear_search"
                         android:visibility="gone" />
+                </LinearLayout>
+
+                <!-- Demand over the next 7 days and the reservation mix -->
+                <LinearLayout
+                    android:id="@+id/chartsGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone">
+
+                    <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.SolarGridX.Res.Card"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/res_space_lg">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="@dimen/res_space_xl">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:accessibilityHeading="true"
+                                android:text="@string/res_op_chart_week_title"
+                                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section" />
+
+                            <TextView
+                                android:id="@+id/weekTotal"
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="2dp"
+                                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+
+                            <com.solargridx.mobile.reservations.ui.charts.BarChartView
+                                android:id="@+id/weekChart"
+                                android:layout_width="match_parent"
+                                android:layout_height="170dp"
+                                android:layout_marginTop="@dimen/res_space_lg" />
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
+                    <com.google.android.material.card.MaterialCardView
+                        style="@style/Widget.SolarGridX.Res.Card"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="@dimen/res_space_lg">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="@dimen/res_space_xl">
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:accessibilityHeading="true"
+                                android:text="@string/res_op_chart_status_title"
+                                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section" />
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_marginTop="@dimen/res_space_lg"
+                                android:gravity="center_vertical"
+                                android:orientation="horizontal">
+
+                                <com.solargridx.mobile.reservations.ui.charts.DonutChartView
+                                    android:id="@+id/statusDonut"
+                                    android:layout_width="132dp"
+                                    android:layout_height="132dp" />
+
+                                <LinearLayout
+                                    android:id="@+id/statusLegend"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_marginStart="@dimen/res_space_xl"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical" />
+                            </LinearLayout>
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
                 </LinearLayout>
             </LinearLayout>
         </LinearLayout>

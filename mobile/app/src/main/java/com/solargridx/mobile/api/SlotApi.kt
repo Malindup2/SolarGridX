@@ -7,12 +7,17 @@ import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.PATCH
 import retrofit2.http.Path
+import retrofit2.http.Query
 
-/** Booking slots (M4). Writes are Grid Operator only. */
+/** Booking slots. Writes are Grid Operator only. */
 interface SlotApi {
 
     @GET("stations/{stationId}/slots")
     suspend fun forStation(@Path("stationId") stationId: String): Response<List<EnergyBookingSlot>>
+
+    /** Slots across every station; available = true leaves out the ones taken offline. */
+    @GET("slots")
+    suspend fun all(@Query("available") available: Boolean? = null): Response<List<EnergyBookingSlot>>
 
     /** Takes a slot offline (maintenance) or brings it back. */
     @PATCH("slots/{id}/availability")

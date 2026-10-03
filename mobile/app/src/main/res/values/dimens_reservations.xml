@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Spacing and shape scale for the reservation screens (owner: M1). -->
+<!-- Spacing and shape scale for the reservation screens. -->
 <resources>
     <dimen name="res_space_xs">4dp</dimen>
     <dimen name="res_space_sm">8dp</dimen>

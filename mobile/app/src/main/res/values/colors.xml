@@ -31,4 +31,6 @@
     <color name="status_completed">@color/accent_blue</color>
     <color name="status_rejected">@color/red_600</color>
     <color name="status_cancelled">@color/neutral_700</color>
+    <!-- App icon backdrop: the logo is on white. -->
+    <color name="ic_launcher_background">#FFFFFF</color>
 </resources>

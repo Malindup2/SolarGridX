@@ -67,6 +67,15 @@
                     android:layout_height="@dimen/res_button_height"
                     android:layout_marginTop="@dimen/res_space_xl" />
 
+                <TextView
+                    android:id="@+id/bookHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/res_space_xs"
+                    android:text="@string/station_no_open_slots_hint"
+                    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting"
+                    android:visibility="gone" />
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/directionsAction"
                     style="@style/Widget.SolarGridX.Res.Button.Outlined"

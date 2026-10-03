@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Operator bottom navigation (FRONTEND-OWNERSHIP §5): Home · Reservations · Scan · Profile. -->
+<!-- Operator bottom navigation: Home · Reservations · Scan · Profile. -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@id/operatorHomeFragment" android:icon="@drawable/ic_res_home" android:title="@string/nav_home" />
     <item android:id="@id/myBookingsFragment" android:icon="@drawable/ic_res_inbox" android:title="@string/nav_reservations" />

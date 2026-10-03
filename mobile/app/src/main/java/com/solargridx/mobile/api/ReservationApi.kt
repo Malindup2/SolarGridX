@@ -16,7 +16,7 @@ import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-/** Reservation and dashboard endpoints (owner: M1). Business rules live in the API. */
+/** Reservation and dashboard endpoints. Business rules live in the API. */
 interface ReservationApi {
 
     @POST("reservations")

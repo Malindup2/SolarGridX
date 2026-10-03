@@ -6,7 +6,7 @@ import retrofit2.http.GET
 import retrofit2.http.Path
 import retrofit2.http.Query
 
-/** Microgrid nodes (M3). Every signed-in role can read them. */
+/** Microgrid nodes. Every signed-in role can read them. */
 interface StationApi {
 
     @GET("stations")

@@ -94,7 +94,7 @@ class BookingDetailsFragment : BaseReservationDetailFragment() {
         ) { viewModel.cancel() }
     }
 
-    /** Hand-off to M4's QR screen with `reservationId` (FRONTEND-OWNERSHIP §9). */
+    /** Opens the QR screen for this booking with `reservationId`. */
     private fun showQr(reservation: ReservationResponse) {
         findNavController().navigate(R.id.qrDisplayFragment, ReservationArgs.idBundle(reservation.id))
     }

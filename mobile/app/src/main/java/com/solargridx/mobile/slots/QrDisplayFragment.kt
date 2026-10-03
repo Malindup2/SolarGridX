@@ -1,5 +1,9 @@
 package com.solargridx.mobile.slots
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.WindowManager
@@ -10,6 +14,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.snackbar.Snackbar
 import com.google.zxing.BarcodeFormat
 import com.journeyapps.barcodescanner.BarcodeEncoder
 import com.solargridx.mobile.R
@@ -26,9 +31,10 @@ import kotlinx.coroutines.launch
 import java.util.Date
 
 /**
- * The prosumer's transaction QR (M4) for an Approved booking (BR-07). The operator scans
+ * The prosumer's transaction QR for an Approved booking (BR-07). The operator scans
  * it at the station; the server verifies it and completes the transfer (BR-08).
- * Opened from booking details with `reservationId` (M1 → M4 hand-off).
+ * The code can also be copied, for the operator to paste when there is no camera.
+ * Opened from booking details with `reservationId`.
  */
 class QrDisplayFragment : Fragment(R.layout.fragment_qr_display) {
 
@@ -40,6 +46,7 @@ class QrDisplayFragment : Fragment(R.layout.fragment_qr_display) {
         val id = requireArguments().getString(ReservationArgs.RESERVATION_ID).orEmpty()
         states = StateViews(view) { load(view, id) }
         view.findViewById<MaterialButton>(R.id.refreshButton).setOnClickListener { load(view, id) }
+        view.findViewById<MaterialButton>(R.id.copyButton).setOnClickListener { copyCode(view) }
         load(view, id)
     }
 
@@ -58,6 +65,18 @@ class QrDisplayFragment : Fragment(R.layout.fragment_qr_display) {
         super.onPause()
     }
 
+    private var token: String? = null
+
+    private fun copyCode(view: View) {
+        val code = token ?: return
+        val clipboard = requireContext().getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        clipboard.setPrimaryClip(ClipData.newPlainText(getString(R.string.qr_title), code))
+        // Android 13+ shows its own copied confirmation.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            Snackbar.make(view, R.string.qr_copied, Snackbar.LENGTH_LONG).show()
+        }
+    }
+
     private fun load(view: View, id: String) {
         val content = view.findViewById<View>(R.id.content)
         content.isVisible = false
@@ -73,6 +92,7 @@ class QrDisplayFragment : Fragment(R.layout.fragment_qr_display) {
                 is ApiResult.Success -> result.data
             }
 
+            token = qr.qrToken
             val size = resources.displayMetrics.widthPixels.coerceAtMost(900)
             view.findViewById<ImageView>(R.id.qrImage).setImageBitmap(
                 BarcodeEncoder().encodeBitmap(qr.qrToken, BarcodeFormat.QR_CODE, size, size)
@@ -93,6 +113,7 @@ class QrDisplayFragment : Fragment(R.layout.fragment_qr_display) {
             }
             // A used or expired code is shown faded so nobody tries to scan it.
             view.findViewById<ImageView>(R.id.qrImage).alpha = if (state == QrState.VALID) 1f else 0.25f
+            view.findViewById<MaterialButton>(R.id.copyButton).isVisible = state == QrState.VALID
 
             states.hide()
             content.isVisible = true

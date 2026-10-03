@@ -30,8 +30,9 @@ import com.solargridx.mobile.reservations.ui.charts.DonutChartView
 import com.solargridx.mobile.reservations.ui.collectWhileStarted
 import com.solargridx.mobile.reservations.ui.staggerChildrenIn
 import com.solargridx.mobile.session.SessionManager
-import java.text.SimpleDateFormat
-import java.util.Date
+import com.solargridx.mobile.shell.HomeAvatar
+import com.solargridx.mobile.shell.HomeClock
+import com.solargridx.mobile.shell.NotificationBell
 import java.util.Locale
 
 /**
@@ -51,14 +52,21 @@ class ProsumerHomeFragment : Fragment(R.layout.fragment_prosumer_home) {
         val firstName = session.getDisplayName()?.substringBefore(' ').orEmpty()
 
         view.findViewById<TextView>(R.id.greeting).text = getString(R.string.res_greeting, firstName)
-        view.findViewById<TextView>(R.id.today).text = SimpleDateFormat("EEEE, d MMMM", Locale.getDefault()).format(Date())
+        HomeClock.bind(this, view.findViewById(R.id.today))
+        HomeAvatar.bind(this, session.getDisplayName().orEmpty())
 
         val states = StateViews(view) { nic?.let { viewModel.load(it) } }
         val content = view.findViewById<View>(R.id.content)
         val banner = view.findViewById<View>(R.id.pendingBanner)
 
-        view.findViewById<MaterialToolbar>(R.id.toolbar).setOnMenuItemClickListener { item ->
-            if (item.itemId == R.id.actionRefresh) { nic?.let { viewModel.load(it) }; true } else false
+        val toolbar = view.findViewById<MaterialToolbar>(R.id.toolbar)
+        NotificationBell.attach(this, toolbar)
+        toolbar.setOnMenuItemClickListener { item ->
+            when (item.itemId) {
+                R.id.actionRefresh -> { nic?.let { viewModel.load(it) }; true }
+                R.id.actionNotifications -> { NotificationBell.open(this); true }
+                else -> false
+            }
         }
 
         view.findViewById<View>(R.id.bookButton).setOnClickListener { startBooking() }
@@ -219,7 +227,7 @@ class ProsumerHomeFragment : Fragment(R.layout.fragment_prosumer_home) {
 
     // ---- navigation -------------------------------------------------------------------------
 
-    /** Booking starts at slot selection (temporary picker until M4's screen is merged). */
+    /** Booking starts at slot selection. */
     private fun startBooking() {
         findNavController().navigate(
             R.id.action_prosumerHome_to_slotPicker,

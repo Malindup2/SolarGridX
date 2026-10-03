@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Reservations, bookings and dashboards (owner: M1). -->
+<!-- Role homes and the bookings list. Booking screens are top-level (see nav_graph.xml). -->
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -55,79 +55,6 @@
             app:popExitAnim="@anim/res_pop_exit" />
     </fragment>
 
-    <!-- TEMPORARY: stands in for Member 4's slot selection until it is merged. -->
-    <fragment
-        android:id="@+id/slotPickerFragment"
-        android:name="com.solargridx.mobile.reservations.booking.SlotPickerFragment"
-        android:label="Choose a slot"
-        tools:layout="@layout/fragment_slot_picker">
-        <argument
-            android:name="pickerMode"
-            android:defaultValue="book"
-            app:argType="string" />
-        <argument
-            android:name="reservationId"
-            android:defaultValue="@null"
-            app:argType="string"
-            app:nullable="true" />
-        <!-- The version of the booking being moved, so a change made by someone else is not overwritten. -->
-        <argument
-            android:name="expectedUpdatedAt"
-            android:defaultValue="@null"
-            app:argType="string"
-            app:nullable="true" />
-        <!-- M3 → M4 hand-off: opened from a station's details with that station already chosen. -->
-        <argument
-            android:name="stationId"
-            android:defaultValue="@null"
-            app:argType="string"
-            app:nullable="true" />
-        <action
-            android:id="@+id/action_slotPicker_to_energyInput"
-            app:destination="@id/energyInputFragment"
-            app:enterAnim="@anim/res_enter"
-            app:exitAnim="@anim/res_exit"
-            app:popEnterAnim="@anim/res_pop_enter"
-            app:popExitAnim="@anim/res_pop_exit" />
-    </fragment>
-
-    <!-- Entry point for M4's hand-off: stationId, slotId, slotDate, startTime, endTime, capacityKwh (Double, see ReservationArgs). -->
-    <fragment
-        android:id="@+id/energyInputFragment"
-        android:name="com.solargridx.mobile.reservations.booking.EnergyInputFragment"
-        android:label="Energy"
-        tools:layout="@layout/fragment_energy_input">
-        <argument android:name="stationId" app:argType="string" />
-        <argument
-            android:name="stationName"
-            android:defaultValue=""
-            app:argType="string" />
-        <argument android:name="slotId" app:argType="string" />
-        <argument android:name="slotDate" app:argType="string" />
-        <argument android:name="startTime" app:argType="string" />
-        <argument android:name="endTime" app:argType="string" />
-        <action
-            android:id="@+id/action_energyInput_to_bookingConfirm"
-            app:destination="@id/bookingConfirmFragment" />
-    </fragment>
-
-    <!-- Review-before-submit, shown as a bottom sheet over energy input. -->
-    <dialog
-        android:id="@+id/bookingConfirmFragment"
-        android:name="com.solargridx.mobile.reservations.booking.BookingConfirmFragment"
-        android:label="Confirm"
-        tools:layout="@layout/fragment_booking_confirm" />
-
-    <!-- One summary for create / update / reschedule / cancel / approve / reject. -->
-    <fragment
-        android:id="@+id/bookingSummaryFragment"
-        android:name="com.solargridx.mobile.reservations.summary.BookingSummaryFragment"
-        android:label="Summary"
-        tools:layout="@layout/fragment_booking_summary">
-        <argument android:name="summaryAction" app:argType="string" />
-        <argument android:name="reservationJson" app:argType="string" />
-    </fragment>
-
     <fragment
         android:id="@+id/myBookingsFragment"
         android:name="com.solargridx.mobile.reservations.bookings.MyBookingsFragment"
@@ -156,26 +83,5 @@
             app:popExitAnim="@anim/res_pop_exit" />
     </fragment>
 
-    <fragment
-        android:id="@+id/bookingDetailsFragment"
-        android:name="com.solargridx.mobile.reservations.details.BookingDetailsFragment"
-        android:label="Booking details"
-        tools:layout="@layout/fragment_booking_details">
-        <argument android:name="reservationId" app:argType="string" />
-        <action
-            android:id="@+id/action_bookingDetails_to_slotPicker"
-            app:destination="@id/slotPickerFragment"
-            app:enterAnim="@anim/res_enter"
-            app:exitAnim="@anim/res_exit"
-            app:popEnterAnim="@anim/res_pop_enter"
-            app:popExitAnim="@anim/res_pop_exit" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/operatorReviewFragment"
-        android:name="com.solargridx.mobile.reservations.details.OperatorReviewFragment"
-        android:label="Review"
-        tools:layout="@layout/fragment_booking_details">
-        <argument android:name="reservationId" app:argType="string" />
-    </fragment>
+    
 </navigation>

@@ -15,8 +15,18 @@
         android:id="@+id/toolbar"
         style="@style/Widget.SolarGridX.Res.Toolbar"
         android:layout_width="match_parent"
-        android:layout_height="?attr/actionBarSize"
-        app:menu="@menu/menu_res_refresh" />
+        android:layout_height="wrap_content"
+        android:minHeight="72dp"
+        app:contentInsetEnd="@dimen/res_space_xs"
+        app:contentInsetStart="@dimen/res_screen_padding"
+        app:menu="@menu/menu_prosumer_home">
+
+        <include
+            layout="@layout/view_home_header"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start|center_vertical" />
+    </com.google.android.material.appbar.MaterialToolbar>
 
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
@@ -31,19 +41,6 @@
             android:paddingEnd="@dimen/res_screen_padding"
             android:paddingBottom="@dimen/res_screen_padding">
 
-            <TextView
-                android:id="@+id/greeting"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:accessibilityHeading="true"
-                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Display" />
-
-            <TextView
-                android:id="@+id/today"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
 
             <!-- Pending account banner -->
             <com.google.android.material.card.MaterialCardView

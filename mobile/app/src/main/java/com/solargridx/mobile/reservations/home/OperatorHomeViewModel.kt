@@ -8,6 +8,7 @@ import com.solargridx.mobile.dto.OperatorDashboardResponse
 import com.solargridx.mobile.dto.SolarStationInfo
 import com.solargridx.mobile.reservations.data.ReservationRepository
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -26,6 +27,12 @@ class OperatorHomeViewModel(
 
     var selectedStationId: String? = null
         private set
+
+    /** Today's numbers, next transfer and charts for the chosen station; null until loaded or if they could not be read. */
+    private val _insights = MutableStateFlow<OperatorInsights?>(null)
+    val insights: StateFlow<OperatorInsights?> = _insights.asStateFlow()
+
+    private var insightsJob: Job? = null
 
     /** NIC → name so the queue shows who booked, not just a number. */
     private val _names = MutableStateFlow<Map<String, String>>(emptyMap())
@@ -64,5 +71,26 @@ class OperatorHomeViewModel(
                 is ApiResult.Failure -> UiState.Error(result.error)
             }
         }
+        loadInsights(stationId)
     }
+
+    // The extra numbers only decorate the home screen, so a failure leaves them out instead of showing an error.
+    private fun loadInsights(stationId: String) {
+        if (_insights.value != null && selectedStationIdOfInsights != stationId) _insights.value = null
+        insightsJob?.cancel()
+        insightsJob = viewModelScope.launch {
+            val reservations = async { repository.stationReservations(stationId) }
+            val slots = async { repository.stationSlots(stationId) }
+            val bookings = (reservations.await() as? ApiResult.Success)?.data
+            if (bookings == null) {
+                _insights.value = null
+                return@launch
+            }
+            val bays = (_stations.value as? UiState.Content)?.data?.firstOrNull { it.id == stationId }?.batterySlotCount ?: 0
+            selectedStationIdOfInsights = stationId
+            _insights.value = OperatorInsights.of(bookings, (slots.await() as? ApiResult.Success)?.data.orEmpty(), bays)
+        }
+    }
+
+    private var selectedStationIdOfInsights: String? = null
 }

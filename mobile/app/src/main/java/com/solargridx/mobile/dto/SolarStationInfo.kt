@@ -10,7 +10,9 @@ data class SolarStationInfo(
     val batterySlotCount: Int,
     val type: String,
     val operationalSchedule: OperationalSchedule,
-    val status: String
+    val status: String,
+    /** Server-worked-out: a slot can be booked here now. Null when the server did not say. */
+    val hasUpcomingSlots: Boolean? = null
 )
 
 data class OperationalSchedule(

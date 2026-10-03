@@ -35,8 +35,9 @@ import com.solargridx.mobile.common.UiState
 import com.solargridx.mobile.reservations.ui.collectWhileStarted
 
 /**
- * Stations tab (M3). A searchable list, nearest first once the user allows coarse
- * location, and a map of the same stations when a Maps key is configured.
+ * Stations tab. A searchable list, nearest first once the user allows coarse
+ * location, and a map of the same stations when a Maps key is configured. Only
+ * stations with a slot open to book are listed.
  */
 class StationsHomeFragment : Fragment(R.layout.fragment_stations_home) {
 
@@ -103,8 +104,13 @@ class StationsHomeFragment : Fragment(R.layout.fragment_stations_home) {
         adapter.submitList(items)
         if (items.isEmpty()) states.showEmpty(getString(R.string.stations_empty_title), getString(R.string.stations_empty_body), R.drawable.ic_res_pin)
         else states.hide()
-        if (data.location != null) showNote(getString(R.string.stations_nearby_note, StationsViewModel.NEARBY_RADIUS_KM))
-        drawMarkers(items.map { it.station })
+        if (data.location != null) {
+            showNote(
+                if (data.farAway) getString(R.string.stations_far_away_note, StationsViewModel.NEARBY_RADIUS_KM)
+                else getString(R.string.stations_nearby_note, StationsViewModel.NEARBY_RADIUS_KM)
+            )
+        }
+        drawMarkers(items)
     }
 
     private fun open(stationId: String) {
@@ -151,16 +157,19 @@ class StationsHomeFragment : Fragment(R.layout.fragment_stations_home) {
             googleMap = map
             map.uiSettings.isZoomControlsEnabled = true
             map.setOnInfoWindowClickListener { marker -> (marker.tag as? String)?.let(::open) }
-            latest?.let { data -> drawMarkers(data.stations.filter { StationGeo.matches(it, viewModel.query) }) }
+            latest?.let { data ->
+                drawMarkers(StationGeo.sorted(data.stations.filter { StationGeo.matches(it, viewModel.query) }, null, null))
+            }
         }
     }
 
-    private fun drawMarkers(stations: List<com.solargridx.mobile.dto.SolarStationInfo>) {
+    private fun drawMarkers(items: List<StationDistance>) {
         val map = googleMap ?: return
         map.clear()
-        if (stations.isEmpty()) return
+        if (items.isEmpty()) return
         val bounds = LatLngBounds.Builder()
-        stations.forEach { station ->
+        items.forEach { item ->
+            val station = item.station
             val position = LatLng(station.latitude, station.longitude)
             map.addMarker(MarkerOptions().position(position).title(station.stationName).snippet(station.location))?.tag = station.id
             bounds.include(position)

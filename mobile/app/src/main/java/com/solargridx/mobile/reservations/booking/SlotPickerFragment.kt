@@ -31,10 +31,8 @@ import com.solargridx.mobile.reservations.ui.collectWhileStarted
 import com.solargridx.mobile.reservations.ui.setupBackToolbar
 
 /**
- * TEMPORARY stand-in for Member 4's slot selection. It hands over exactly the
- * fields agreed in FRONTEND-OWNERSHIP §9 (stationId, slotId, slotDate,
- * startTime, endTime, capacityKwh), so swapping in M4's screen later only
- * changes which screen opens energy input.
+ * Slot selection: a station, a day and the slots on that day. Choosing a slot passes
+ * stationId, slotId, slotDate, startTime, endTime and capacityKwh to energy input.
  *
  * Also used to pick the new slot when rescheduling (mode = reschedule).
  */
@@ -82,7 +80,7 @@ class SlotPickerFragment : Fragment(R.layout.fragment_slot_picker) {
                     if (viewModel.slots.value == null) {
                         val requested = arguments?.getString(ReservationArgs.STATION_ID)
                         (stations.firstOrNull { it.id == requested } ?: stations.firstOrNull())?.let { viewModel.selectStation(it) } ?: states.showEmpty(
-                            getString(R.string.res_no_slots_title), getString(R.string.res_no_slots_body)
+                            getString(R.string.res_no_stations_title), getString(R.string.res_no_stations_body)
                         )
                     }
                 }
@@ -120,7 +118,7 @@ class SlotPickerFragment : Fragment(R.layout.fragment_slot_picker) {
                     if (data.days.isEmpty()) {
                         dayScroller.isVisible = false
                         slotList.isVisible = false
-                        states.showEmpty(getString(R.string.res_no_slots_title), getString(R.string.res_no_slots_body))
+                        states.showEmpty(getString(R.string.res_no_slots_station_title), getString(R.string.res_no_slots_station_body))
                         return@collectWhileStarted
                     }
                     dayChips.removeAllViews()

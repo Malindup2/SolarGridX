@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Prosumer bottom navigation (FRONTEND-OWNERSHIP §5): Home · Stations · Bookings · Profile.
+<!-- Prosumer bottom navigation: Home · Stations · Bookings · Profile.
      Item ids are the destinations they open. -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:id="@id/prosumerHomeFragment" android:icon="@drawable/ic_res_home" android:title="@string/nav_home" />

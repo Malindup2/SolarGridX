@@ -7,10 +7,9 @@ import com.solargridx.mobile.dto.ReservationResponse
 import com.solargridx.mobile.reservations.ui.BookingDraft
 
 /*
- * Navigation arguments for the reservation graph. Hand-off keys are agreed
- * with the other members (FRONTEND-OWNERSHIP §9):
- *   M4 → M1  slot selection passes stationId, slotId, slotDate, startTime, endTime, capacityKwh
- *   M1 → M4  an approved reservation passes reservationId to the QR screen
+ * Navigation arguments shared by the booking screens:
+ *   slot selection passes stationId, slotId, slotDate, startTime, endTime, capacityKwh to energy input
+ *   an approved reservation passes reservationId to the QR screen
  */
 object ReservationArgs {
     const val STATION_ID = "stationId"

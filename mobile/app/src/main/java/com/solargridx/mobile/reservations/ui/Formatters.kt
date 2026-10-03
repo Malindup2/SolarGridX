@@ -3,22 +3,44 @@ package com.solargridx.mobile.reservations.ui
 import java.text.DecimalFormat
 import java.text.ParseException
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.TimeZone
 
 /*
- * Display formatting for the reservation screens. Slot dates arrive as UTC
- * midnight ("2026-10-03T00:00:00Z"), so they are formatted in UTC; the
- * device's +05:30 would otherwise still read correctly, but a device west of
- * UTC would show the previous day.
+ * Display formatting for the reservation screens. The system runs on Sri Lanka
+ * time (UTC+05:30): a slot's date and its "HH:mm" times are Sri Lanka wall-clock
+ * values, and "now" is read in that zone whatever the phone's own zone is. Slot
+ * dates arrive as midnight ("2026-10-03T00:00:00Z") and are only a calendar day,
+ * so they are read in UTC to keep the day. Real timestamps (booked, completed)
+ * are exact instants and are shown in Sri Lanka time.
  */
 object Formatters {
 
     private val UTC: TimeZone = TimeZone.getTimeZone("UTC")
+    private val SRI_LANKA: TimeZone = TimeZone.getTimeZone("Asia/Colombo")
     private val KWH = DecimalFormat("#,##0.##")
 
     private fun isoParser(pattern: String) = SimpleDateFormat(pattern, Locale.US).apply { timeZone = UTC }
+
+    private fun sriLanka(pattern: String, locale: Locale = Locale.US) =
+        SimpleDateFormat(pattern, locale).apply { timeZone = SRI_LANKA }
+
+    /** A calendar in Sri Lanka time, for stepping through the days of the booking window. */
+    fun sriLankaCalendar(): Calendar = Calendar.getInstance(SRI_LANKA)
+
+    /** yyyy-MM-dd of a moment in Sri Lanka time. */
+    fun sriLankaDayKey(moment: Date): String = sriLanka("yyyy-MM-dd").format(moment)
+
+    /** "EEE" label of a moment in Sri Lanka time. */
+    fun sriLankaWeekday(moment: Date): String = sriLanka("EEE", Locale.getDefault()).format(moment)
+
+    /** "Saturday, 3 October": today's date in Sri Lanka time, for the home headers. */
+    fun todayLabel(): String = sriLanka("EEEE, d MMMM", Locale.getDefault()).format(Date())
+
+    /** "Saturday, 3 October · 20:52": the date and time in Sri Lanka, for the home headers. */
+    fun nowLabel(): String = sriLanka("EEEE, d MMMM · HH:mm", Locale.getDefault()).format(Date())
 
     private fun parse(value: String?): Date? {
         if (value.isNullOrBlank()) return null
@@ -46,17 +68,30 @@ object Formatters {
     /** yyyy-MM-dd key of a slot day (what POST /reservations expects). */
     fun dayKey(value: String): String = value.take(10)
 
-    /** Device-local today as yyyy-MM-dd, comparable with dayKey(). */
-    fun todayKey(): String = SimpleDateFormat("yyyy-MM-dd", Locale.US).format(Date())
+    /** Today in Sri Lanka as yyyy-MM-dd, comparable with dayKey(). Slot days and times are Sri Lanka time. */
+    fun todayKey(): String = sriLankaDayKey(Date())
 
-    /** "yyyy-MM-ddHH:mm" for now, comparable with dayKey(date) + endTime. */
-    fun nowKey(): String = SimpleDateFormat("yyyy-MM-ddHH:mm", Locale.US).format(Date())
+    /** Last day (Sri Lanka, yyyy-MM-dd) a booking may fall on: today plus the 7-day window (BR-01). */
+    fun lastBookableDayKey(): String = sriLankaDayKey(Date(System.currentTimeMillis() + 7L * 24 * 60 * 60 * 1000))
+
+    /** "yyyy-MM-ddHH:mm" for now in Sri Lanka, comparable with dayKey(date) + endTime. */
+    fun nowKey(): String = sriLanka("yyyy-MM-ddHH:mm").format(Date())
+
+    /** True once a slot's start time has passed; such a slot can no longer be booked. */
+    fun hasStarted(slotDate: String, startTime: String): Boolean = dayKey(slotDate) + startTime <= nowKey()
+
+    /** Whole minutes from now until a slot starts (negative once it has), both in Sri Lanka time. */
+    fun minutesUntil(slotDate: String, startTime: String): Long {
+        val format = sriLanka("yyyy-MM-ddHH:mm")
+        val start = format.parse(dayKey(slotDate) + startTime) ?: return 0
+        return Math.floorDiv(start.time - System.currentTimeMillis(), 60_000L)
+    }
 
     fun slotTime(start: String, end: String): String = "$start – $end"
 
-    /** Device-local date and time for audit timestamps (booked, completed). */
+    /** Sri Lanka date and time for audit timestamps (booked, completed). */
     fun dateTime(value: String?): String =
-        parse(value)?.let { SimpleDateFormat("d MMM yyyy, HH:mm", Locale.getDefault()).format(it) } ?: "—"
+        parse(value)?.let { sriLanka("d MMM yyyy, HH:mm", Locale.getDefault()).format(it) } ?: "—"
 
     fun kwh(value: Double): String = "${KWH.format(value)} kWh"
 

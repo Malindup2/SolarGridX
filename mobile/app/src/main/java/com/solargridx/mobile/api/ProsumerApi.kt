@@ -15,7 +15,7 @@ interface ProsumerApi {
     @GET("prosumers/{nic}")
     suspend fun get(@Path("nic") nic: String): Response<ProsumerResponse>
 
-    /** PUT needs the whole object: fullName and email are required (FRONTEND-OWNERSHIP gotcha 6). */
+    /** PUT needs the whole object: fullName and email are required. */
     @PUT("prosumers/{nic}")
     suspend fun update(@Path("nic") nic: String, @Body request: UpdateProsumerRequest): Response<ProsumerResponse>
 

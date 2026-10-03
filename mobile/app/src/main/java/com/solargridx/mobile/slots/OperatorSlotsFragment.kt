@@ -30,7 +30,7 @@ import com.solargridx.mobile.reservations.ui.collectWhileStarted
 import com.solargridx.mobile.reservations.ui.setupBackToolbar
 
 /**
- * Operator slot update from the phone (M4): pick a station and day, then switch slots
+ * Operator slot update from the phone: pick a station and day, then switch slots
  * offline for maintenance or back online. Generating and editing slots stays on the web.
  */
 class OperatorSlotsFragment : Fragment(R.layout.fragment_operator_slots) {

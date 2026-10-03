@@ -20,7 +20,7 @@ import com.solargridx.mobile.R
 import com.solargridx.mobile.slots.QrTokenFormat
 
 /**
- * Operator Scan tab (M3). Reads the prosumer's transfer QR with the camera (ZXing) and
+ * Operator Scan tab. Reads the prosumer's transfer QR with the camera (ZXing) and
  * hands the raw code to the preview screen. The app never decides validity itself: the
  * format check only catches obviously wrong scans before asking the server.
  */

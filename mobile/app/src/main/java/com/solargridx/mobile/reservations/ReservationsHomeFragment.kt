@@ -10,8 +10,7 @@ import com.solargridx.mobile.session.SessionManager
 
 /**
  * Start of the reservation graph (AuthNavigator lands here after login).
- * Sends each role to its own home. When M2's bottom navigation arrives it can
- * point straight at prosumerHomeFragment / operatorHomeFragment instead.
+ * Sends each role to its own home.
  */
 class ReservationsHomeFragment : Fragment(R.layout.fragment_res_router) {
 

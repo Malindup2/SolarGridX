@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-  Type and component styles for the reservation screens (owner: M1).
+  Type and component styles for the reservation screens.
   Visual language follows the reference designs: Poppins, borderless white cards
   floating on a soft shadow, pill buttons, muted labels above bold numbers.
   Colours come from theme attributes and the semantic tokens in colors.xml only.

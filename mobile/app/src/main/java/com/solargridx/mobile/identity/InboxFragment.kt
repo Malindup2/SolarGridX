@@ -10,6 +10,7 @@ import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.appbar.MaterialToolbar
@@ -118,7 +119,10 @@ class InboxFragment : Fragment(R.layout.fragment_inbox) {
                 if (isOperator) R.id.operatorSlotsFragment else R.id.stationDetailFragment,
                 if (isOperator) bundleOf(ReservationArgs.STATION_ID to target.id) else bundleOf(StationsHomeFragment.ARG_STATION_ID to target.id)
             )
-            InboxTarget.Profile -> findNavController().navigateUp()
+            InboxTarget.Profile -> {
+                findNavController().popBackStack()
+                requireActivity().findViewById<BottomNavigationView>(R.id.bottomNav).selectedItemId = R.id.identity_nav
+            }
             InboxTarget.None -> Unit
         }
     }

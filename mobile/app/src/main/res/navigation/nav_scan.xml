@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- M3: operator Scan tab. Scan (or paste) a code, preview it (read-only), confirm to complete. -->
+<!-- Operator Scan tab. Scan (or paste) a code, preview it (read-only), confirm to complete. -->
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"

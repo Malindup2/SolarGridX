@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Reservation, booking and dashboard text (owner: M1). -->
+<!-- Reservation, booking and dashboard text. -->
 <resources>
     <!-- Status -->
     <string name="res_status_pending">Pending</string>
@@ -19,7 +19,7 @@
     <string name="res_logout">Log out</string>
     <string name="res_keep">Keep it</string>
     <string name="res_not_signed_in">Your session is missing its NIC. Please sign in again.</string>
-    <string name="res_coming_soon_qr">The QR code screen is being built by Member 4 and will open here.</string>
+
 
     <!-- Search -->
     <string name="res_search_hint">Search name, NIC, station or status</string>
@@ -67,6 +67,32 @@
     <string name="res_pending_account_body">You can look around, but booking opens once the Backoffice team activates your account.</string>
 
     <!-- Operator home -->
+    <string name="res_quick_scan">Scan code</string>
+    <string name="res_quick_slots">Slots</string>
+    <string name="res_quick_bookings">Bookings</string>
+    <string name="res_today_title">Today at %1$s</string>
+    <string name="res_stat_bookings_today">Bookings</string>
+    <string name="res_stat_completed_today">Completed</string>
+    <string name="res_stat_energy_today">Energy booked</string>
+    <string name="res_stat_bays_reserved">Bays reserved</string>
+    <string name="res_stat_bays_value">%1$d of %2$d</string>
+    <string name="res_next_transfer">Next transfer</string>
+    <string name="res_next_none_title">No upcoming transfers</string>
+    <string name="res_next_none_body">Approved bookings for this station appear here once they are due.</string>
+    <string name="res_starts_in">Starts in %1$s</string>
+    <string name="res_in_progress">In progress</string>
+    <string name="res_next_meta">%1$s · %2$s</string>
+    <string name="res_queue_see_all">See all %1$d</string>
+    <string name="res_op_chart_week_title">Demand, next 7 days</string>
+    <string name="res_op_chart_status_title">Reservation mix</string>
+    <string name="res_duration_minutes">%1$d min</string>
+    <string name="res_duration_hours">%1$d h %2$d min</string>
+    <plurals name="res_duration_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="res_stat_bays_none">No slots</string>
+    <string name="res_open_profile">Open your profile</string>
     <string name="res_your_station">Your station</string>
     <string name="res_switch_station">Stations</string>
     <string name="res_operator_home_subtitle">Choose the station you are running today to see its queue.</string>
@@ -78,15 +104,21 @@
     <string name="res_queue_empty_title">All caught up</string>
     <string name="res_queue_empty_body">There are no pending reservations at this station.</string>
 
-    <!-- Slot picker (temporary until M4) -->
+    <!-- Slot picker -->
     <string name="res_slot_picker_title">Choose a slot</string>
     <string name="res_reschedule_title">Pick a new slot</string>
-    <string name="res_slot_picker_note">Temporary picker until Member 4\'s slot screen is merged.</string>
+    <string name="res_slot_picker_note">All times are Sri Lanka time. Each slot shows the most energy one booking can take and how many bays are reserved.</string>
     <plurals name="res_bays_reserved">
         <item quantity="one">%1$d of %2$d bay reserved</item>
         <item quantity="other">%1$d of %2$d bays reserved</item>
     </plurals>
     <string name="res_slot_unavailable">Offline</string>
+    <string name="res_slot_started">Started</string>
+    <string name="res_slot_full">Full</string>
+    <string name="res_no_stations_title">No slots to book</string>
+    <string name="res_no_stations_body">No station has open slots in the next 7 days. Please check again later.</string>
+    <string name="res_no_slots_station_title">No open slots</string>
+    <string name="res_no_slots_station_body">This station has no open slots in the next 7 days. Pick another station.</string>
     <string name="res_no_slots_title">No open slots</string>
     <string name="res_no_slots_body">Try another day or station.</string>
     <string name="res_reschedule_confirm_title">Move to this slot?</string>

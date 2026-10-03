@@ -40,14 +40,13 @@ import com.solargridx.mobile.reservations.ui.Formatters
 import com.solargridx.mobile.reservations.ui.collectWhileStarted
 import com.solargridx.mobile.reservations.ui.staggerChildrenIn
 import com.solargridx.mobile.session.LogoutHelper
-import com.solargridx.mobile.shell.InboxBadge
 import com.solargridx.mobile.session.SessionManager
 import java.text.SimpleDateFormat
 import java.util.Locale
 import java.util.TimeZone
 
 /**
- * Profile tab (FRONTEND-OWNERSHIP §5): account card, details, edit profile,
+ * Profile tab: account card, details, edit profile,
  * change password, logout, and self-deactivation. Prosumers load their record
  * from GET /prosumers/{nic}; operators have no prosumer record, so they get an
  * account card from the session plus password and logout.
@@ -222,13 +221,6 @@ class IdentityHomeFragment : Fragment(R.layout.fragment_profile) {
                 addRow(this, R.drawable.ic_res_edit, getString(R.string.profile_personal_info), getString(R.string.profile_personal_info_hint)) {
                     findNavController().navigate(R.id.action_identityHome_to_editProfile)
                 }
-            }
-            val unread = InboxBadge.unread.value
-            addRow(
-                this, R.drawable.ic_res_inbox, getString(R.string.profile_row_notifications),
-                if (unread > 0) getString(R.string.inbox_unread_badge, unread) else null
-            ) {
-                findNavController().navigate(R.id.action_identityHome_to_inbox)
             }
             addRow(this, R.drawable.ic_res_lock, getString(R.string.profile_change_password), null) {
                 findNavController().navigate(R.id.action_identityHome_to_changePassword)

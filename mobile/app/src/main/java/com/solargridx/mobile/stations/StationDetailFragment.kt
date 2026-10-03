@@ -24,14 +24,16 @@ import com.solargridx.mobile.common.StateViews
 import com.solargridx.mobile.common.safeApiCall
 import com.solargridx.mobile.dto.SolarStationInfo
 import com.solargridx.mobile.reservations.ReservationArgs
+import com.solargridx.mobile.reservations.data.SlotOpenings
 import com.solargridx.mobile.reservations.ui.Formatters
 import com.solargridx.mobile.reservations.ui.setupBackToolbar
 import com.solargridx.mobile.session.SessionManager
 import kotlinx.coroutines.launch
 
 /**
- * One station (M3). Prosumers continue to the slot picker with this station already
- * chosen (the M3 → M4/M1 hand-off passes stationId); operators open its slots.
+ * One station. Prosumers continue to the slot picker with this station already
+ * chosen, which is only offered when the station has a slot open to book;
+ * operators open its slots.
  */
 class StationDetailFragment : Fragment(R.layout.fragment_station_detail) {
 
@@ -55,15 +57,19 @@ class StationDetailFragment : Fragment(R.layout.fragment_station_detail) {
             when (val result = safeApiCall { ApiClient.retrofit.create(StationApi::class.java).get(id) }) {
                 is ApiResult.Failure -> states.showError(result.error)
                 is ApiResult.Success -> {
+                    // Staff do not book from here, so only a prosumer needs to know if a slot is open.
+                    val open = SessionManager(requireContext()).getRole() == "GridOperator" ||
+                        SlotOpenings.withOpenSlots(listOf(result.data)).isNotEmpty()
                     states.hide()
-                    bind(view, result.data)
+                    bind(view, result.data, open)
                     content.isVisible = true
                 }
             }
         }
     }
 
-    private fun bind(view: View, station: SolarStationInfo) {
+    private fun bind(view: View, station: SolarStationInfo, hasOpenSlots: Boolean) {
+        val noOpenSlots = !hasOpenSlots
         val active = station.status == "Active"
         val isOperator = SessionManager(requireContext()).getRole() == "GridOperator"
         val schedule = station.operationalSchedule
@@ -102,9 +108,11 @@ class StationDetailFragment : Fragment(R.layout.fragment_station_detail) {
                     findNavController().navigate(R.id.operatorSlotsFragment, bundleOf(ReservationArgs.STATION_ID to station.id))
                 }
             } else {
-                setText(R.string.station_book)
-                // Only active stations take bookings; the API enforces it, this avoids a dead end.
-                isEnabled = active
+                // Only an active station with a slot open to book can take a booking; the API
+                // enforces both, this keeps the button from leading to an empty slot list.
+                setText(if (active && noOpenSlots) R.string.station_no_open_slots else R.string.station_book)
+                isEnabled = active && !noOpenSlots
+                view.findViewById<TextView>(R.id.bookHint).isVisible = active && noOpenSlots
                 setOnClickListener {
                     findNavController().navigate(
                         R.id.slotPickerFragment,

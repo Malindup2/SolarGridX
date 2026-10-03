@@ -11,7 +11,7 @@ import com.solargridx.mobile.R
 import com.solargridx.mobile.session.SessionManager
 
 /**
- * Role-aware Material 3 navigation bar (FRONTEND-OWNERSHIP §5):
+ * Role-aware Material 3 navigation bar:
  *   Prosumer: Home · Stations · Bookings · Profile
  *   Operator: Home · Reservations · Scan · Profile
  *
@@ -89,7 +89,7 @@ class BottomNavController(
 
     private fun navigateToTab(itemId: Int) {
         if (navController.currentDestination?.let { topLevel[it.id] } == itemId) return
-        // Tabs live in different nested graphs (reservations, M3's stations, M2's identity),
+        // Tabs live in different nested graphs (reservations, stations, identity, scan),
         // so always return to Home first; every tab is reachable from there.
         navController.popBackStack(homeId(), false)
         if (itemId == homeId()) return
@@ -101,20 +101,6 @@ class BottomNavController(
             .setPopExitAnim(R.anim.res_fade_through_out)
             .build()
         navController.navigate(itemId, null, options)
-    }
-
-    /** Unread notifications as a badge on the Profile tab (the inbox lives there). */
-    fun setUnread(count: Int) {
-        if (bar.menu.findItem(R.id.identity_nav) == null) return
-        if (count > 0) {
-            bar.getOrCreateBadge(R.id.identity_nav).apply {
-                isVisible = true
-                number = count
-                maxCharacterCount = 3
-            }
-        } else {
-            bar.removeBadge(R.id.identity_nav)
-        }
     }
 
     /** Slides the bar in / out instead of popping, so screen changes feel continuous. */

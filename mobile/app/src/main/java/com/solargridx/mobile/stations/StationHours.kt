@@ -2,7 +2,7 @@ package com.solargridx.mobile.stations
 
 import com.solargridx.mobile.dto.OperationalSchedule
 
-/** Opening hours as shown on station details. Times are UTC, like the API stores them. */
+/** Opening hours as shown on station details. Times are Sri Lanka time, as the API stores them. */
 object StationHours {
 
     private val WEEK = listOf("Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday")

@@ -28,6 +28,10 @@ class ReservationRepository(
 
     suspend fun get(id: String): ApiResult<ReservationResponse> = safeApiCall { api.get(id) }
 
+    /** Every reservation at one station (staff only), for the operator dashboard's numbers and charts. */
+    suspend fun stationReservations(stationId: String): ApiResult<List<ReservationResponse>> =
+        safeApiCall { api.list(stationId = stationId) }
+
     suspend fun updateEnergy(id: String, energyKwh: Double, expectedUpdatedAt: String? = null): ApiResult<ReservationResponse> =
         safeApiCall { api.updateEnergy(id, UpdateReservationRequest(energyKwh, expectedUpdatedAt)) }
 

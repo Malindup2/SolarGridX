@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- M3: stations list / map and station details. "Book a slot" continues into the reservations graph. -->
+<!-- Stations tab: nearby list and map. Station details is a top-level screen (see nav_graph.xml). -->
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
@@ -19,15 +19,4 @@
             app:popEnterAnim="@anim/res_pop_enter"
             app:popExitAnim="@anim/res_pop_exit" />
     </fragment>
-
-    <fragment
-        android:id="@+id/stationDetailFragment"
-        android:name="com.solargridx.mobile.stations.StationDetailFragment"
-        android:label="Station"
-        tools:layout="@layout/fragment_station_detail">
-        <argument
-            android:name="stationId"
-            app:argType="string" />
-    </fragment>
-
 </navigation>

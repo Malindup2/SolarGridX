@@ -42,12 +42,11 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // Unread notifications badge: refreshed every minute while the app is open and signed in.
+        // Unread count for the notification bell: refreshed every minute while the app is open and signed in.
         val session = SessionManager(this)
         val activityApi = ApiClient.retrofit.create(ActivityApi::class.java)
         lifecycleScope.launch {
             repeatOnLifecycle(Lifecycle.State.STARTED) {
-                launch { InboxBadge.unread.collect { bottomNav.setUnread(it) } }
                 while (isActive) {
                     if (session.isLoggedIn() && !session.isPendingProsumer()) {
                         (safeApiCall { activityApi.inbox() } as? ApiResult.Success)?.let { InboxBadge.set(it.data.unreadCount) }

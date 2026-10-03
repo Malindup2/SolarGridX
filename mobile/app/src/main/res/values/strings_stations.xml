@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Stations (M3), operator slots (M4) and QR (M3 scan, M4 display). -->
+<!-- Stations, operator slots and QR (scan and display). -->
 <resources>
     <!-- Stations -->
     <string name="stations_title">Stations</string>
@@ -9,9 +9,10 @@
     <string name="stations_near_me">Near me</string>
     <string name="stations_map_cd">Map of microgrid stations. The same stations are in the list view.</string>
     <string name="stations_inactive">Not taking bookings</string>
-    <string name="stations_facts">Up to %1$s · %2$d bays · %3$s–%4$s UTC</string>
+    <string name="stations_facts">Up to %1$s · %2$d bays · %3$s–%4$s</string>
     <string name="stations_empty_title">No stations found</string>
     <string name="stations_empty_body">Try a different search, or turn off "Near me" to see every station.</string>
+    <string name="stations_far_away_note">No station is within %1$d km of you, so every station is listed, nearest first.</string>
     <string name="stations_nearby_note">Showing active stations within %1$d km, nearest first.</string>
     <string name="stations_location_denied">Location is off, so stations are listed by name. Allow location to sort by distance.</string>
     <string name="stations_location_unavailable">Your location isn\'t available right now. Showing every station.</string>
@@ -21,12 +22,14 @@
     <string name="station_bays">Battery bays</string>
     <string name="station_bays_value">%1$d (bookings one slot can hold)</string>
     <string name="station_type">Type</string>
-    <string name="station_hours">Opening hours</string>
-    <string name="station_hours_value">%1$s–%2$s UTC</string>
+    <string name="station_hours">Opening hours (Sri Lanka time)</string>
+    <string name="station_hours_value">%1$s–%2$s</string>
     <string name="station_days">Days</string>
-    <string name="station_hours_value_utc">%1$s UTC</string>
+    <string name="station_hours_value_utc">%1$s</string>
     <string name="station_every_day">Every day</string>
     <string name="station_book">Book a slot here</string>
+    <string name="station_no_open_slots">No open slots to book</string>
+    <string name="station_no_open_slots_hint">This station has no open slots in the next 7 days. Check another station, or come back later.</string>
     <string name="station_manage_slots">Manage slots</string>
     <string name="station_directions">Directions</string>
 
@@ -50,6 +53,8 @@
     <string name="qr_state_used">Used: the transfer is complete</string>
     <string name="qr_cd">Transaction QR code for your energy transfer</string>
     <string name="qr_refresh">Refresh</string>
+    <string name="qr_copy">Copy code</string>
+    <string name="qr_copied">Code copied. The operator can paste it on the Scan screen.</string>
 
     <!-- QR: operator scan -->
     <string name="scan_title">Scan QR code</string>

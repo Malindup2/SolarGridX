@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Home header, placed inside the toolbar so it shares one row with the action icons: the profile photo
+  (initials until one is set) beside the greeting and the date and time. Tap the photo to open Profile.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal">
+
+    <FrameLayout
+        android:id="@+id/homeAvatarFrame"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:clickable="true"
+        android:contentDescription="@string/res_open_profile"
+        android:focusable="true">
+
+        <TextView
+            android:id="@+id/homeAvatarInitials"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_res_circle"
+            android:backgroundTint="@color/status_approved_container"
+            android:fontFamily="@font/poppins_semibold"
+            android:gravity="center"
+            android:importantForAccessibility="no"
+            android:textColor="@color/color_primary_hover"
+            android:textSize="17sp" />
+
+        <com.google.android.material.imageview.ShapeableImageView
+            android:id="@+id/homeAvatarImage"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:importantForAccessibility="no"
+            android:scaleType="centerCrop"
+            android:visibility="gone"
+            app:shapeAppearanceOverlay="@style/ShapeAppearance.SolarGridX.Circle"
+            app:strokeColor="@color/color_primary"
+            app:strokeWidth="2dp" />
+    </FrameLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/res_space_md"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/greeting"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:accessibilityHeading="true"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section"
+            android:textSize="19sp" />
+
+        <TextView
+            android:id="@+id/today"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+    </LinearLayout>
+</LinearLayout>

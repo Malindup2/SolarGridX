@@ -11,12 +11,13 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.progressindicator.LinearProgressIndicator
 import com.solargridx.mobile.R
 import com.solargridx.mobile.dto.EnergyBookingSlot
+import com.solargridx.mobile.reservations.data.SlotOpenings
 import com.solargridx.mobile.reservations.ui.Formatters
 
 /**
  * Slot cards. `capacityKwh` is the maximum for ONE booking and `reservedCount`
- * counts battery bays, not energy (FRONTEND-OWNERSHIP gotcha 2), so the bar
- * shows bays taken out of the station's bay count.
+ * counts battery bays, not energy, so the bar shows bays taken out of the
+ * station's bay count.
  */
 class SlotAdapter(
     var bayCount: Int,
@@ -46,14 +47,22 @@ class SlotAdapter(
             R.plurals.res_bays_reserved, bayCount, slot.reservedCount, bayCount
         )
 
-        holder.offline.isVisible = !slot.isAvailable
-        holder.chevron.isVisible = slot.isAvailable
-        holder.itemView.isEnabled = slot.isAvailable
-        holder.itemView.alpha = if (slot.isAvailable) 1f else 0.55f
-        holder.itemView.setOnClickListener { if (slot.isAvailable) onClick(slot) }
+        val bookable = SlotOpenings.isBookable(slot, bayCount)
+        holder.offline.setText(
+            when {
+                !slot.isAvailable -> R.string.res_slot_unavailable
+                Formatters.hasStarted(slot.slotDate, slot.startTime) -> R.string.res_slot_started
+                else -> R.string.res_slot_full
+            }
+        )
+        holder.offline.isVisible = !bookable
+        holder.chevron.isVisible = bookable
+        holder.itemView.isEnabled = bookable
+        holder.itemView.alpha = if (bookable) 1f else 0.55f
+        holder.itemView.setOnClickListener { if (bookable) onClick(slot) }
         holder.itemView.contentDescription = listOfNotNull(
             holder.time.text, holder.capacity.text, holder.baysText.text,
-            context.getString(R.string.res_slot_unavailable).takeIf { !slot.isAvailable }
+            holder.offline.text.takeIf { !bookable }
         ).joinToString(", ")
     }
 
