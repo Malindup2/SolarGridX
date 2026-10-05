@@ -222,4 +222,52 @@ public class StationAdditionalTests(ApiFixture api)
         await FetchAsync(admin, withReservation.Id);
     }
 
+
+
+        [MongoFact]
+    public async Task Capacity_changes_respect_upcoming_slots()
+    {
+        var admin = await AdminAsync();
+        var station = await api.SeedStationAsync();
+
+        await api.SeedSlotAsync(
+            station.Id, BusinessClock.Today.AddDays(2).AddHours(9));
+
+        foreach (var change in new[]
+        {
+            Edit(station, 100, 4),
+            Edit(station, 120, 3),
+            Edit(station, 120, 5)
+        })
+        {
+            await (await admin.PutAsJsonAsync(
+                $"/api/stations/{station.Id}", change)).ShouldFailAsync(
+                    HttpStatusCode.Conflict,
+                    "STATION_CAPACITY_CHANGE_BLOCKED");
+
+            var unchanged = await FetchAsync(admin, station.Id);
+            Assert.Equal(120d, unchanged.CapacityKwh);
+            Assert.Equal(4, unchanged.BatterySlotCount);
+        }
+
+        Assert.Equal(HttpStatusCode.OK,
+            (await admin.PutAsJsonAsync(
+                $"/api/stations/{station.Id}",
+                Edit(station, 150, 4))).StatusCode);
+
+        Assert.Equal(150d,
+            (await FetchAsync(admin, station.Id)).CapacityKwh);
+
+        var withoutSlots = await api.SeedStationAsync();
+
+        Assert.Equal(HttpStatusCode.OK,
+            (await admin.PutAsJsonAsync(
+                $"/api/stations/{withoutSlots.Id}",
+                Edit(withoutSlots, 100, 3))).StatusCode);
+
+        var updated = await FetchAsync(admin, withoutSlots.Id);
+        Assert.Equal(100d, updated.CapacityKwh);
+        Assert.Equal(3, updated.BatterySlotCount);
+    }
+
 }
