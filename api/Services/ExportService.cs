@@ -1,3 +1,7 @@
+/*
+ * ExportService.cs
+ * Applies role and filter rules when preparing permitted records for CSV export.
+ */
 using System.Globalization;
 using MicrogridApi.Common;
 using MicrogridApi.Models;

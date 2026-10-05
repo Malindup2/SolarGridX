@@ -1,3 +1,8 @@
+/*
+ * ReservationRepository.cs
+ * Stores and queries reservations and performs conditional updates for reservation lifecycle actions.
+ */
+ 
 using MicrogridApi.Common;
 using MicrogridApi.Configuration;
 using MicrogridApi.Models;

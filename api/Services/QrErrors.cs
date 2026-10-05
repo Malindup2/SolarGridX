@@ -1,3 +1,8 @@
+/*
+ * QrErrors.cs
+ * Defines validation and conflict errors for QR token issuance and verification.
+ */
+ 
 using MicrogridApi.Common;
 
 namespace MicrogridApi.Services;

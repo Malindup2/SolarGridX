@@ -1,3 +1,8 @@
+/*
+ * RescheduleReservationRequestValidator.cs
+ * Checks the destination slot identifier submitted when rescheduling a reservation.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Reservations;
 

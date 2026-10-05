@@ -1,3 +1,8 @@
+/*
+ * ActivityDtos.cs
+ * Defines response models for notifications, inboxes, audit entries, and search results.
+ */
+
 namespace MicrogridApi.DTOs.Activity;
 
 public record NotificationResponse(
