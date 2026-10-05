@@ -1,3 +1,4 @@
 namespace MicrogridApi.DTOs.Reservations;
 
-public record RescheduleReservationRequest(string SlotId);
+/// <param name="ExpectedUpdatedAt">See UpdateReservationRequest.</param>
+public record RescheduleReservationRequest(string SlotId, DateTime? ExpectedUpdatedAt = null);

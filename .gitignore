@@ -5,6 +5,11 @@ api/appsettings.Development.json
 api/appsettings.Production.json
 api/publish/
 
+# --- Tests ---
+tests/**/bin/
+tests/**/obj/
+tests/**/TestResults/
+
 # --- Web (React/Vite) ---
 web/node_modules/
 web/dist/

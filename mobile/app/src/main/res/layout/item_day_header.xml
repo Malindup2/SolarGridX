@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Day heading above a group of bookings ("Sat, 3 Oct 2026"). -->
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:accessibilityHeading="true"
+    android:paddingTop="@dimen/res_space_md"
+    android:paddingBottom="@dimen/res_space_sm"
+    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section" />

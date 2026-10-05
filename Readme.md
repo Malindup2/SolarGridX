@@ -16,6 +16,19 @@ Sri Lanka Institute of Information Technology — Year 4, Semester 2, 2026
 
 ---
 
+##  Project Documentation & Handover Suite
+
+| Document | File Link | Description |
+|---|---|---|
+| **Handover Report** | [docs/HANDOVER_REPORT.md](docs/HANDOVER_REPORT.md) | Executive project summary, deliverables matrix & evaluation guide |
+| **System Architecture** | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | C4 architecture diagrams, layered design & sequence flows |
+| **Database & ER Diagram** | [docs/DATABASE.md](docs/DATABASE.md) | Complete Mermaid ER diagram, MongoDB schemas & index strategies |
+| **API Contract** | [docs/API-CONTRACT.md](docs/API-CONTRACT.md) | OpenAPI REST endpoint specifications & JSON payload models |
+| **E2E Testing Runbook** | [HAPPY_PATH_E2E_GUIDE.md](HAPPY_PATH_E2E_GUIDE.md) | Complete step-by-step verification guide across all 3 roles |
+
+
+---
+
 ## Table of Contents
 1. [Project Overview](#1-project-overview)
 2. [System Architecture](#2-system-architecture)
@@ -589,7 +602,8 @@ Point the clients at the deployed address:
 
 ### 8.6 Redeploying and troubleshooting
 
-- **Republishing:** stop `SolarGridX_Pool` first (otherwise the DLL is locked), publish again, then start the pool.
+- **One-step redeploy:** double-click `scripts\deploy-iis.bat`. It asks for administrator rights, stops `SolarGridX_Pool`, publishes, starts the pool again and checks that the new build is live. It prints which database the deployed settings point at, so check that line before you rely on the result. `scripts\deploy-iis.ps1 -DryRun` publishes to a temporary folder without touching IIS.
+- **Republishing by hand:** stop `SolarGridX_Pool` first (otherwise the DLL is locked), publish again, then start the pool.
 - **Access to `C:\inetpub\...` is denied while publishing:** the PowerShell window is not elevated — reopen it with *Run as administrator*.
 - **`500.30` / `500.32`:** the Hosting Bundle is missing or too old — install the .NET 10 Hosting Bundle and run `iisreset`.
 - **`500.19`:** grant `IIS_IUSRS` read access to the publish folder (8.4, step 4).
@@ -670,7 +684,7 @@ Microgrid nodes (solar grid hubs).
 | `capacityKwh` | double | Capacity specification |
 | `batterySlotCount` | int | Available battery storage slots |
 | `type` | string | `AC` \| `DC` |
-| `operationalSchedule` | object | `openTime`, `closeTime`, `activeDays[]` |
+| `operationalSchedule` | object | `openTime`, `closeTime` (default hours), `activeDays[]`, optional `dayHours[]` (`day`, `openTime`, `closeTime`) that replace the default hours on those days |
 | `status` | string | `Active` \| `Inactive` |
 | `createdAt` / `updatedAt` | DateTime | UTC |
 
@@ -719,6 +733,10 @@ SolarStationInfo (_id) ───┼──► EnergyReservation
 ```
 
 References are document references, not relational foreign keys. Referential consistency is enforced in the service layer.
+
+### 9.7 Added collections and fields
+
+`AuditLog` (`kind`, `entityId`, `event`, actor id/name/role, `at`, `correlationId`) and `Notifications` (`userId`, `category`, `priority`, `message`, `action`, `resourceId`, `createdAt`, `readAt`; TTL 90 days) record activity. `Users` gains `securityVersion`, `passwordResetTokenHash/ExpiresAt/RequestedAt` and the profile photo (`avatarBytes`, `avatarContentType`, `avatarVersion`).
 
 ### 9.6 `RevokedTokens` (session invalidation)
 
@@ -776,6 +794,8 @@ Every error response has the same shape. Failures are handled in two tiers:
 
 > **Login credentials.** Every role logs in with `email` and `password`; the NIC is not a login credential (it identifies prosumers at registration and in reservations). `email` is required and unique, and is compared lowercase.
 
+**Password recovery and sessions.** `POST /auth/forgot-password {email}` always answers `200` with the same message, whether or not the email has an account; the reset email is sent from a background queue so response time reveals nothing. Only `Active` accounts get one, at most one a minute. The link is `{Web:BaseUrl}/reset-password#token=<64 hex>`: the token is 32 random bytes, only its SHA-256 is stored, it works once and expires after 20 minutes. `POST /auth/reset-password {token,newPassword}` sets the password. Both reset and change-password raise the account's `securityVersion`, which every JWT carries (`sv` claim), so **every older session stops working**. `POST /auth/change-password` therefore returns a fresh `LoginResponse` for the caller. Login, register, forgot, reset and change-password are rate-limited to 10 requests a minute per IP (`429 TOO_MANY_ATTEMPTS`, `RateLimiting:AuthPermitLimit`).
+
 **Access by client**
 
 | Role | Web application | Mobile application | How the account is created |
@@ -815,8 +835,8 @@ The web application has no registration page. `POST /auth/register` always creat
 | `POST` | `/reservations` | Prosumer | Create reservation (7-day rule enforced) |
 | `GET` | `/reservations` | All | List with filters `?nic=&status=&stationId=` |
 | `GET` | `/reservations/{id}` | All | Reservation detail |
-| `PUT` | `/reservations/{id}` | Prosumer | Update (12-hour rule enforced) |
-| `PATCH` | `/reservations/{id}/reschedule` | Prosumer | Move to a different slot; revalidates both rules |
+| `PUT` | `/reservations/{id}` | Prosumer / Operator | Update; `Pending` or `Approved` (an approved one goes back to `Pending`, BR-16); 12-hour rule enforced |
+| `PATCH` | `/reservations/{id}/reschedule` | Prosumer / Operator | Move to a different slot; revalidates the rules; an approved booking goes back to `Pending` |
 | `PATCH` | `/reservations/{id}/approve` | GridOperator | `Pending` → `Approved`; triggers QR issue |
 | `PATCH` | `/reservations/{id}/reject` | GridOperator | `Pending` → `Rejected` with reason |
 | `PATCH` | `/reservations/{id}/cancel` | Prosumer / Backoffice | Cancel (12-hour rule enforced); releases slot |
@@ -948,6 +968,32 @@ The web application has no registration page. `POST /auth/register` always creat
 }
 ```
 
+**`POST /qr/preview`** (GridOperator): runs every check `verify` runs and returns the same body with `completedAt: null`, but changes nothing. Clients show it, then call `POST /qr/verify` on confirmation; that remains the only way a reservation becomes `Completed`.
+
+### 10.9 Notifications, audit, search, export
+
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| `GET` | `/notifications?unreadOnly=&priority=` | Any | Own inbox, newest first (max 100) plus `unreadCount`; kept 90 days |
+| `POST` | `/notifications/{id}/read`, `/notifications/read-all` | Any | Mark own notifications read (`204`) |
+| `GET` | `/audit/{kind}/{id}` | Any (see below) | Who did what to a `users`, `stations`, `slots` or `reservations` record; `users/me` is always allowed |
+| `GET` | `/search?q=` | Any | Command-palette search (2-80 chars, literal match, 5 per kind); results depend on role |
+| `GET` | `/exports/{users|prosumers|stations|reservations}.csv` | Backoffice / Operator | CSV with the list filters; UTF-8 BOM, formula-injection guard, max 5,000 rows |
+
+Audit access: Backoffice reads users, stations, slots; an operator reads stations, slots, reservations; a prosumer reads only their own reservations. Every business action (reservation lifecycle, QR completion, account, station and slot changes, password changes) writes an audit entry and notifies who it concerns. Recording is best effort: a failure is logged and never fails the action.
+
+### 10.10 Profile and reservation views
+
+| Method | Endpoint | Role | Description |
+|---|---|---|---|
+| `GET` / `PUT` | `/users/me` | Any | Own profile (name, email, phone, address) |
+| `POST` | `/users/me/deactivation-request` | Prosumer | Close own account (only the Backoffice can reactivate, BR-05) |
+| `GET` `PUT` `DELETE` | `/users/me/avatar` | Any | Profile photo: JPEG/PNG up to 1 MB, type taken from the file bytes |
+| `GET` | `/users/{id}/avatar` | Backoffice / Operator | Someone's photo |
+| `GET` | `/reservations/view/{current|pending|history}?nic=&stationId=&page=&pageSize=` | Any | Paged booking views, worked out from the slot end time at query time: `current` = Approved and not ended; `pending` = Pending; `history` = terminal, or ended |
+
+`POST /reservations`, `PUT /reservations/{id}` and `PATCH /reservations/{id}/reschedule` also accept **GridOperator** (assisted booking on a prosumer's behalf); all BR rules still apply.
+
 ### 10.8 Views and Dashboards
 
 | Method | Endpoint | Role | Description |
@@ -979,7 +1025,7 @@ All rules are enforced inside the Web API service layer. No client evaluates the
 | **BR-13** | A slot holds at most one reservation per battery bay at the node | `ReservationService.Create` | `SLOT_FULL` |
 | **BR-14** | One prosumer cannot hold two live reservations for the same slot | `ReservationService.Create`, `Reschedule` | `SLOT_ALREADY_RESERVED` |
 | **BR-15** | A prosumer may only read or change their own reservations and QR tokens | `ReservationService`, `QrIssueService.Get` | `NOT_RESERVATION_OWNER`, `NOT_TOKEN_OWNER` |
-| **BR-16** | Only a `Pending` reservation may be updated or rescheduled; an approved one carries an issued QR token | `ReservationService.Update`, `Reschedule` | `RESERVATION_NOT_MODIFIABLE` |
+| **BR-16** | A `Pending` or `Approved` reservation may be updated or rescheduled (12-hour notice). A changed approved booking goes back to `Pending` and its QR token is cleared, so it must be approved again; `Rejected`, `Cancelled` and `Completed` cannot be changed | `ReservationService.Update`, `Reschedule` | `RESERVATION_NOT_MODIFIABLE` |
 | **BR-17** | Only a `Pending` reservation may be approved or rejected | `ReservationService.Approve`, `Reject` | `RESERVATION_ALREADY_DECIDED` |
 | **BR-18** | Reservations cannot be made against an inactive node or an offline slot | `ReservationService.Create` | `STATION_INACTIVE`, `SLOT_UNAVAILABLE` |
 | **BR-19** | Slots for one station and date may not overlap in time | `SlotService.Create`, `Update` | `SLOT_OVERLAP` |
@@ -990,14 +1036,31 @@ All rules are enforced inside the Web API service layer. No client evaluates the
 | **BR-24** | A user cannot change their own role or status, or delete their own account | `UserService.Update`, `Delete` | `CANNOT_CHANGE_OWN_ACCESS` |
 
 
+| **BR-25** | A password-reset link is single-use, expires after 20 minutes, and one is issued per account at most once a minute | `PasswordRecoveryService` | `RESET_TOKEN_INVALID` |
+| **BR-26** | Changing or resetting a password ends every other session of that account | `JwtBearer` `sv` check, `AuthService`, `PasswordRecoveryService` | `401` |
+| **BR-27** | A QR preview never completes a transfer; only `POST /qr/verify` does | `QrVerificationService` | |
+| **BR-28** | A grid operator may book, edit and reschedule on a prosumer's behalf, under the same rules as the prosumer | `ReservationsController` | |
+| **BR-29** | An export is capped at 5,000 rows | `ExportService` | `EXPORT_TOO_LARGE` |
+| **BR-30** | A profile photo must be a JPEG or PNG of at most 1 MB, judged by its bytes | `ProfileService` | `AVATAR_TYPE_NOT_ALLOWED`, `AVATAR_TOO_LARGE` |
+
+| **BR-31** | One prosumer cannot hold two live (`Pending` / `Approved`) bookings whose times overlap, even in different slots or stations. Back-to-back slots are fine | `ReservationService.Create`, `Reschedule` | `RESERVATION_OVERLAP` |
+| **BR-32** | A booking cannot be approved once its slot has started (it can still be rejected) | `ReservationService.Approve` | `RESERVATION_ALREADY_STARTED` |
+| **BR-33** | A QR code only works from the moment its slot starts, for both preview and verify | `QrVerificationService` | `QR_TOKEN_NOT_YET_VALID` |
+| **BR-34** | Capacity, approval, rejection, cancellation, editing and completion are each decided in one atomic database step, so racing requests cannot oversell the last bay, decide a booking twice or complete a transfer twice | `SlotRepository.TryReserveAsync`, `ReservationRepository.ReplaceIfUnchangedAsync`, `TryCompleteAsync` | `SLOT_FULL`, `RESERVATION_CHANGED`, `QR_TOKEN_ALREADY_USED` |
+| **BR-35** | An edit may carry the `updatedAt` the editor last saw (`expectedUpdatedAt`). If the record changed since, the save is refused instead of overwriting the other change. Applies to reservations (update, reschedule), stations (update, schedule) and slots (update) | `Versioning.IsStale` | `RESERVATION_CHANGED`, `STATION_CHANGED`, `SLOT_CHANGED` |
+| **BR-36** | A station may have its own opening hours on individual days; slot generation and the schedule-change check use the hours of each slot's own weekday | `OperationalSchedule.HoursFor`, `SlotService.Generate`, `StationService.UpdateSchedule` | `STATION_SCHEDULE_CONFLICT` |
+| **BR-37** | A slot that has already started cannot be booked or moved onto | `ReservationService.ValidateBookingWindow` | `SLOT_ALREADY_STARTED` |
+| **BR-38** | The system runs on Sri Lanka time (UTC+05:30). Slot dates, slot and station hours are Sri Lanka wall-clock times, and "has it started?" is judged against that clock on the API, web and mobile. Real timestamps (created, approved, token expiry) stay exact UTC instants shown in Sri Lanka time | `BusinessClock`, `Formatters` (mobile), `lib/format.ts` (web) | |
+
 **Status lifecycle**
 
 ```
 Pending ──► Approved ──► Completed
-   │            │
-   │            └──► Cancelled
-   ├──► Rejected
-   └──► Cancelled
+   ▲  │         │
+   │  │         └──► Cancelled
+   │  ├──► Rejected
+   │  └──► Cancelled
+   └──── editing an Approved booking sends it back to Pending (BR-16)
 ```
 
 ---
@@ -1078,6 +1141,18 @@ docs(<area>): <what was documented>
 
 ## 14. Testing
 
+[![CI](https://github.com/Malindup2/SolarGridX/actions/workflows/ci.yml/badge.svg)](https://github.com/Malindup2/SolarGridX/actions/workflows/ci.yml)
+
+### Automated tests and CI/CD
+
+| Suite | Command | Count |
+|---|---|---|
+| API integration (xUnit, real MongoDB) | `dotnet test tests/MicrogridApi.Tests` (set `MICROGRID_TEST_MONGO`) | 128 |
+| Web unit (Vitest + Testing Library) | `cd web && npm test` | 162 |
+| Mobile unit (JUnit) | `cd mobile && ./gradlew :app:testDebugUnitTest` | 75 |
+
+GitHub Actions runs all three on every pull request and push to `dev` / `main` (`.github/workflows/ci.yml`). After CI passes on `main`, `.github/workflows/cd.yml` publishes the API and web Docker images to GHCR and attaches the debug APK. Details: [docs/TESTING.md](docs/TESTING.md).
+
 ### API testing
 
 A Postman collection is provided at `docs/postman/SmartMicrogrid.postman_collection.json` with an environment file for local and deployed base URLs. The collection includes:
@@ -1120,6 +1195,7 @@ Run `docs/seed/seed.js` in `mongosh` to create two stations, one day of slots, o
 | `HTTP Error 500.19` on IIS | Hosting Bundle not installed | Install the ASP.NET Core 10 Hosting Bundle and restart IIS |
 | `HTTP Error 500.30` on IIS | App failed to start | Check `logs/stdout` after enabling `stdoutLogEnabled` in `web.config`; usually a bad connection string |
 | Android emulator cannot reach the API | `localhost` resolves to the emulator | Use `10.0.2.2` for the emulator, or run `adb reverse tcp:5187 tcp:5187` and use `localhost` |
+| App times out on an **Android 17 (API 37) emulator** with `http://10.0.2.2:...`, although `adb shell nc 10.0.2.2 <port>` works | The app's own user is refused on the `10.0.2.2` route while the shell user is not (`run-as com.solargridx.mobile` reproduces it; the app targets API 37). The cause is not confirmed | Use the tunnel instead: `adb reverse tcp:<port> tcp:<port>`, set `API_BASE_URL=http://localhost:<port>/api/`, then rebuild and reinstall |
 | App shows "Unable to connect to the microgrid API server" on a USB phone | The `adb reverse` tunnel was cleared (cable unplugged, phone or adb restarted) | Run `adb reverse tcp:5187 tcp:5187` again and confirm the API is running |
 | Changed `API_BASE_URL` but the app still uses the old address | The URL is compiled into the app | Rebuild and reinstall (`./gradlew installDebug`) |
 | `adb devices` shows `unauthorized` or nothing | USB debugging prompt not accepted, or no debugging enabled | Enable USB debugging, reconnect and accept the prompt on the phone |

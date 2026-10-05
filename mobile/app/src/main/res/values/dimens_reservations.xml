@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Spacing and shape scale for the reservation screens. -->
+<resources>
+    <dimen name="res_space_xs">4dp</dimen>
+    <dimen name="res_space_sm">8dp</dimen>
+    <dimen name="res_space_md">12dp</dimen>
+    <dimen name="res_space_lg">16dp</dimen>
+    <dimen name="res_space_xl">20dp</dimen>
+    <dimen name="res_space_xxl">24dp</dimen>
+
+    <dimen name="res_screen_padding">20dp</dimen>
+    <dimen name="res_card_radius">20dp</dimen>
+    <dimen name="res_card_padding">20dp</dimen>
+    <dimen name="res_card_stroke">1dp</dimen>
+    <dimen name="res_button_height">54dp</dimen>
+    <dimen name="res_button_radius">14dp</dimen>
+    <!-- Fully rounded "pill" buttons, as in the reference designs -->
+    <dimen name="res_pill_radius">28dp</dimen>
+    <dimen name="res_icon_circle">40dp</dimen>
+    <dimen name="res_icon_sm">20dp</dimen>
+    <dimen name="res_touch_target">48dp</dimen>
+    <dimen name="res_icon_md">24dp</dimen>
+    <dimen name="res_icon_badge">64dp</dimen>
+    <dimen name="res_step_dot">24dp</dimen>
+</resources>

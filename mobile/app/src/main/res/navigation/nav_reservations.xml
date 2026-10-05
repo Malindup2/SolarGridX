@@ -1,14 +1,87 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Role homes and the bookings list. Booking screens are top-level (see nav_graph.xml). -->
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/reservations_nav"
     app:startDestination="@id/reservationsHomeFragment">
 
+    <!-- Routes to the right home for the signed-in role. -->
     <fragment
         android:id="@+id/reservationsHomeFragment"
         android:name="com.solargridx.mobile.reservations.ReservationsHomeFragment"
         android:label="Reservations"
-        tools:layout="@layout/fragment_placeholder" />
+        tools:layout="@layout/fragment_res_router" />
 
+    <fragment
+        android:id="@+id/prosumerHomeFragment"
+        android:name="com.solargridx.mobile.reservations.home.ProsumerHomeFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_prosumer_home">
+        <action
+            android:id="@+id/action_prosumerHome_to_slotPicker"
+            app:destination="@id/slotPickerFragment"
+            app:enterAnim="@anim/res_enter"
+            app:exitAnim="@anim/res_exit"
+            app:popEnterAnim="@anim/res_pop_enter"
+            app:popExitAnim="@anim/res_pop_exit" />
+        <action
+            android:id="@+id/action_prosumerHome_to_myBookings"
+            app:destination="@id/myBookingsFragment"
+            app:enterAnim="@anim/res_enter"
+            app:exitAnim="@anim/res_exit"
+            app:popEnterAnim="@anim/res_pop_enter"
+            app:popExitAnim="@anim/res_pop_exit" />
+        <action
+            android:id="@+id/action_prosumerHome_to_bookingDetails"
+            app:destination="@id/bookingDetailsFragment"
+            app:enterAnim="@anim/res_enter"
+            app:exitAnim="@anim/res_exit"
+            app:popEnterAnim="@anim/res_pop_enter"
+            app:popExitAnim="@anim/res_pop_exit" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/operatorHomeFragment"
+        android:name="com.solargridx.mobile.reservations.home.OperatorHomeFragment"
+        android:label="Home"
+        tools:layout="@layout/fragment_operator_home">
+        <action
+            android:id="@+id/action_operatorHome_to_operatorReview"
+            app:destination="@id/operatorReviewFragment"
+            app:enterAnim="@anim/res_enter"
+            app:exitAnim="@anim/res_exit"
+            app:popEnterAnim="@anim/res_pop_enter"
+            app:popExitAnim="@anim/res_pop_exit" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/myBookingsFragment"
+        android:name="com.solargridx.mobile.reservations.bookings.MyBookingsFragment"
+        android:label="My bookings"
+        tools:layout="@layout/fragment_my_bookings">
+        <action
+            android:id="@+id/action_myBookings_to_bookingDetails"
+            app:destination="@id/bookingDetailsFragment"
+            app:enterAnim="@anim/res_enter"
+            app:exitAnim="@anim/res_exit"
+            app:popEnterAnim="@anim/res_pop_enter"
+            app:popExitAnim="@anim/res_pop_exit" />
+        <action
+            android:id="@+id/action_myBookings_to_operatorReview"
+            app:destination="@id/operatorReviewFragment"
+            app:enterAnim="@anim/res_enter"
+            app:exitAnim="@anim/res_exit"
+            app:popEnterAnim="@anim/res_pop_enter"
+            app:popExitAnim="@anim/res_pop_exit" />
+        <action
+            android:id="@+id/action_myBookings_to_slotPicker"
+            app:destination="@id/slotPickerFragment"
+            app:enterAnim="@anim/res_enter"
+            app:exitAnim="@anim/res_exit"
+            app:popEnterAnim="@anim/res_pop_enter"
+            app:popExitAnim="@anim/res_pop_exit" />
+    </fragment>
+
+    
 </navigation>

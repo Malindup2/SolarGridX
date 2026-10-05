@@ -1,6 +1,7 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using System.Threading.RateLimiting;
 using FluentValidation;
 using MicrogridApi.Common;
 using MicrogridApi.Configuration;
@@ -10,6 +11,7 @@ using MicrogridApi.Repositories;
 using MicrogridApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using MongoDB.Bson;
@@ -70,12 +72,46 @@ builder.Services.AddScoped<QrVerificationService>();
 builder.Services.AddScoped<ReservationService>();
 builder.Services.AddScoped<DashboardService>();
 
+// Audit trail, notifications, password recovery, profile, search and exports
+builder.Services.AddHttpContextAccessor();
+builder.Services.Configure<WebSettings>(builder.Configuration.GetSection("Web"));
+builder.Services.AddScoped<ActivityRepository>();
+builder.Services.AddScoped<ActivityService>();
+builder.Services.AddScoped<ActivityQueryService>();
+builder.Services.AddScoped<PasswordRecoveryService>();
+builder.Services.AddSingleton<PasswordRecoveryQueue>();
+builder.Services.AddHostedService<PasswordRecoveryWorker>();
+builder.Services.AddScoped<ProfileService>();
+builder.Services.AddScoped<ReservationViewService>();
+builder.Services.AddScoped<SearchService>();
+builder.Services.AddScoped<ExportService>();
+
+// Sign-in and password endpoints: a fixed window per client IP (RateLimiting:AuthPermitLimit, default 10/min).
+var authPermitLimit = builder.Configuration.GetValue("RateLimiting:AuthPermitLimit", RateLimitPolicies.AuthPermitLimit);
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy(RateLimitPolicies.Auth, context => RateLimitPartition.GetFixedWindowLimiter(
+        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+        _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = authPermitLimit,
+            Window = TimeSpan.FromMinutes(1),
+            QueueLimit = 0
+        }));
+
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.Response.WriteAsJsonAsync(RateLimitPolicies.TooManyAttempts, JsonDefaults.CamelCase, cancellationToken);
+    };
+});
+
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddProblemDetails();
 
-builder.Services.AddHealthChecks();
+builder.Services.AddHealthChecks().AddCheck<MongoHealthCheck>("mongodb");
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -157,6 +193,14 @@ builder.Services.AddAuthentication(options =>
                 || user.Role.ToString() != context.Principal?.FindFirstValue(ClaimTypes.Role))
             {
                 context.Fail("The account no longer exists, is not active, or its role has changed.");
+                return;
+            }
+
+            // A password change or reset raises SecurityVersion; tokens issued before it stop working.
+            var tokenVersion = context.Principal?.FindFirstValue(JwtTokenService.SecurityVersionClaim) ?? "0";
+            if (tokenVersion != user.SecurityVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))
+            {
+                context.Fail("The session ended because the password was changed.");
             }
         },
         OnChallenge = async context =>
@@ -186,7 +230,8 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .WithExposedHeaders(CorrelationIdMiddleware.HeaderName, "Content-Disposition");
     });
 });
 
@@ -221,7 +266,8 @@ using (var scope = app.Services.CreateScope())
         {
             UniqueStringIndex("Nic"),
             UniqueStringIndex("Username"),
-            UniqueStringIndex("Email")
+            UniqueStringIndex("Email"),
+            UniqueStringIndex("PasswordResetTokenHash")
         });
     }
     catch (Exception ex)
@@ -240,6 +286,15 @@ using (var scope = app.Services.CreateScope())
 
     try
     {
+        await scope.ServiceProvider.GetRequiredService<ActivityRepository>().EnsureIndexesAsync();
+    }
+    catch (Exception ex)
+    {
+        app.Logger.LogError(ex, "Could not create the AuditLog / Notifications indexes.");
+    }
+
+    try
+    {
         await scope.ServiceProvider.GetRequiredService<AdminSeeder>().SeedAsync();
     }
     catch (Exception ex)
@@ -248,6 +303,7 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
+app.UseMiddleware<CorrelationIdMiddleware>();
 app.UseExceptionHandler();
 
 app.UseSwagger();
@@ -259,6 +315,7 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseCors("DefaultCorsPolicy");
+app.UseRateLimiter();
 
 app.UseAuthentication();
 app.UseAuthorization();
@@ -267,3 +324,6 @@ app.MapControllers();
 app.MapHealthChecks("/health");
 
 app.Run();
+
+// Makes the entry point visible to the integration test project (tests/MicrogridApi.Tests).
+public partial class Program { }

@@ -1,6 +1,6 @@
 # Frontend ownership
 
-The backend is finished — 47 endpoints, all tested. This document says exactly
+The backend is finished — about 70 endpoints, all tested (see Readme section 10). This document says exactly
 which screens and files **each person owns**, so nobody builds the same thing
 twice.
 
@@ -105,16 +105,12 @@ The **web layout shell and navigation** (sidebar, header, role-aware menu),
 `routes.tsx`, and the `components/ui` kit everyone uses.
 **Build the shared components first** — three people are waiting on them.
 
-### Not buildable — do not attempt
+### Assisted booking (now built)
 
-README section 13 lists **"create reservation"** under Member 1's *web* screens.
-It cannot exist: `POST /reservations` is **Prosumer-only**, and prosumers cannot
-sign in on the web application at all (README 10.2). Reservation creation lives
-on **mobile** only.
-
-If someone wants it on web, the API would have to let a Backoffice user book on
-a prosumer's behalf — a backend change, agreed as a team, not a frontend
-workaround.
+Earlier versions said "create reservation" on the web could not exist. The API now
+lets a **GridOperator** book, edit and reschedule on a prosumer's behalf, so the web
+has `/reservations/new` (operator), and Edit energy / Move to another slot on the
+details page. Prosumers still book on mobile only.
 
 ### Deliberately cut
 
@@ -297,9 +293,10 @@ why the pending screen exists.
 `status`; `PUT /prosumers/{nic}` requires `email`. Send a partial object and you
 get a `400`.
 
-**7. Only `Pending` reservations can be changed or decided.** Update, reschedule,
-approve and reject all return `409` once a reservation is approved or later.
-Cancel works on `Pending` and `Approved`.
+**7. `Pending` and `Approved` reservations can be changed; only `Pending` can be decided.** Update and
+reschedule work on both (an approved one goes back to `Pending` and loses its QR code). Approve and
+reject return `409` once decided. Cancel works on `Pending` and `Approved`. Send `expectedUpdatedAt`
+with an edit to be told (`409 *_CHANGED`) if someone else changed the record first.
 
 **8. Every error has the same shape** — build one component for it:
 

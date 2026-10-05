@@ -65,6 +65,10 @@ public sealed class CreateStationRequestValidator : AbstractValidator<CreateStat
                 .WithMessage("ActiveDays must contain unique weekday names.");
 
             RuleFor(x => x.OperationalSchedule)
+                .Must(schedule => ScheduleRules.DayHoursAreValid(schedule, out _))
+                .WithMessage("DayHours must list unique active weekdays, each with HH:mm times where CloseTime is after OpenTime.");
+
+            RuleFor(x => x.OperationalSchedule)
                 .Must(schedule =>
                     TimeOnly.TryParseExact(
                         schedule!.OpenTime, "HH:mm",

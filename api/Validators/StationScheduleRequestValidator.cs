@@ -29,6 +29,10 @@ public sealed class StationScheduleRequestValidator
             .Must(HasValidDays)
             .WithMessage("ActiveDays must contain unique weekday names.");
 
+        RuleFor(x => x)
+            .Must(request => ScheduleRules.DayHoursAreValid(request, out _))
+            .WithMessage("DayHours must list unique active weekdays, each with HH:mm times where CloseTime is after OpenTime.");
+
         RuleFor(x => x.CloseTime)
             .Must((request, closeTime) =>
             {

@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One stage of the reservation progress stepper: dot + connector, then title and detail.
+     Colours are set at runtime from StatusStyle tokens. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal">
+
+    <LinearLayout
+        android:layout_width="@dimen/res_step_dot"
+        android:layout_height="match_parent"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingTop="@dimen/res_space_sm">
+
+        <ImageView
+            android:id="@+id/stepDot"
+            android:layout_width="@dimen/res_step_dot"
+            android:layout_height="@dimen/res_step_dot"
+            android:background="@drawable/bg_res_circle"
+            android:importantForAccessibility="no"
+            android:scaleType="centerInside" />
+
+        <View
+            android:id="@+id/stepLine"
+            android:layout_width="2dp"
+            android:layout_height="0dp"
+            android:layout_marginTop="@dimen/res_space_xs"
+            android:layout_weight="1"
+            android:minHeight="@dimen/res_space_lg"
+            android:background="@drawable/bg_res_pill" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/stepBody"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/res_space_md"
+        android:layout_marginBottom="@dimen/res_space_sm"
+        android:layout_weight="1"
+        android:background="@drawable/bg_res_step_highlight"
+        android:orientation="vertical"
+        android:paddingStart="@dimen/res_space_md"
+        android:paddingTop="@dimen/res_space_sm"
+        android:paddingEnd="@dimen/res_space_md"
+        android:paddingBottom="@dimen/res_space_sm">
+
+        <TextView
+            android:id="@+id/stepTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section" />
+
+        <TextView
+            android:id="@+id/stepDetail"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+    </LinearLayout>
+</LinearLayout>

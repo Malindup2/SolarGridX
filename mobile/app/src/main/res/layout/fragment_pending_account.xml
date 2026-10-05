@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shown to a prosumer who signed in before the Backoffice activated the account. -->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/color_background"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="@dimen/res_screen_padding">
+
+        <ImageView
+            android:layout_width="96dp"
+            android:layout_height="96dp"
+            android:background="@drawable/bg_res_circle"
+            android:backgroundTint="@color/status_pending_container"
+            android:importantForAccessibility="no"
+            android:padding="26dp"
+            android:src="@drawable/ic_res_hourglass"
+            app:tint="@color/status_pending" />
+
+        <TextView
+            android:id="@+id/pendingTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_xl"
+            android:accessibilityHeading="true"
+            android:text="@string/pending_title"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Title" />
+
+        <TextView
+            android:id="@+id/pendingBody"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_md"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Body" />
+
+        <TextView
+            android:id="@+id/pendingMessage"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_md"
+            android:accessibilityLiveRegion="polite"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting"
+            android:visibility="gone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/checkButton"
+            style="@style/Widget.SolarGridX.Res.Button"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/res_button_height"
+            android:layout_marginTop="@dimen/res_space_xl"
+            android:text="@string/pending_check" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/logoutButton"
+            style="@style/Widget.SolarGridX.Res.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_sm"
+            android:text="@string/res_logout" />
+    </LinearLayout>
+</ScrollView>

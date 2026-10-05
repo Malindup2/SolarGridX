@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One station in the Stations list: name, address, distance and the facts a prosumer compares. -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.SolarGridX.Res.Card"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginBottom="@dimen/res_space_md"
+    android:clickable="true"
+    android:focusable="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:padding="@dimen/res_card_padding">
+
+        <ImageView
+            android:layout_width="@dimen/res_icon_circle"
+            android:layout_height="@dimen/res_icon_circle"
+            android:background="@drawable/bg_res_circle"
+            android:backgroundTint="@color/status_approved_container"
+            android:importantForAccessibility="no"
+            android:padding="10dp"
+            android:src="@drawable/ic_res_bolt"
+            app:tint="@color/color_primary" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/res_space_md"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:id="@+id/stationName"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section" />
+
+                <TextView
+                    android:id="@+id/stationDistance"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="@dimen/res_space_sm"
+                    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Label"
+                    android:textColor="@color/color_primary_hover" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/stationAddress"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+
+            <TextView
+                android:id="@+id/stationFacts"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/res_space_sm"
+                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Body" />
+
+            <TextView
+                android:id="@+id/stationClosed"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/res_space_xs"
+                android:text="@string/stations_inactive"
+                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Label"
+                android:textColor="@color/status_rejected"
+                android:visibility="gone" />
+        </LinearLayout>
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

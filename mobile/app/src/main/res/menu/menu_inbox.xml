@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/actionMarkAll"
+        android:icon="@drawable/ic_res_check"
+        android:title="@string/inbox_mark_all"
+        app:iconTint="?attr/colorOnSurface"
+        app:showAsAction="always" />
+    <item
+        android:id="@+id/actionRefresh"
+        android:icon="@drawable/ic_res_refresh"
+        android:title="@string/res_refresh"
+        app:iconTint="?attr/colorOnSurface"
+        app:showAsAction="always" />
+</menu>

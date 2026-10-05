@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One detail row: leading icon, label, value on the right. Added by ReservationFactsBinder. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/res_touch_target"
+    android:orientation="horizontal"
+    android:paddingTop="@dimen/res_space_sm"
+    android:paddingBottom="@dimen/res_space_sm">
+
+    <ImageView
+        android:id="@+id/factIcon"
+        android:layout_width="@dimen/res_icon_sm"
+        android:layout_height="@dimen/res_icon_sm"
+        android:layout_marginEnd="@dimen/res_space_md"
+        android:importantForAccessibility="no"
+        app:tint="?attr/colorOnSurfaceVariant" />
+
+    <TextView
+        android:id="@+id/factLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+
+    <TextView
+        android:id="@+id/factValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/res_space_md"
+        android:gravity="end"
+        android:maxWidth="220dp"
+        android:textAppearance="@style/TextAppearance.SolarGridX.Res.Body"
+        android:textIsSelectable="true"
+        android:fontFamily="@font/poppins_semibold" />
+</LinearLayout>

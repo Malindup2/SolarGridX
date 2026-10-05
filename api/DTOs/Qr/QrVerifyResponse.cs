@@ -10,4 +10,5 @@ public record QrVerifyResponse(
     double EnergyKwh,
     string SlotTime,
     string Status,
-    DateTime CompletedAt);
+    // Null on a preview: nothing has been completed yet.
+    DateTime? CompletedAt);

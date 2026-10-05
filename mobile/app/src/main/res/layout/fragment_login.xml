@@ -161,6 +161,25 @@
 
                     </com.google.android.material.textfield.TextInputLayout>
 
+                    <!-- Forgot password: requests a reset link by email; the reset itself happens on the web page it links to. -->
+                    <TextView
+                        android:id="@+id/forgotPasswordLink"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="end"
+                        android:layout_marginTop="8dp"
+                        android:background="?attr/selectableItemBackground"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:minHeight="48dp"
+                        android:gravity="center_vertical"
+                        android:paddingStart="8dp"
+                        android:paddingEnd="8dp"
+                        android:text="@string/forgot_password_link"
+                        android:textColor="@color/color_primary"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
                     <!-- Sign In Button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/loginButton"

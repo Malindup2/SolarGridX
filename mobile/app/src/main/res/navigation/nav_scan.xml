@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Operator Scan tab. Scan (or paste) a code, preview it (read-only), confirm to complete. -->
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/scan_nav"
+    app:startDestination="@id/qrScanFragment">
+
+    <fragment
+        android:id="@+id/qrScanFragment"
+        android:name="com.solargridx.mobile.scan.QrScanFragment"
+        android:label="Scan"
+        tools:layout="@layout/fragment_qr_scan">
+        <action
+            android:id="@+id/action_qrScan_to_qrPreview"
+            app:destination="@id/qrPreviewFragment"
+            app:enterAnim="@anim/res_enter"
+            app:exitAnim="@anim/res_exit"
+            app:popEnterAnim="@anim/res_pop_enter"
+            app:popExitAnim="@anim/res_pop_exit" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/qrPreviewFragment"
+        android:name="com.solargridx.mobile.scan.QrPreviewFragment"
+        android:label="Confirm transfer"
+        tools:layout="@layout/fragment_qr_preview">
+        <argument
+            android:name="qrToken"
+            app:argType="string" />
+    </fragment>
+
+</navigation>

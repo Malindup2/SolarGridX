@@ -38,6 +38,10 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
             findNavController().navigate(R.id.action_loginFragment_to_registerFragment)
         }
 
+        view.findViewById<TextView>(R.id.forgotPasswordLink).setOnClickListener {
+            findNavController().navigate(R.id.action_loginFragment_to_forgotPasswordFragment)
+        }
+
         loginButton.setOnClickListener {
             val email = emailInput.text.toString().trim()
             val password = passwordInput.text.toString()
@@ -70,7 +74,8 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
                             nic = body.nic,
                             displayName = body.displayName,
                             homeRoute = body.homeRoute,
-                            mustChangePassword = body.mustChangePassword
+                            mustChangePassword = body.mustChangePassword,
+                            status = body.status
                         )
                         Toast.makeText(
                             requireContext(),
@@ -79,7 +84,7 @@ class LoginFragment : Fragment(R.layout.fragment_login) {
                         ).show()
                         if (body.mustChangePassword) {
                             findNavController().navigate(R.id.action_loginFragment_to_changePasswordFragment)
-                        } else if (!AuthNavigator.goHome(findNavController(), body.role)) {
+                        } else if (!AuthNavigator.goHome(findNavController(), body.role, body.status)) {
                             sessionManager.clear()
                             Toast.makeText(
                                 requireContext(),

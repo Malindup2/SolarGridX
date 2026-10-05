@@ -14,4 +14,6 @@ public class MongoDbContext
     }
 
     public IMongoCollection<T> GetCollection<T>(string collectionName) => _database.GetCollection<T>(collectionName);
+
+    public IMongoDatabase Database => _database;
 }

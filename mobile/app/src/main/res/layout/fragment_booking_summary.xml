@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- One summary screen for every reservation action (create, update, reschedule, cancel, approve, reject). -->
+<androidx.core.widget.NestedScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:padding="@dimen/res_screen_padding">
+
+        <ImageView
+            android:id="@+id/summaryIcon"
+            android:layout_width="@dimen/res_icon_badge"
+            android:layout_height="@dimen/res_icon_badge"
+            android:layout_marginTop="48dp"
+            android:background="@drawable/bg_res_circle"
+            android:importantForAccessibility="no"
+            android:padding="@dimen/res_space_lg" />
+
+        <TextView
+            android:id="@+id/summaryTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_lg"
+            android:accessibilityHeading="true"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Display" />
+
+        <TextView
+            android:id="@+id/summaryBody"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_sm"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+
+        <com.google.android.material.chip.Chip
+            android:id="@+id/summaryStatus"
+            style="@style/Widget.SolarGridX.Res.StatusChip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_md" />
+
+        <com.google.android.material.card.MaterialCardView
+            style="@style/Widget.SolarGridX.Res.Card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_xl">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingStart="@dimen/res_card_padding"
+                android:paddingTop="@dimen/res_space_md"
+                android:paddingEnd="@dimen/res_card_padding"
+                android:paddingBottom="@dimen/res_space_md">
+
+                <LinearLayout
+                    android:id="@+id/factsContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+
+                <TextView
+                    android:id="@+id/summaryReasonLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/res_space_md"
+                    android:text="@string/res_label_reason"
+                    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Label"
+                    android:visibility="gone" />
+
+                <TextView
+                    android:id="@+id/summaryReason"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/res_space_xs"
+                    android:textAppearance="@style/TextAppearance.SolarGridX.Res.Body"
+                    android:visibility="gone" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <Space
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:layout_weight="1" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/viewButton"
+            style="@style/Widget.SolarGridX.Res.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_xxl"
+            android:text="@string/res_view_booking" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/homeButton"
+            style="@style/Widget.SolarGridX.Res.Button.Text"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_xs"
+            android:text="@string/res_go_home" />
+    </LinearLayout>
+</androidx.core.widget.NestedScrollView>

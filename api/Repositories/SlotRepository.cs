@@ -89,15 +89,48 @@ public class SlotRepository
     public Task DeleteAsync(string id) => _slots.DeleteOneAsync(s => s.Id == id);
 
     // Atomically increments (positive delta) or decrements (negative delta)
-    // a slot's reserved count. Called by Member 1's ReservationService when a
+    // a slot's reserved count. Called by ReservationService when a
     // reservation is created, rejected, cancelled, or rescheduled onto a
     // different slot — this is the single place ReservedCount is mutated, so
     // BR-09's delete/capacity-reduction checks in this file always see a
     // consistent value.
-    public Task AdjustReservedCountAsync(string slotId, int delta) =>
-        _slots.UpdateOneAsync(
-            s => s.Id == slotId,
+    public Task AdjustReservedCountAsync(string slotId, int delta)
+    {
+        var builder = Builders<EnergyBookingSlot>.Filter;
+        var filter = builder.Eq(s => s.Id, slotId);
+
+        // A release can never push the count below zero, so a repeated release is harmless.
+        if (delta < 0)
+        {
+            filter &= builder.Gte(s => s.ReservedCount, -delta);
+        }
+
+        return _slots.UpdateOneAsync(
+            filter,
             Builders<EnergyBookingSlot>.Update
                 .Inc(s => s.ReservedCount, delta)
                 .Set(s => s.UpdatedAt, DateTime.UtcNow));
+    }
+
+    // Takes one battery bay in a single database operation: the check "is there a free bay?"
+    // and the increment cannot be separated, so two bookings racing for the last bay can never
+    // both succeed. Returns false when the slot is offline or already full.
+    public async Task<bool> TryReserveAsync(string slotId, int bays)
+    {
+        var builder = Builders<EnergyBookingSlot>.Filter;
+        var filter = builder.Eq(s => s.Id, slotId) & builder.Eq(s => s.IsAvailable, true);
+
+        if (bays > 0)
+        {
+            filter &= builder.Lt(s => s.ReservedCount, bays);
+        }
+
+        var result = await _slots.UpdateOneAsync(
+            filter,
+            Builders<EnergyBookingSlot>.Update
+                .Inc(s => s.ReservedCount, 1)
+                .Set(s => s.UpdatedAt, DateTime.UtcNow));
+
+        return result.ModifiedCount == 1;
+    }
 }

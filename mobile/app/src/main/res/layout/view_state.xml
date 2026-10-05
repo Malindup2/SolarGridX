@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Shared loading / error / empty block, bound by common.StateViews. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/stateContainer"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingTop="40dp"
+    android:paddingBottom="@dimen/res_space_xxl"
+    android:visibility="gone">
+
+    <ProgressBar
+        android:id="@+id/stateProgress"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:indeterminateTint="@color/color_primary" />
+
+    <ImageView
+        android:id="@+id/stateIcon"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_marginBottom="@dimen/res_space_lg"
+        android:background="@drawable/bg_res_circle"
+        android:backgroundTint="@color/status_approved_container"
+        android:importantForAccessibility="no"
+        android:padding="20dp"
+        android:src="@drawable/ic_res_inbox"
+        android:visibility="gone"
+        app:tint="@color/color_primary"
+        xmlns:app="http://schemas.android.com/apk/res-auto" />
+
+    <TextView
+        android:id="@+id/stateTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section" />
+
+    <TextView
+        android:id="@+id/stateMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/res_space_sm"
+        android:gravity="center"
+        android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/stateRetry"
+        style="@style/Widget.SolarGridX.Res.Button.Outlined"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/res_space_lg"
+        android:paddingStart="@dimen/res_space_xxl"
+        android:paddingEnd="@dimen/res_space_xxl"
+        android:text="@string/res_retry"
+        app:icon="@drawable/ic_res_refresh"
+        app:iconTint="?attr/colorOnSurface"
+        xmlns:app="http://schemas.android.com/apk/res-auto" />
+</LinearLayout>

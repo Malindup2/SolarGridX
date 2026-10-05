@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Donut legend row: colour dot, label, count. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingTop="5dp"
+    android:paddingBottom="5dp">
+
+    <View
+        android:id="@+id/legendDot"
+        android:layout_width="10dp"
+        android:layout_height="10dp"
+        android:background="@drawable/bg_res_circle" />
+
+    <TextView
+        android:id="@+id/legendLabel"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/res_space_sm"
+        android:layout_weight="1"
+        android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+
+    <TextView
+        android:id="@+id/legendValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:fontFamily="@font/poppins_semibold"
+        android:textAppearance="@style/TextAppearance.SolarGridX.Res.Body" />
+</LinearLayout>

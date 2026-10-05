@@ -6,7 +6,7 @@ using MongoDB.Driver;
 
 namespace MicrogridApi.Services;
 
-public class ProsumerService(UserRepository userRepository, EmailService emailService)
+public class ProsumerService(UserRepository userRepository, EmailService emailService, ActivityService activityService)
 {
     public async Task<Result<List<ProsumerResponse>>> ListAsync(string? status)
     {
@@ -85,6 +85,11 @@ public class ProsumerService(UserRepository userRepository, EmailService emailSe
 
         await emailService.SendAccountCreatedEmailAsync(email, prosumer.FullName, "Solar Prosumer", request.Password, "SolarGridX mobile app");
 
+        await activityService.RecordAsync(
+            AuditKinds.Users, prosumer.Id, "AccountCreated",
+            $"Prosumer account created for {prosumer.FullName} ({prosumer.Nic}).",
+            NotificationCategory.Account, ActivityActions.Prosumer, resourceId: prosumer.Nic);
+
         return ToResponse(prosumer);
     }
 
@@ -123,6 +128,11 @@ public class ProsumerService(UserRepository userRepository, EmailService emailSe
             return AuthErrors.EmailAlreadyRegistered;
         }
 
+        await activityService.RecordAsync(
+            AuditKinds.Users, prosumer.Id, "ProfileUpdated",
+            "Your profile details were updated.",
+            NotificationCategory.Account, ActivityActions.Profile, Recipients.ForUser(prosumer.Id));
+
         return ToResponse(prosumer);
     }
 
@@ -143,6 +153,17 @@ public class ProsumerService(UserRepository userRepository, EmailService emailSe
         await userRepository.UpdateStatusAsync(prosumer.Id, UserStatus.Active);
         prosumer.Status = UserStatus.Active;
         prosumer.UpdatedAt = DateTime.UtcNow;
+
+        await activityService.RecordAsync(
+            AuditKinds.Users, prosumer.Id, "AccountActivated",
+            "Your SolarGridX account is active. You can now reserve energy transfers.",
+            NotificationCategory.Account, ActivityActions.Profile, Recipients.ForUser(prosumer.Id));
+
+        if (!string.IsNullOrEmpty(prosumer.Email))
+        {
+            await emailService.SendAccountStatusAsync(prosumer.Email, prosumer.FullName, activated: true);
+        }
+
         return ToResponse(prosumer);
     }
 
@@ -167,6 +188,24 @@ public class ProsumerService(UserRepository userRepository, EmailService emailSe
         await userRepository.UpdateStatusAsync(prosumer.Id, UserStatus.Deactivated);
         prosumer.Status = UserStatus.Deactivated;
         prosumer.UpdatedAt = DateTime.UtcNow;
+
+        // A prosumer closing their own account is news for the Backoffice; otherwise tell the prosumer.
+        var selfService = callerRole == RoleNames.Prosumer;
+        await activityService.RecordAsync(
+            AuditKinds.Users, prosumer.Id, "AccountDeactivated",
+            selfService
+                ? $"{prosumer.FullName} ({prosumer.Nic}) deactivated their account."
+                : "Your SolarGridX account has been deactivated. Contact the Backoffice to reactivate it.",
+            NotificationCategory.Account,
+            selfService ? ActivityActions.Prosumer : ActivityActions.Profile,
+            selfService ? Recipients.ForRole(Role.Backoffice) : Recipients.ForUser(prosumer.Id),
+            resourceId: selfService ? prosumer.Nic : null);
+
+        if (!selfService && !string.IsNullOrEmpty(prosumer.Email))
+        {
+            await emailService.SendAccountStatusAsync(prosumer.Email, prosumer.FullName, activated: false);
+        }
+
         return ToResponse(prosumer);
     }
 
