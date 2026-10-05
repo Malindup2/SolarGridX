@@ -119,4 +119,59 @@ public class StationAdditionalTests(ApiFixture api)
             valid with { Latitude = 90, Longitude = 180 }).IsValid);
     }
 
+        [MongoFact]
+    public async Task Enforces_station_management_permissions()
+    {
+        var station = await api.SeedStationAsync();
+        var prosumer = await api.ClientForAsync(
+            await api.SeedProsumerAsync());
+        var operatorClient = await api.ClientForAsync(
+            await api.SeedOperatorAsync());
+
+        foreach (var client in new[] { prosumer, operatorClient })
+        {
+            Assert.Equal(HttpStatusCode.Forbidden,
+                (await client.PostAsJsonAsync(
+                    "/api/stations", ValidRequest())).StatusCode);
+
+            Assert.Equal(HttpStatusCode.Forbidden,
+                (await client.PutAsJsonAsync(
+                    $"/api/stations/{station.Id}",
+                    Edit(station, 120, 4))).StatusCode);
+
+            foreach (var action in new[] { "activate", "deactivate" })
+            {
+                Assert.Equal(HttpStatusCode.Forbidden,
+                    (await client.PatchAsJsonAsync(
+                        $"/api/stations/{station.Id}/{action}",
+                        new { })).StatusCode);
+            }
+
+            Assert.Equal(HttpStatusCode.Forbidden,
+                (await client.DeleteAsync(
+                    $"/api/stations/{station.Id}")).StatusCode);
+        }
+
+        var schedule = ValidRequest().OperationalSchedule!;
+
+        Assert.Equal(HttpStatusCode.Forbidden,
+            (await prosumer.PatchAsJsonAsync(
+                $"/api/stations/{station.Id}/schedule",
+                schedule)).StatusCode);
+
+        Assert.Equal(HttpStatusCode.OK,
+            (await operatorClient.PatchAsJsonAsync(
+                $"/api/stations/{station.Id}/schedule",
+                schedule)).StatusCode);
+
+        using var anonymous = api.CreateClient();
+
+        Assert.Equal(HttpStatusCode.Unauthorized,
+            (await anonymous.GetAsync("/api/stations")).StatusCode);
+
+        var saved = await FetchAsync(await AdminAsync(), station.Id);
+        Assert.Equal("Active", saved.Status);
+        Assert.Equal(station.StationName, saved.StationName);
+    }
+
 }
