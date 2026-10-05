@@ -1,6 +1,6 @@
 /*
  * UpdateUserRequestValidator.cs
- * Checks the editable account details, role, and status submitted for a staff-user update.
+ * Checks the full set of web user details sent on update.
  */
 
 using FluentValidation;
@@ -10,6 +10,7 @@ namespace MicrogridApi.Validators;
 
 public class UpdateUserRequestValidator : AbstractValidator<UpdateUserRequest>
 {
+    // Requires name, email, a web role and a status of Active or Deactivated; the NIC is optional but must be valid.
     public UpdateUserRequestValidator()
     {
         RuleFor(x => x.FullName).NotEmpty();
