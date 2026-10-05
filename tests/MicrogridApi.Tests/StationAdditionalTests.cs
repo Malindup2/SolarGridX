@@ -174,4 +174,52 @@ public class StationAdditionalTests(ApiFixture api)
         Assert.Equal(station.StationName, saved.StationName);
     }
 
+
+        [MongoFact]
+    public async Task Deletion_preserves_referenced_stations()
+    {
+        var admin = await AdminAsync();
+
+        var emptyStation = await api.SeedStationAsync();
+
+        Assert.Equal(HttpStatusCode.NoContent,
+            (await admin.DeleteAsync(
+                $"/api/stations/{emptyStation.Id}")).StatusCode);
+
+        await (await admin.GetAsync(
+            $"/api/stations/{emptyStation.Id}")).ShouldFailAsync(
+                HttpStatusCode.NotFound, "STATION_NOT_FOUND");
+
+        var withSlot = await api.SeedStationAsync();
+        await api.SeedSlotAsync(
+            withSlot.Id, BusinessClock.Today.AddDays(-2).AddHours(9));
+
+        await (await admin.DeleteAsync(
+            $"/api/stations/{withSlot.Id}")).ShouldFailAsync(
+                HttpStatusCode.Conflict, "STATION_HAS_DEPENDENCIES");
+
+        await FetchAsync(admin, withSlot.Id);
+
+        var withReservation = await api.SeedStationAsync();
+        var slot = await api.SeedSlotAsync(
+            withReservation.Id,
+            BusinessClock.Today.AddDays(-2).AddHours(9));
+
+        var prosumer = await api.SeedProsumerAsync();
+
+        await api.SeedReservationAsync(
+            prosumer.Nic, slot, ReservationStatus.Completed);
+
+        // Test-only setup: isolate the reservation dependency from
+        // the slot dependency in the disposable test database.
+        await api.Collection<EnergyBookingSlot>("EnergyBookingSlots")
+            .DeleteOneAsync(s => s.Id == slot.Id);
+
+        await (await admin.DeleteAsync(
+            $"/api/stations/{withReservation.Id}")).ShouldFailAsync(
+                HttpStatusCode.Conflict, "STATION_HAS_DEPENDENCIES");
+
+        await FetchAsync(admin, withReservation.Id);
+    }
+
 }
