@@ -1,3 +1,8 @@
+/*
+ * RevokedToken.cs
+ * Defines a signed-out token id stored in the RevokedTokens collection until it expires.
+ */
+
 using MongoDB.Bson.Serialization.Attributes;
 
 namespace MicrogridApi.Models;

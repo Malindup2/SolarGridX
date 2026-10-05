@@ -1,3 +1,9 @@
+/*
+ * ProsumerService.cs
+ * Applies the prosumer account rules: NIC uniqueness (BR-06), Backoffice-only activation
+ * (BR-05), own-profile access for prosumers, and the audit and notification for each change.
+ */
+
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Prosumers;
 using MicrogridApi.Models;
@@ -8,6 +14,7 @@ namespace MicrogridApi.Services;
 
 public class ProsumerService(UserRepository userRepository, EmailService emailService, ActivityService activityService)
 {
+    // Returns prosumers, optionally filtered by a status name (Pending, Active or Deactivated).
     public async Task<Result<List<ProsumerResponse>>> ListAsync(string? status)
     {
         UserStatus? filter = null;
@@ -25,6 +32,7 @@ public class ProsumerService(UserRepository userRepository, EmailService emailSe
         return prosumers.Select(ToResponse).ToList();
     }
 
+    // Finds a prosumer by NIC; a prosumer caller may only read their own record.
     public async Task<Result<ProsumerResponse>> GetAsync(string nic, string? callerId, string? callerRole)
     {
         var prosumer = await FindAsync(nic);
@@ -41,6 +49,7 @@ public class ProsumerService(UserRepository userRepository, EmailService emailSe
         return ToResponse(prosumer);
     }
 
+    // Creates an active prosumer from the admin console and emails them their sign-in details.
     // BR-06: the NIC is the prosumer's primary key, checked here and backed by the unique Nic index.
     public async Task<Result<ProsumerResponse>> CreateAsync(CreateProsumerRequest request)
     {
@@ -93,6 +102,7 @@ public class ProsumerService(UserRepository userRepository, EmailService emailSe
         return ToResponse(prosumer);
     }
 
+    // Updates a prosumer's name, email, phone and address; prosumers may only edit their own.
     public async Task<Result<ProsumerResponse>> UpdateAsync(
         string nic, UpdateProsumerRequest request, string? callerId, string? callerRole)
     {
@@ -136,6 +146,7 @@ public class ProsumerService(UserRepository userRepository, EmailService emailSe
         return ToResponse(prosumer);
     }
 
+    // Activates a pending prosumer or reactivates a deactivated one, then notifies them.
     // BR-05: only a Backoffice officer reaches this method; the controller restricts the role.
     public async Task<Result<ProsumerResponse>> ActivateAsync(string nic)
     {
@@ -167,6 +178,7 @@ public class ProsumerService(UserRepository userRepository, EmailService emailSe
         return ToResponse(prosumer);
     }
 
+    // Deactivates a prosumer account; only a Backoffice officer can reactivate it later (BR-05).
     public async Task<Result<ProsumerResponse>> DeactivateAsync(string nic, string? callerId, string? callerRole)
     {
         var prosumer = await FindAsync(nic);
@@ -217,9 +229,11 @@ public class ProsumerService(UserRepository userRepository, EmailService emailSe
             ?? await userRepository.FindProsumerByNicAsync(trimmed.ToLowerInvariant());
     }
 
+    // Staff can reach any prosumer; a prosumer can only reach their own record.
     private static bool CanAccess(User prosumer, string? callerId, string? callerRole) =>
         callerRole != RoleNames.Prosumer || prosumer.Id == callerId;
 
+    // Maps a stored user to the prosumer response sent to clients.
     private static ProsumerResponse ToResponse(User user) => new(
         user.Nic ?? string.Empty,
         user.FullName,
