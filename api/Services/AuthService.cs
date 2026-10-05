@@ -1,3 +1,8 @@
+/*
+ * AuthService.cs
+ * Applies authentication, registration, password-change, and sign-out rules.
+ */
+ 
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Auth;
 using MicrogridApi.Models;

@@ -1,3 +1,8 @@
+/*
+ * UpdateUserRequestValidator.cs
+ * Checks the editable account details, role, and status submitted for a staff-user update.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Users;
 

@@ -1,3 +1,8 @@
+/*
+ * QrVerificationService.cs
+ * Validates QR tokens for preview and securely completes eligible energy transfers.
+ */
+
 using System.Globalization;
 using MicrogridApi.Common;
 using MicrogridApi.Configuration;

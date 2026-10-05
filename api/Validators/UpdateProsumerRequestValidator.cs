@@ -1,3 +1,8 @@
+/*
+ * UpdateProsumerRequestValidator.cs
+ * Checks the details submitted when updating a prosumer account.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Prosumers;
 

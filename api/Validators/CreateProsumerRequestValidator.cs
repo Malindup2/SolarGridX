@@ -1,3 +1,8 @@
+/*
+ * CreateProsumerRequestValidator.cs
+ * Checks the account and personal details submitted when creating a prosumer.
+ */
+ 
 using FluentValidation;
 using MicrogridApi.DTOs.Prosumers;
 

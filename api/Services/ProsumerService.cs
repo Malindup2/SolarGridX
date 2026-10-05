@@ -1,3 +1,8 @@
+/*
+ * ProsumerService.cs
+ * Applies rules for creating, viewing, updating, activating, and deactivating prosumer accounts.
+ */
+
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Prosumers;
 using MicrogridApi.Models;

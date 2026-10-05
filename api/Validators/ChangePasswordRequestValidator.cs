@@ -1,3 +1,8 @@
+/*
+ * ChangePasswordRequestValidator.cs
+ * Checks the fields submitted when a signed-in user requests a password change.
+ */
+ 
 using FluentValidation;
 using MicrogridApi.DTOs.Auth;
 

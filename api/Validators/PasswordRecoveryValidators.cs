@@ -1,3 +1,8 @@
+/*
+ * PasswordRecoveryValidators.cs
+ * Checks the fields submitted for password-reset requests and password-reset completion.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Auth;
 

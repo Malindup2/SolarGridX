@@ -1,3 +1,8 @@
+/*
+ * LoginRequestValidator.cs
+ * Checks the credentials and client information submitted for sign-in.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Auth;
 

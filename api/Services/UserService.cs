@@ -1,3 +1,8 @@
+/*
+ * UserService.cs
+ * Applies staff-account management rules, including protection of administrative access.
+ */
+
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Users;
 using MicrogridApi.Models;

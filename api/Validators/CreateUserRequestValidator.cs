@@ -1,3 +1,8 @@
+/*
+ * CreateUserRequestValidator.cs
+ * Checks the account details and role submitted when creating a staff user.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Users;
 

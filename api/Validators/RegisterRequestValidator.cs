@@ -1,3 +1,8 @@
+/*
+ * RegisterRequestValidator.cs
+ * Checks the personal details and credentials submitted for prosumer self-registration.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Auth;
 

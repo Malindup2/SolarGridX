@@ -1,3 +1,8 @@
+/*
+ * ProfileService.cs
+ * Applies rules for viewing and updating profiles, managing profile photos, and requesting account deactivation.
+ */
+ 
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Users;
 using MicrogridApi.Models;

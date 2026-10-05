@@ -1,3 +1,8 @@
+/*
+ * UpdateProfileRequestValidator.cs
+ * Checks the editable personal and contact details submitted for a profile update.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Users;
 

@@ -1,3 +1,8 @@
+/*
+ * JwtTokenService.cs
+ * Generates signed JWT access tokens containing user identity and authorization claims.
+ */
+ 
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
