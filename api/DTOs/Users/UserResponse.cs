@@ -1,3 +1,7 @@
+/*
+ * UserResponse.cs
+ * Defines the user account details returned to API clients.
+ */
 namespace MicrogridApi.DTOs.Users;
 
 public record UserResponse(

@@ -1,3 +1,8 @@
+/*
+ * QrVerificationController.cs
+ * Handles QR token preview and verification requests for energy transfer completion.
+ */
+
 using FluentValidation;
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Qr;
