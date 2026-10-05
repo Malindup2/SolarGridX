@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stations, operator slots and QR (scan and display). -->
+<resources>
+    <!-- Stations -->
+    <string name="stations_title">Stations</string>
+    <string name="stations_search_hint">Search by name or area</string>
+    <string name="stations_view_list">List</string>
+    <string name="stations_view_map">Map</string>
+    <string name="stations_near_me">Near me</string>
+    <string name="stations_map_cd">Map of microgrid stations. The same stations are in the list view.</string>
+    <string name="stations_inactive">Not taking bookings</string>
+    <string name="stations_facts">Up to %1$s · %2$d bays · %3$s–%4$s</string>
+    <string name="stations_empty_title">No stations found</string>
+    <string name="stations_empty_body">Try a different search, or turn off "Near me" to see every station.</string>
+    <string name="stations_far_away_note">No station is within %1$d km of you, so every station is listed, nearest first.</string>
+    <string name="stations_nearby_note">Showing active stations within %1$d km, nearest first.</string>
+    <string name="stations_location_denied">Location is off, so stations are listed by name. Allow location to sort by distance.</string>
+    <string name="stations_location_unavailable">Your location isn\'t available right now. Showing every station.</string>
+    <string name="station_detail_title">Station</string>
+    <string name="station_address">Address</string>
+    <string name="station_capacity">Capacity</string>
+    <string name="station_bays">Battery bays</string>
+    <string name="station_bays_value">%1$d (bookings one slot can hold)</string>
+    <string name="station_type">Type</string>
+    <string name="station_hours">Opening hours (Sri Lanka time)</string>
+    <string name="station_hours_value">%1$s–%2$s</string>
+    <string name="station_days">Days</string>
+    <string name="station_hours_value_utc">%1$s</string>
+    <string name="station_every_day">Every day</string>
+    <string name="station_book">Book a slot here</string>
+    <string name="station_no_open_slots">No open slots to book</string>
+    <string name="station_no_open_slots_hint">This station has no open slots in the next 7 days. Check another station, or come back later.</string>
+    <string name="station_manage_slots">Manage slots</string>
+    <string name="station_directions">Directions</string>
+
+    <!-- Operator slots -->
+    <string name="slots_title">Slots</string>
+    <string name="slots_pick_station">Station</string>
+    <string name="slots_empty_title">No slots on this day</string>
+    <string name="slots_empty_body">Slots are generated on the web console (Slots page).</string>
+    <string name="slots_item">Up to %1$s per booking · %2$d of %3$d bays taken</string>
+    <string name="slots_online">Online</string>
+    <string name="slots_offline">Offline</string>
+    <string name="slots_toggled_online">%1$s is back online.</string>
+    <string name="slots_toggled_offline">%1$s is offline.</string>
+    <string name="operator_manage_slots">Manage slots</string>
+
+    <!-- QR: prosumer display -->
+    <string name="qr_title">Your transfer QR code</string>
+    <string name="qr_instructions">Show this code to the grid operator at %1$s. It works once.</string>
+    <string name="qr_state_valid">Valid until %1$s</string>
+    <string name="qr_state_expired">Expired: the slot has ended</string>
+    <string name="qr_state_used">Used: the transfer is complete</string>
+    <string name="qr_cd">Transaction QR code for your energy transfer</string>
+    <string name="qr_refresh">Refresh</string>
+    <string name="qr_copy">Copy code</string>
+    <string name="qr_copied">Code copied. The operator can paste it on the Scan screen.</string>
+
+    <!-- QR: operator scan -->
+    <string name="scan_title">Scan QR code</string>
+    <string name="scan_instructions">Point the camera at the prosumer\'s transfer QR code.</string>
+    <string name="scan_manual_hint">Or paste the code</string>
+    <string name="scan_manual_check">Check code</string>
+    <string name="scan_permission_title">Camera access needed</string>
+    <string name="scan_permission_body">Scanning needs the camera. You can still paste the code below.</string>
+    <string name="scan_permission_allow">Allow camera</string>
+    <string name="scan_preview_title">Confirm transfer</string>
+    <string name="scan_preview_prosumer">Prosumer</string>
+    <string name="scan_preview_station">Station</string>
+    <string name="scan_preview_slot">Slot</string>
+    <string name="scan_preview_energy">Energy</string>
+    <string name="scan_confirm">Confirm transfer</string>
+    <string name="scan_confirm_note">Confirming finalises the transfer. It cannot be undone.</string>
+    <string name="scan_done_title">Transfer complete</string>
+    <string name="scan_done_body">%1$s of energy delivered to %2$s.</string>
+    <string name="scan_next">Scan next code</string>
+    <string name="scan_failed_title">This code can\'t be used</string>
+    <string name="qr_error_malformed">This isn\'t a SolarGridX transfer code. Ask the prosumer to open it again in the app.</string>
+    <string name="qr_error_signature">The code has been altered or wasn\'t issued by SolarGridX.</string>
+    <string name="qr_error_expired">The code has expired: its booking slot has ended.</string>
+    <string name="qr_error_used">This code was already used. The transfer is complete.</string>
+    <string name="qr_error_station">This code belongs to a different station.</string>
+    <string name="qr_error_superseded">A newer code was issued for this booking. Ask the prosumer to refresh it.</string>
+    <string name="qr_error_not_found">No booking matches this code.</string>
+    <string name="qr_error_other">%1$s</string>
+    <string name="qr_error_not_transferable">The booking is not approved, so it can\'t be completed.</string>
+</resources>

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Day filter pill in the slot picker. -->
+<com.google.android.material.chip.Chip xmlns:android="http://schemas.android.com/apk/res/android"
+    style="@style/Widget.SolarGridX.Res.FilterPill"
+    android:layout_width="wrap_content"
+    android:layout_height="wrap_content" />

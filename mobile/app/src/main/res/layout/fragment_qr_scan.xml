@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Operator Scan tab: camera viewfinder, and a paste-the-code fallback (also handy on emulators). -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        style="@style/Widget.SolarGridX.Res.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:title="@string/scan_title" />
+
+    <androidx.core.widget.NestedScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:fillViewport="true">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="@dimen/res_screen_padding">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/scan_instructions"
+                android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+
+            <com.google.android.material.card.MaterialCardView
+                style="@style/Widget.SolarGridX.Res.Card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/res_space_md">
+
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="320dp">
+
+                    <com.journeyapps.barcodescanner.DecoratedBarcodeView
+                        android:id="@+id/barcodeView"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:contentDescription="@string/scan_instructions"
+                        app:zxing_use_texture_view="true" />
+
+                    <LinearLayout
+                        android:id="@+id/permissionBlock"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:background="@color/color_surface"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:padding="@dimen/res_space_xl"
+                        android:visibility="gone">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/scan_permission_title"
+                            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Section" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="@dimen/res_space_sm"
+                            android:gravity="center"
+                            android:text="@string/scan_permission_body"
+                            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/permissionButton"
+                            style="@style/Widget.SolarGridX.Res.Button"
+                            android:layout_width="wrap_content"
+                            android:layout_height="@dimen/res_button_height"
+                            android:layout_marginTop="@dimen/res_space_lg"
+                            android:text="@string/scan_permission_allow" />
+                    </LinearLayout>
+                </FrameLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/manualLayout"
+                style="@style/Widget.SolarGridX.TextInputLayout"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/res_space_xl"
+                android:hint="@string/scan_manual_hint">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/manualInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textNoSuggestions|textMultiLine"
+                    android:maxLines="4" />
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/manualButton"
+                style="@style/Widget.SolarGridX.Res.Button.Outlined"
+                android:layout_width="match_parent"
+                android:layout_height="@dimen/res_button_height"
+                android:layout_marginTop="@dimen/res_space_sm"
+                android:text="@string/scan_manual_check" />
+        </LinearLayout>
+    </androidx.core.widget.NestedScrollView>
+</LinearLayout>

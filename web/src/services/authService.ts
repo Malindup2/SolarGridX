@@ -10,8 +10,24 @@ export const authService = {
     return response.data
   },
 
-  async changePassword(request: ChangePasswordRequest): Promise<void> {
-    await api.post('/auth/change-password', request)
+  /**
+   * Changing the password signs out every other device, including this tab's old token,
+   * so the API answers with a fresh session that the caller must store.
+   */
+  async changePassword(request: ChangePasswordRequest): Promise<LoginResponse> {
+    const response = await api.post<LoginResponse>('/auth/change-password', request)
+    return response.data
+  },
+
+  /** Always answers the same, whether or not the email has an account. */
+  async forgotPassword(email: string): Promise<string> {
+    const response = await api.post<{ message: string }>('/auth/forgot-password', { email: email.trim().toLowerCase() })
+    return response.data.message
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<string> {
+    const response = await api.post<{ message: string }>('/auth/reset-password', { token, newPassword })
+    return response.data.message
   },
 
   async logout(token?: string | null): Promise<void> {

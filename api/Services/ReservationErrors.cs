@@ -78,6 +78,22 @@ public static class ReservationErrors
     public static Error AlreadyDecided(string status) =>
         Error.Conflict("RESERVATION_ALREADY_DECIDED", $"This reservation is already {status}.");
 
+    // BR-31: a prosumer cannot hold two live bookings that overlap in time, even in different slots.
+    public static readonly Error Overlap =
+        Error.Conflict("RESERVATION_OVERLAP", "This prosumer already has a booking that overlaps this time.");
+
+    // BR-37: a slot that has already started can no longer be booked or moved onto.
+    public static readonly Error SlotAlreadyStarted =
+        Error.Validation("SLOT_ALREADY_STARTED", "This slot has already started, so it can no longer be booked. Choose a later slot.");
+
+    // BR-32: a booking cannot be approved once its slot has started.
+    public static readonly Error AlreadyStarted =
+        Error.Conflict("RESERVATION_ALREADY_STARTED", "This reservation's slot has already started and can no longer be approved. Reject it instead.");
+
+    // Someone else changed the record between the user opening it and saving. Reload and retry.
+    public static readonly Error Changed =
+        Error.Conflict("RESERVATION_CHANGED", "This reservation was changed by someone else. Reload it and try again.");
+
     public static readonly Error SameSlot =
         Error.Validation("RESERVATION_SAME_SLOT", "The reservation already uses this slot.");
 }

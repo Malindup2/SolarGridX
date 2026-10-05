@@ -18,47 +18,69 @@ public sealed class StationRepository
 
     public StationRepository(MongoDbContext context)
     {
-        
+
         _stations = context.GetCollection<SolarStationInfo>("SolarStationInfo");
         _slots = context.GetCollection<EnergyBookingSlot>("EnergyBookingSlots");
         _reservations = context.GetCollection<EnergyReservation>("EnergyReservation");
 
     }
 
+    // Inserts a new station.
     public Task CreateAsync(SolarStationInfo station)
     {
-        // Save the station after the service has validated its request.
+
         return _stations.InsertOneAsync(station);
     }
 
+    // Returns all stations sorted by name.
     public Task<List<SolarStationInfo>> GetAllAsync()
     {
-        // Return all stations.
+
         return _stations.Find(Builders<SolarStationInfo>.Filter.Empty)
             .SortBy(station => station.StationName)
             .ToListAsync();
     }
 
+    // Name or address contains the (already escaped) pattern, case-insensitive.
+    public Task<List<SolarStationInfo>> SearchAsync(string pattern, bool activeOnly, int limit)
+    {
+        var builder = Builders<SolarStationInfo>.Filter;
+        var regex = new MongoDB.Bson.BsonRegularExpression(pattern, "i");
+        var filter = builder.Or(builder.Regex(s => s.StationName, regex), builder.Regex(s => s.Location, regex));
+
+        if (activeOnly)
+        {
+            filter &= builder.Eq(s => s.Status, StationStatus.Active);
+        }
+
+        return _stations.Find(filter, new FindOptions { MaxTime = TimeSpan.FromSeconds(2) })
+            .SortBy(s => s.StationName)
+            .Limit(limit)
+            .ToListAsync();
+    }
+
+    // Returns active stations.
     public Task<List<SolarStationInfo>> GetActiveAsync()
     {
-        // Read only stations that are currently available to visitors.
         return _stations
             .Find(station => station.Status == StationStatus.Active)
             .ToListAsync();
     }
 
+    // Find the station with the ID.
     public async Task<SolarStationInfo?> FindByIdAsync(string id)
     {
-        // Find the station with the ID.
+
         return await _stations
             .Find(station => station.Id == id)
             .FirstOrDefaultAsync();
     }
 
+    // Returns future slots and today's slots that have not ended.
     public async Task<List<EnergyBookingSlot>> GetUpcomingSlotsAsync(
         string stationId, DateTime today, string currentTime)
     {
-        // Read later slots and today's slots that have not ended.
+
         var tomorrow = today.AddDays(1);
         var filter = Builders<EnergyBookingSlot>.Filter.Eq(
                 slot => slot.StationId, stationId) &
@@ -74,11 +96,23 @@ public sealed class StationRepository
         return await _slots.Find(filter).ToListAsync();
     }
 
+    // Online slots from today to the last bookable day, across every station. The caller
+    // narrows them to the ones that have not started and still have a free bay.
+    public async Task<List<EnergyBookingSlot>> GetBookableWindowSlotsAsync(
+        DateTime today, DateTime lastDay)
+    {
+        var filter = Builders<EnergyBookingSlot>.Filter.Eq(slot => slot.IsAvailable, true) &
+            Builders<EnergyBookingSlot>.Filter.Gte(slot => slot.SlotDate, today) &
+            Builders<EnergyBookingSlot>.Filter.Lte(slot => slot.SlotDate, lastDay);
 
+        return await _slots.Find(filter).ToListAsync();
+    }
+
+    // Returns pending and approved reservations for a station.
     public Task<List<EnergyReservation>> GetActiveReservationsAsync(
         string stationId)
     {
-        // Find Pending and Approved reservations that block deactivation.
+
         var filter = Builders<EnergyReservation>.Filter.Eq(
                 reservation => reservation.StationId, stationId) &
             Builders<EnergyReservation>.Filter.In(
@@ -90,7 +124,7 @@ public sealed class StationRepository
             .ToListAsync();
     }
 
-
+    // Updates a station's editable details.
     public async Task<SolarStationInfo?> UpdateDetailsAsync(
         string id,
         string stationName,
@@ -101,7 +135,7 @@ public sealed class StationRepository
         int batterySlotCount,
         StationType type)
     {
-        // Update editable station details 
+
         var update = Builders<SolarStationInfo>.Update
             .Set(station => station.StationName, stationName)
             .Set(station => station.Location, location)
@@ -121,11 +155,11 @@ public sealed class StationRepository
             });
     }
 
-
+    // Updates a station's operating schedule.
     public async Task<SolarStationInfo?> UpdateScheduleAsync(
         string id, OperationalSchedule schedule)
     {
-        // Save the schedule without changing other station fields.
+
         var update = Builders<SolarStationInfo>.Update
             .Set(station => station.OperationalSchedule, schedule)
             .Set(station => station.UpdatedAt, DateTime.UtcNow);
@@ -140,11 +174,11 @@ public sealed class StationRepository
     }
 
 
-
+    // Changes a station's status.
     public async Task<SolarStationInfo?> SetStatusAsync(
         string id, StationStatus status)
     {
-        // Save the requested station status and update timestamp.
+
         var update = Builders<SolarStationInfo>.Update
             .Set(station => station.Status, status)
             .Set(station => station.UpdatedAt, DateTime.UtcNow);
@@ -158,10 +192,10 @@ public sealed class StationRepository
             });
     }
 
-
+    // Checks whether any slot references the station.
     public async Task<bool> HasAnySlotsAsync(string stationId)
     {
-        // Check whether any booking slot still references this station.
+
         var filter = Builders<EnergyBookingSlot>.Filter.Eq(
             slot => slot.StationId, stationId);
 
@@ -169,9 +203,10 @@ public sealed class StationRepository
             filter, new CountOptions { Limit = 1 }) > 0;
     }
 
+    // Checks whether any reservation references the station.
     public async Task<bool> HasAnyReservationsAsync(string stationId)
     {
-        // Check every reservation status, including historical records.
+
         var filter = Builders<EnergyReservation>.Filter.Eq(
             reservation => reservation.StationId, stationId);
 
@@ -179,14 +214,15 @@ public sealed class StationRepository
             filter, new CountOptions { Limit = 1 }) > 0;
     }
 
+    // Deletes a station by ID.
     public async Task<bool> DeleteByIdAsync(string id)
     {
-        // Delete only the requested station document.
+
         var result = await _stations.DeleteOneAsync(
             station => station.Id == id);
 
         return result.DeletedCount > 0;
     }
-  
+
 
 }

@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { isAxiosError } from 'axios'
 import toast from 'react-hot-toast'
@@ -174,16 +174,12 @@ export default function AuthPage() {
                 <label className="text-button font-medium text-[var(--color-ink)]">
                   Password
                 </label>
-                <a
-                  href="#support"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    alert('For credential reset or account recovery, please contact the Backoffice Operations Desk.')
-                  }}
+                <Link
+                  to="/forgot-password"
                   className="text-caption font-medium text-[var(--color-accent)] hover:underline"
                 >
-                  Need Help?
-                </a>
+                  Forgot password?
+                </Link>
               </div>
               <div className="relative">
                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-gray-400">

@@ -10,6 +10,8 @@ namespace MicrogridApi.Services;
 
 public class JwtTokenService(IOptions<JwtSettings> settings)
 {
+    public const string SecurityVersionClaim = "sv";
+
     private readonly JwtSettings _settings = settings.Value;
 
     public string GenerateToken(User user)
@@ -20,7 +22,9 @@ public class JwtTokenService(IOptions<JwtSettings> settings)
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString("N")),
             new(ClaimTypes.Role, user.Role.ToString()),
             new(ClaimTypes.Name, user.FullName),
-            new("status", user.Status.ToString())
+            new("status", user.Status.ToString()),
+            // Checked on every request; a password change or reset bumps it and ends older sessions.
+            new(SecurityVersionClaim, user.SecurityVersion.ToString(System.Globalization.CultureInfo.InvariantCulture))
         };
 
         if (!string.IsNullOrEmpty(user.Nic))

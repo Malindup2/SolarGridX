@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Type and component styles for the reservation screens.
+  Visual language follows the reference designs: Poppins, borderless white cards
+  floating on a soft shadow, pill buttons, muted labels above bold numbers.
+  Colours come from theme attributes and the semantic tokens in colors.xml only.
+-->
+<resources>
+
+    <!-- Type scale (Poppins). Material type styles set app:fontFamily, which wins
+         over android:fontFamily, so both are set. -->
+    <style name="TextAppearance.SolarGridX.Res.Display" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="fontFamily">@font/poppins_semibold</item>
+        <item name="android:fontFamily">@font/poppins_semibold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textSize">26sp</item>
+        <item name="android:letterSpacing">-0.01</item>
+    </style>
+
+    <style name="TextAppearance.SolarGridX.Res.Title" parent="TextAppearance.Material3.HeadlineSmall">
+        <item name="fontFamily">@font/poppins_semibold</item>
+        <item name="android:fontFamily">@font/poppins_semibold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textSize">22sp</item>
+    </style>
+
+    <style name="TextAppearance.SolarGridX.Res.Section" parent="TextAppearance.Material3.TitleMedium">
+        <item name="fontFamily">@font/poppins_semibold</item>
+        <item name="android:fontFamily">@font/poppins_semibold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textSize">16sp</item>
+    </style>
+
+    <style name="TextAppearance.SolarGridX.Res.Body" parent="TextAppearance.Material3.BodyLarge">
+        <item name="fontFamily">@font/poppins_medium</item>
+        <item name="android:fontFamily">@font/poppins_medium</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="TextAppearance.SolarGridX.Res.Supporting" parent="TextAppearance.Material3.BodyMedium">
+        <item name="fontFamily">@font/poppins_regular</item>
+        <item name="android:fontFamily">@font/poppins_regular</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:lineSpacingExtra">2dp</item>
+    </style>
+
+    <style name="TextAppearance.SolarGridX.Res.Label" parent="TextAppearance.Material3.LabelMedium">
+        <item name="fontFamily">@font/poppins_medium</item>
+        <item name="android:fontFamily">@font/poppins_medium</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+        <item name="android:textSize">12sp</item>
+        <item name="android:letterSpacing">0.04</item>
+    </style>
+
+    <style name="TextAppearance.SolarGridX.Res.StatValue" parent="TextAppearance.Material3.HeadlineMedium">
+        <item name="fontFamily">@font/poppins_semibold</item>
+        <item name="android:fontFamily">@font/poppins_semibold</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="android:textSize">26sp</item>
+    </style>
+
+    <style name="TextAppearance.SolarGridX.Res.ToolbarTitle" parent="TextAppearance.Material3.TitleLarge">
+        <item name="fontFamily">@font/poppins_semibold</item>
+        <item name="android:fontFamily">@font/poppins_semibold</item>
+        <item name="android:textSize">18sp</item>
+    </style>
+
+    <style name="TextAppearance.SolarGridX.Res.Button" parent="TextAppearance.Material3.LabelLarge">
+        <item name="fontFamily">@font/poppins_semibold</item>
+        <item name="android:fontFamily">@font/poppins_semibold</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textAllCaps">false</item>
+    </style>
+
+    <!-- Components -->
+
+    <!-- Cards float on a soft shadow (no border), like the reference dashboards.
+         The overlay below stops Material 3 tinting elevated surfaces with the brand colour. -->
+    <style name="Widget.SolarGridX.Res.Card" parent="Widget.Material3.CardView.Elevated">
+        <item name="cardCornerRadius">@dimen/res_card_radius</item>
+        <item name="cardBackgroundColor">?attr/colorSurface</item>
+        <item name="cardElevation">3dp</item>
+        <item name="strokeWidth">0dp</item>
+        <item name="materialThemeOverlay">@style/ThemeOverlay.SolarGridX.Res.Card</item>
+        <item name="android:outlineAmbientShadowColor" tools:targetApi="p" xmlns:tools="http://schemas.android.com/tools">@color/res_shadow</item>
+        <item name="android:outlineSpotShadowColor" tools:targetApi="p" xmlns:tools="http://schemas.android.com/tools">@color/res_shadow</item>
+    </style>
+
+    <style name="ThemeOverlay.SolarGridX.Res.Card" parent="">
+        <item name="elevationOverlayEnabled">false</item>
+    </style>
+
+    <style name="Widget.SolarGridX.Res.Button" parent="Widget.Material3.Button">
+        <item name="android:minHeight">@dimen/res_button_height</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="cornerRadius">@dimen/res_pill_radius</item>
+        <item name="android:textAppearance">@style/TextAppearance.SolarGridX.Res.Button</item>
+        <item name="backgroundTint">@color/color_primary</item>
+        <item name="android:textColor">?attr/colorOnPrimary</item>
+        <item name="elevation">0dp</item>
+    </style>
+
+    <style name="Widget.SolarGridX.Res.Button.Outlined" parent="Widget.Material3.Button.OutlinedButton">
+        <item name="android:minHeight">@dimen/res_button_height</item>
+        <item name="android:insetTop">0dp</item>
+        <item name="android:insetBottom">0dp</item>
+        <item name="cornerRadius">@dimen/res_pill_radius</item>
+        <item name="android:textAppearance">@style/TextAppearance.SolarGridX.Res.Button</item>
+        <item name="android:textColor">?attr/colorOnSurface</item>
+        <item name="backgroundTint">?attr/colorSurface</item>
+        <item name="strokeColor">?attr/colorOutline</item>
+    </style>
+
+    <style name="Widget.SolarGridX.Res.Button.Danger" parent="Widget.SolarGridX.Res.Button.Outlined">
+        <item name="android:textColor">@color/status_rejected</item>
+        <item name="strokeColor">@color/status_rejected</item>
+    </style>
+
+    <!-- Quiet tertiary action ("Back to home", "Cancel"), as in the reference success sheets -->
+    <style name="Widget.SolarGridX.Res.Button.Text" parent="Widget.Material3.Button.TextButton">
+        <item name="android:minHeight">@dimen/res_touch_target</item>
+        <item name="android:textAppearance">@style/TextAppearance.SolarGridX.Res.Button</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <style name="Widget.SolarGridX.Res.Button.Text.Danger">
+        <item name="android:textColor">@color/status_rejected</item>
+    </style>
+
+    <!-- Plain toolbar on the page background, semibold title (reference: "Account", "Settings") -->
+    <style name="Widget.SolarGridX.Res.Toolbar" parent="Widget.Material3.Toolbar">
+        <item name="android:background">?android:attr/colorBackground</item>
+        <item name="titleTextColor">?attr/colorOnSurface</item>
+        <item name="titleTextAppearance">@style/TextAppearance.SolarGridX.Res.ToolbarTitle</item>
+        <item name="navigationIconTint">?attr/colorOnSurface</item>
+    </style>
+
+    <!-- Single-select filter pill (My bookings, slot days, quick picks) -->
+    <style name="Widget.SolarGridX.Res.FilterPill" parent="Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/res_filter_pill_bg</item>
+        <item name="android:textColor">@color/res_filter_pill_text</item>
+        <item name="android:textAppearance">@style/TextAppearance.SolarGridX.Res.Label</item>
+        <item name="chipStrokeColor">@color/res_filter_pill_stroke</item>
+        <item name="chipStrokeWidth">1dp</item>
+        <item name="chipCornerRadius">@dimen/res_pill_radius</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="chipMinHeight">40dp</item>
+        <item name="chipStartPadding">@dimen/res_space_sm</item>
+        <item name="chipEndPadding">@dimen/res_space_sm</item>
+    </style>
+
+    <style name="Widget.SolarGridX.Res.StatusChip" parent="Widget.Material3.Chip.Assist">
+        <item name="chipMinHeight">28dp</item>
+        <item name="android:textAppearance">@style/TextAppearance.SolarGridX.Res.Label</item>
+        <item name="ensureMinTouchTargetSize">false</item>
+        <item name="chipCornerRadius">@dimen/res_pill_radius</item>
+    </style>
+
+    <!-- Material 3 navigation bar: surface background, soft green active pill, Poppins labels -->
+    <style name="Widget.SolarGridX.NavigationBar" parent="Widget.Material3.BottomNavigationView">
+        <item name="backgroundTint">?attr/colorSurface</item>
+        <item name="itemIconTint">@color/nav_item_tint</item>
+        <item name="itemTextColor">@color/nav_item_tint</item>
+        <item name="itemActiveIndicatorStyle">@style/Widget.SolarGridX.NavigationBar.Indicator</item>
+        <item name="itemTextAppearanceActive">@style/TextAppearance.SolarGridX.NavLabel.Active</item>
+        <item name="itemTextAppearanceInactive">@style/TextAppearance.SolarGridX.NavLabel</item>
+        <item name="labelVisibilityMode">labeled</item>
+        <item name="elevation">8dp</item>
+        <!-- Keep the bar pure surface white: no brand-tinted elevation overlay -->
+        <item name="materialThemeOverlay">@style/ThemeOverlay.SolarGridX.Res.Card</item>
+    </style>
+
+    <style name="Widget.SolarGridX.NavigationBar.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/status_approved_container</item>
+    </style>
+
+    <style name="TextAppearance.SolarGridX.NavLabel" parent="TextAppearance.Material3.LabelMedium">
+        <item name="fontFamily">@font/poppins_medium</item>
+        <item name="android:fontFamily">@font/poppins_medium</item>
+        <item name="android:textSize">12sp</item>
+    </style>
+
+    <style name="TextAppearance.SolarGridX.NavLabel.Active">
+        <item name="fontFamily">@font/poppins_semibold</item>
+        <item name="android:fontFamily">@font/poppins_semibold</item>
+    </style>
+
+    <!-- Dialogs: white surface, Poppins title / body, pill-free text actions -->
+    <style name="ThemeOverlay.SolarGridX.Res.Dialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurfaceContainerHigh">?attr/colorSurface</item>
+        <!-- Material 1.10 tints dialogs via the elevation overlay; keep them pure white -->
+        <item name="elevationOverlayEnabled">false</item>
+        <item name="materialAlertDialogTitleTextStyle">@style/SolarGridX.Res.Dialog.Title</item>
+        <item name="materialAlertDialogBodyTextStyle">@style/SolarGridX.Res.Dialog.Body</item>
+        <item name="buttonBarPositiveButtonStyle">@style/SolarGridX.Res.Dialog.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/SolarGridX.Res.Dialog.Negative</item>
+    </style>
+
+    <style name="ThemeOverlay.SolarGridX.Res.Dialog.Destructive">
+        <item name="buttonBarPositiveButtonStyle">@style/SolarGridX.Res.Dialog.Positive.Destructive</item>
+    </style>
+
+    <style name="SolarGridX.Res.Dialog.Title" parent="MaterialAlertDialog.Material3.Title.Text">
+        <item name="android:textAppearance">@style/TextAppearance.SolarGridX.Res.Title</item>
+        <item name="android:textSize">20sp</item>
+    </style>
+
+    <style name="SolarGridX.Res.Dialog.Body" parent="MaterialAlertDialog.Material3.Body.Text">
+        <item name="android:textAppearance">@style/TextAppearance.SolarGridX.Res.Supporting</item>
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="SolarGridX.Res.Dialog.Positive" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textAppearance">@style/TextAppearance.SolarGridX.Res.Button</item>
+        <item name="android:textColor">@color/color_primary_hover</item>
+    </style>
+
+    <style name="SolarGridX.Res.Dialog.Positive.Destructive">
+        <item name="android:textColor">@color/status_rejected</item>
+    </style>
+
+    <style name="SolarGridX.Res.Dialog.Negative" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textAppearance">@style/TextAppearance.SolarGridX.Res.Button</item>
+        <item name="android:textColor">?attr/colorOnSurfaceVariant</item>
+    </style>
+
+    <!-- Round profile photo. -->
+    <style name="ShapeAppearance.SolarGridX.Circle" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">50%</item>
+    </style>
+</resources>

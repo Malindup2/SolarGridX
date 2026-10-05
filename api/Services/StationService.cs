@@ -18,22 +18,20 @@ public sealed class StationService(
     IValidator<CreateStationRequest> createValidator,
     IValidator<NearbyStationsQuery> nearbyValidator,
     IValidator<UpdateStationRequest> updateValidator,
-    IValidator<StationScheduleRequest> scheduleValidator)
+    IValidator<StationScheduleRequest> scheduleValidator,
+    ActivityService activityService)
 {
+    // Validates and creates a station.
     public async Task<Result<StationResponse>> CreateAsync(
         CreateStationRequest request)
     {
-        // Validate the complete request before creating a station document
+
         var validation = await createValidator.ValidateAsync(request);
         if (!validation.IsValid)
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "One or more validation errors occurred.",
-                validation.Errors
-                    .Select(error =>
-                        $"{error.PropertyName}: {error.ErrorMessage}")
-                    .ToArray());
+            return StationErrors.ValidationFailed(validation.Errors
+                .Select(error => $"{error.PropertyName}: {error.ErrorMessage}")
+                .ToArray());
         }
 
         var schedule = request.OperationalSchedule!;
@@ -56,7 +54,8 @@ public sealed class StationService(
                 ActiveDays = schedule.ActiveDays!
                     .Select(day => Enum.Parse<DayOfWeek>(
                         day.Trim(), ignoreCase: true).ToString())
-                    .ToList()
+                    .ToList(),
+                DayHours = ToDayHours(schedule.DayHours)
             },
             Status = StationStatus.Active,
             CreatedAt = now,
@@ -64,6 +63,10 @@ public sealed class StationService(
         };
 
         await stationRepository.CreateAsync(station);
+
+        await activityService.RecordAsync(
+            AuditKinds.Stations, station.Id, "StationCreated", $"New microgrid node {station.StationName} is open for bookings.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.ForRole(Role.GridOperator));
 
         return new StationResponse(
             station.Id,
@@ -74,19 +77,18 @@ public sealed class StationService(
             station.CapacityKwh,
             station.BatterySlotCount,
             station.Type.ToString(),
-            new StationScheduleResponse(
-                station.OperationalSchedule.OpenTime,
-                station.OperationalSchedule.CloseTime,
-                station.OperationalSchedule.ActiveDays),
+            ScheduleResponse(station.OperationalSchedule),
             station.Status.ToString(),
             station.CreatedAt,
             station.UpdatedAt);
     }
 
+    // Returns all stations sorted by name.
     public async Task<Result<List<StationResponse>>> GetAllAsync()
     {
-        // Read station records and return all
+
         var stations = await stationRepository.GetAllAsync();
+        var openStationIds = await StationsWithOpenSlotsAsync(stations);
 
         return stations.Select(station => new StationResponse(
             station.Id,
@@ -97,37 +99,33 @@ public sealed class StationService(
             station.CapacityKwh,
             station.BatterySlotCount,
             station.Type.ToString(),
-            new StationScheduleResponse(
-                station.OperationalSchedule.OpenTime,
-                station.OperationalSchedule.CloseTime,
-                station.OperationalSchedule.ActiveDays),
+            ScheduleResponse(station.OperationalSchedule),
             station.Status.ToString(),
             station.CreatedAt,
-            station.UpdatedAt)).ToList();
+            station.UpdatedAt,
+            openStationIds.Contains(station.Id))).ToList();
     }
 
-
+    // Finds active stations within the requested radius, nearest first.
     public async Task<Result<List<StationResponse>>> GetNearbyAsync(
         double? lat, double? lng, double? radiusKm)
     {
-        // Validate the search area before looking up active stations.
+
         var query = new NearbyStationsQuery(lat, lng, radiusKm);
         var validation = await nearbyValidator.ValidateAsync(query);
 
         if (!validation.IsValid)
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "One or more validation errors occurred.",
-                validation.Errors
-                    .Select(error =>
-                        $"{error.PropertyName}: {error.ErrorMessage}")
-                    .ToArray());
+            return StationErrors.ValidationFailed(validation.Errors
+                .Select(error => $"{error.PropertyName}: {error.ErrorMessage}")
+                .ToArray());
         }
 
         var activeStations = await stationRepository.GetActiveAsync();
 
-        // Keep stations within the requested distance and put the nearest first.
+
+        var openStationIds = await StationsWithOpenSlotsAsync(activeStations);
+
         var nearby = activeStations
             .Select(station => new
             {
@@ -148,39 +146,33 @@ public sealed class StationService(
                 item.Station.CapacityKwh,
                 item.Station.BatterySlotCount,
                 item.Station.Type.ToString(),
-                new StationScheduleResponse(
-                    item.Station.OperationalSchedule.OpenTime,
-                    item.Station.OperationalSchedule.CloseTime,
-                    item.Station.OperationalSchedule.ActiveDays),
+                ScheduleResponse(item.Station.OperationalSchedule),
                 item.Station.Status.ToString(),
                 item.Station.CreatedAt,
-                item.Station.UpdatedAt))
+                item.Station.UpdatedAt,
+                openStationIds.Contains(item.Station.Id)))
             .ToList();
 
         return nearby;
     }
 
-
+    // Retrieves a station by ID.
     public async Task<Result<StationResponse>> GetByIdAsync(string id)
     {
-        // Reject an invalid MongoDB ID before querying the station collection.
+
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var station = await stationRepository.FindByIdAsync(id);
         if (station is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
         }
 
-        // Return the station.
+        var openStationIds = await StationsWithOpenSlotsAsync([station]);
+
         return new StationResponse(
             station.Id,
             station.StationName,
@@ -190,69 +182,84 @@ public sealed class StationService(
             station.CapacityKwh,
             station.BatterySlotCount,
             station.Type.ToString(),
-            new StationScheduleResponse(
-                station.OperationalSchedule.OpenTime,
-                station.OperationalSchedule.CloseTime,
-                station.OperationalSchedule.ActiveDays),
+            ScheduleResponse(station.OperationalSchedule),
             station.Status.ToString(),
             station.CreatedAt,
-            station.UpdatedAt);
+            station.UpdatedAt,
+            openStationIds.Contains(station.Id));
+    }
+
+    // Stations a prosumer can book right now. Uses the same rules the reservation service
+    // enforces: an active station, an online slot inside the 7-day window (BR-01), not yet
+    // started (BR-37), and at least one battery bay still free.
+    private async Task<HashSet<string>> StationsWithOpenSlotsAsync(IReadOnlyCollection<SolarStationInfo> stations)
+    {
+        var now = BusinessClock.Now;
+        var slots = await stationRepository.GetBookableWindowSlotsAsync(now.Date, now.Date.AddDays(7));
+        var bays = stations
+            .Where(station => station.Status == StationStatus.Active)
+            .ToDictionary(station => station.Id, station => station.BatterySlotCount);
+
+        return slots
+            .Where(slot => bays.TryGetValue(slot.StationId, out var bayCount) && slot.ReservedCount < bayCount)
+            .Where(slot => StartsAt(slot) > now)
+            .Select(slot => slot.StationId)
+            .ToHashSet();
+    }
+
+    private static DateTime StartsAt(EnergyBookingSlot slot)
+    {
+        var parts = slot.StartTime.Split(':');
+        return slot.SlotDate.Date
+            .AddHours(int.Parse(parts[0], CultureInfo.InvariantCulture))
+            .AddMinutes(int.Parse(parts[1], CultureInfo.InvariantCulture));
     }
 
 
+    // Updates station details without invalidating upcoming slots.
     public async Task<Result<StationResponse>> UpdateAsync(
         string id, UpdateStationRequest request)
     {
-        // Validate the station ID and requested values before changing any data.
+
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var validation = await updateValidator.ValidateAsync(request);
         if (!validation.IsValid)
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "One or more validation errors occurred.",
-                validation.Errors
-                    .Select(error =>
-                        $"{error.PropertyName}: {error.ErrorMessage}")
-                    .ToArray());
+            return StationErrors.ValidationFailed(validation.Errors
+                .Select(error => $"{error.PropertyName}: {error.ErrorMessage}")
+                .ToArray());
         }
 
         var current = await stationRepository.FindByIdAsync(id);
         if (current is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
         }
 
-        var reducingCapacity =
-            request.CapacityKwh!.Value < current.CapacityKwh ||
-            request.BatterySlotCount!.Value < current.BatterySlotCount;
-
-        if (reducingCapacity)
+        if (Versioning.IsStale(request.ExpectedUpdatedAt, current.UpdatedAt))
         {
-            // A reduction is unsafe only when an upcoming slot exceeds a new limit.
-            var upcomingSlots = await GetUpcomingSlotsAsync(id);
-            var incompatibleSlot = upcomingSlots.Any(slot =>
-                slot.CapacityKwh > request.CapacityKwh!.Value ||
-                slot.ReservedCount > request.BatterySlotCount!.Value);
+            return StationErrors.Changed;
+        }
 
-            if (incompatibleSlot)
+        var changeAffectsUpcomingSlots =
+            request.CapacityKwh!.Value < current.CapacityKwh ||
+            request.BatterySlotCount!.Value != current.BatterySlotCount;
+
+        if (changeAffectsUpcomingSlots)
+        {
+
+            var upcomingSlots = await GetUpcomingSlotsAsync(id);
+            if (upcomingSlots.Count > 0)
             {
-                return Error.Conflict(
-                    "STATION_CAPACITY_REDUCTION_BLOCKED",
-                    "An upcoming slot exceeds the proposed station capacity or battery-slot count.");
+                return StationErrors.CapacityChangeBlocked;
             }
         }
 
-        // Translate the validated request into values the repository can save.
+
         var updated = await stationRepository.UpdateDetailsAsync(
             id,
             request.StationName!.Trim(),
@@ -265,10 +272,12 @@ public sealed class StationService(
 
         if (updated is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "The station was removed before it could be updated.");
+            return StationErrors.RemovedBeforeUpdate;
         }
+
+        await activityService.RecordAsync(
+            AuditKinds.Stations, updated.Id, "StationUpdated", $"{updated.StationName} details were updated.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.ForRole(Role.GridOperator));
 
         return new StationResponse(
             updated.Id,
@@ -279,46 +288,39 @@ public sealed class StationService(
             updated.CapacityKwh,
             updated.BatterySlotCount,
             updated.Type.ToString(),
-            new StationScheduleResponse(
-                updated.OperationalSchedule.OpenTime,
-                updated.OperationalSchedule.CloseTime,
-                updated.OperationalSchedule.ActiveDays),
+            ScheduleResponse(updated.OperationalSchedule),
             updated.Status.ToString(),
             updated.CreatedAt,
             updated.UpdatedAt);
     }
 
-
+    // Updates operating hours and days when upcoming slots remain valid.
     public async Task<Result<StationResponse>> UpdateScheduleAsync(
         string id, StationScheduleRequest request)
     {
-        // Validate the station ID and proposed schedule first.
+
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var validation = await scheduleValidator.ValidateAsync(request);
         if (!validation.IsValid)
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "One or more validation errors occurred.",
-                validation.Errors
-                    .Select(error =>
-                        $"{error.PropertyName}: {error.ErrorMessage}")
-                    .ToArray());
+            return StationErrors.ValidationFailed(validation.Errors
+                .Select(error => $"{error.PropertyName}: {error.ErrorMessage}")
+                .ToArray());
         }
 
         var current = await stationRepository.FindByIdAsync(id);
         if (current is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
+        }
+
+        if (Versioning.IsStale(request.ExpectedUpdatedAt, current.UpdatedAt))
+        {
+            return StationErrors.Changed;
         }
 
         var activeDays = request.ActiveDays!
@@ -328,85 +330,89 @@ public sealed class StationService(
         var activeDaySet = activeDays.ToHashSet(
             StringComparer.OrdinalIgnoreCase);
 
-        // Reject only a schedule that excludes an upcoming generated slot.
-        var upcomingSlots = await GetUpcomingSlotsAsync(id);
-        var incompatibleSlot = upcomingSlots.Any(slot =>
-            !activeDaySet.Contains(slot.SlotDate.DayOfWeek.ToString()) ||
-            string.CompareOrdinal(slot.StartTime, request.OpenTime!) < 0 ||
-            string.CompareOrdinal(slot.EndTime, request.CloseTime!) > 0);
-
-        if (incompatibleSlot)
-        {
-            return Error.Conflict(
-                "STATION_SCHEDULE_CONFLICT",
-                "An upcoming slot falls outside the proposed operating days or hours.");
-        }
 
         var schedule = new OperationalSchedule
         {
             OpenTime = request.OpenTime!,
             CloseTime = request.CloseTime!,
-            ActiveDays = activeDays
+            ActiveDays = activeDays,
+            DayHours = ToDayHours(request.DayHours)
         };
 
-        var updated = await stationRepository.UpdateScheduleAsync(id, schedule);
-            if (updated is null)
+        // Upcoming slots must still fall inside the hours of their own weekday.
+        var upcomingSlots = await GetUpcomingSlotsAsync(id);
+        var incompatibleSlot = upcomingSlots.Any(slot =>
+        {
+            var day = slot.SlotDate.DayOfWeek.ToString();
+            if (!activeDaySet.Contains(day))
             {
-                return Error.NotFound(
-                    "STATION_NOT_FOUND",
-                    "The station was removed before its schedule could be updated.");
+                return true;
             }
 
-            // Return the station with its saved schedule.
-            return new StationResponse(
-                updated.Id,
-                updated.StationName,
-                updated.Location,
-                updated.Latitude,
-                updated.Longitude,
-                updated.CapacityKwh,
-                updated.BatterySlotCount,
-                updated.Type.ToString(),
-                new StationScheduleResponse(
-                    updated.OperationalSchedule.OpenTime,
-                    updated.OperationalSchedule.CloseTime,
-                    updated.OperationalSchedule.ActiveDays),
-                updated.Status.ToString(),
-                updated.CreatedAt,
-                updated.UpdatedAt);
-        }
-   
+            var (open, close) = schedule.HoursFor(day);
+            return string.CompareOrdinal(slot.StartTime, open) < 0 ||
+                   string.CompareOrdinal(slot.EndTime, close) > 0;
+        });
 
+        if (incompatibleSlot)
+        {
+            return StationErrors.ScheduleConflict;
+        }
+
+        var updated = await stationRepository.UpdateScheduleAsync(id, schedule);
+        if (updated is null)
+        {
+            return StationErrors.RemovedBeforeScheduleUpdate;
+        }
+
+        await activityService.RecordAsync(
+            AuditKinds.Stations, updated.Id, "StationScheduleUpdated", $"{updated.StationName} now operates {updated.OperationalSchedule.OpenTime}-{updated.OperationalSchedule.CloseTime}.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.ForRole(Role.GridOperator));
+
+
+        return new StationResponse(
+            updated.Id,
+            updated.StationName,
+            updated.Location,
+            updated.Latitude,
+            updated.Longitude,
+            updated.CapacityKwh,
+            updated.BatterySlotCount,
+            updated.Type.ToString(),
+            ScheduleResponse(updated.OperationalSchedule),
+            updated.Status.ToString(),
+            updated.CreatedAt,
+            updated.UpdatedAt);
+    }
+
+    // Activates a station.
     public async Task<Result<StationResponse>> ActivateAsync(string id)
     {
-        // Validate the ID and find the station before changing its status.
+
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var station = await stationRepository.FindByIdAsync(id);
         if (station is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
         }
 
-        // An already-active station needs no database update.
+
         var activeStation = station.Status == StationStatus.Active
             ? station
             : await stationRepository.SetStatusAsync(id, StationStatus.Active);
 
         if (activeStation is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "The station was removed before it could be activated.");
+            return StationErrors.RemovedBeforeActivation;
         }
+
+        await activityService.RecordAsync(
+            AuditKinds.Stations, activeStation.Id, "StationActivated", $"{activeStation.StationName} is active again.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.ForRole(Role.GridOperator));
 
         return new StationResponse(
             activeStation.Id,
@@ -417,37 +423,29 @@ public sealed class StationService(
             activeStation.CapacityKwh,
             activeStation.BatterySlotCount,
             activeStation.Type.ToString(),
-            new StationScheduleResponse(
-                activeStation.OperationalSchedule.OpenTime,
-                activeStation.OperationalSchedule.CloseTime,
-                activeStation.OperationalSchedule.ActiveDays),
+            ScheduleResponse(activeStation.OperationalSchedule),
             activeStation.Status.ToString(),
             activeStation.CreatedAt,
             activeStation.UpdatedAt);
     }
 
 
-
+    // Deactivates a station unless active reservations block it.
     public async Task<Result<StationResponse>> DeactivateAsync(string id)
     {
         // Validate the ID and find the station.
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var station = await stationRepository.FindByIdAsync(id);
         if (station is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
         }
 
-        // An already-inactive station needs no database update.
+
         if (station.Status == StationStatus.Inactive)
         {
             return new StationResponse(
@@ -459,10 +457,7 @@ public sealed class StationService(
                 station.CapacityKwh,
                 station.BatterySlotCount,
                 station.Type.ToString(),
-                new StationScheduleResponse(
-                    station.OperationalSchedule.OpenTime,
-                    station.OperationalSchedule.CloseTime,
-                    station.OperationalSchedule.ActiveDays),
+                ScheduleResponse(station.OperationalSchedule),
                 station.Status.ToString(),
                 station.CreatedAt,
                 station.UpdatedAt);
@@ -473,7 +468,7 @@ public sealed class StationService(
 
         if (blockingReservations.Count > 0)
         {
-            
+
             var details = blockingReservations
                 .Select(reservation =>
                     $"Reservation {reservation.Id}: {reservation.Status}, " +
@@ -481,23 +476,21 @@ public sealed class StationService(
                     $"{reservation.StartTime}-{reservation.EndTime}")
                 .ToArray();
 
-            return new Error(
-                "STATION_HAS_ACTIVE_RESERVATIONS",
-                "The station cannot be deactivated while active reservations exist.",
-                ErrorType.Conflict,
-                details);
+            return StationErrors.ActiveReservations(details);
         }
 
         var inactiveStation = await stationRepository.SetStatusAsync(
             id, StationStatus.Inactive);
         if (inactiveStation is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "The station was removed before it could be deactivated.");
+            return StationErrors.RemovedBeforeDeactivation;
         }
 
-        // Return the saved station without changing its schedule or capacity.
+        await activityService.RecordAsync(
+            AuditKinds.Stations, inactiveStation.Id, "StationDeactivated", $"{inactiveStation.StationName} has been deactivated.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.ForRole(Role.GridOperator));
+
+
         return new StationResponse(
             inactiveStation.Id,
             inactiveStation.StationName,
@@ -507,36 +500,28 @@ public sealed class StationService(
             inactiveStation.CapacityKwh,
             inactiveStation.BatterySlotCount,
             inactiveStation.Type.ToString(),
-            new StationScheduleResponse(
-                inactiveStation.OperationalSchedule.OpenTime,
-                inactiveStation.OperationalSchedule.CloseTime,
-                inactiveStation.OperationalSchedule.ActiveDays),
+            ScheduleResponse(inactiveStation.OperationalSchedule),
             inactiveStation.Status.ToString(),
             inactiveStation.CreatedAt,
             inactiveStation.UpdatedAt);
     }
 
-
+    // Deletes a station only when no slots or reservations reference it.
     public async Task<Result> DeleteAsync(string id)
     {
-        // Validate the ID and confirm the station exists.
+
         if (!ObjectId.TryParse(id, out _))
         {
-            return Error.Validation(
-                "VALIDATION_FAILED",
-                "The station ID is invalid.",
-                ["id: Station ID must be a valid MongoDB ObjectId."]);
+            return StationErrors.InvalidId;
         }
 
         var station = await stationRepository.FindByIdAsync(id);
         if (station is null)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "No station exists with the requested ID.");
+            return StationErrors.NotFound;
         }
 
-        // Preserve stations referenced by slots or reservations.
+
         var hasSlots = await stationRepository.HasAnySlotsAsync(id);
         var hasReservations =
             await stationRepository.HasAnyReservationsAsync(id);
@@ -554,47 +539,41 @@ public sealed class StationService(
                 details.Add("Reservations reference this station.");
             }
 
-            return new Error(
-                "STATION_HAS_DEPENDENCIES",
-                "The station cannot be deleted while slots or reservations reference it.",
-                ErrorType.Conflict,
-                details.ToArray());
+            return StationErrors.Dependencies(details.ToArray());
         }
 
         var deleted = await stationRepository.DeleteByIdAsync(id);
         if (!deleted)
         {
-            return Error.NotFound(
-                "STATION_NOT_FOUND",
-                "The station was removed before it could be deleted.");
+            return StationErrors.RemovedBeforeDeletion;
         }
+
+        await activityService.RecordAsync(
+            AuditKinds.Stations, station.Id, "StationDeleted", $"{station.StationName} was removed.",
+            NotificationCategory.Catalog, ActivityActions.Station, Recipients.None);
 
         return Result.Success();
     }
 
-
+    // Finds slots that have not ended, using Sri Lanka dates and times.
     private async Task<List<EnergyBookingSlot>> GetUpcomingSlotsAsync(string id)
     {
-        
-        var localNow = DateTimeOffset.UtcNow.ToOffset(
-            TimeSpan.FromMinutes(330));
-        var today = new DateTime(
-            localNow.Year, localNow.Month, localNow.Day,
-            0, 0, 0, DateTimeKind.Utc);
-        var currentTime = localNow.ToString(
-            "HH:mm", CultureInfo.InvariantCulture);
+
+        var now = BusinessClock.Now;
+        var today = now.Date;
+        var time = now.ToString("HH:mm", CultureInfo.InvariantCulture);
 
         return await stationRepository.GetUpcomingSlotsAsync(
-            id, today, currentTime);
+            id, today, time);
     }
 
 
-
+    // Calculates the great-circle distance between two GPS points.
     private static double DistanceKm(
         double fromLat, double fromLng,
         double toLat, double toLng)
     {
-        // Use the great-circle distance between two GPS points.
+
         const double earthRadiusKm = 6371.0;
         const double radiansPerDegree = Math.PI / 180.0;
 
@@ -612,4 +591,21 @@ public sealed class StationService(
             Math.Asin(Math.Min(1.0, Math.Sqrt(a)));
     }
 
+
+    // Per-day hours from a request, with weekday names normalised ("monday" -> "Monday").
+    private static List<DayHours> ToDayHours(List<DayHoursRequest>? entries) =>
+        (entries ?? [])
+            .Select(entry => new DayHours
+            {
+                Day = Enum.Parse<DayOfWeek>(entry.Day!.Trim(), ignoreCase: true).ToString(),
+                OpenTime = entry.OpenTime!,
+                CloseTime = entry.CloseTime!
+            })
+            .ToList();
+
+    private static StationScheduleResponse ScheduleResponse(OperationalSchedule schedule) => new(
+        schedule.OpenTime,
+        schedule.CloseTime,
+        schedule.ActiveDays,
+        schedule.DayHours.Select(d => new DayHoursResponse(d.Day, d.OpenTime, d.CloseTime)).ToList());
 }

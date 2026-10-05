@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, type ReactNode } from 'react'
 import type { AuthContextType, AuthUser, UserRole, UserStatus } from '../types/auth'
 import { authService } from '../services/authService'
+import { clearSession } from '../lib/session'
 
 const AuthContext = createContext<AuthContextType | null>(null)
 
@@ -46,13 +47,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await authService.logout(token)
     } finally {
-      localStorage.removeItem('token')
-      localStorage.removeItem('role')
-      localStorage.removeItem('nic')
-      localStorage.removeItem('displayName')
-      localStorage.removeItem('homeRoute')
-      localStorage.removeItem('status')
-      localStorage.removeItem('mustChangePassword')
+      clearSession()
       setAuth(null)
     }
   }

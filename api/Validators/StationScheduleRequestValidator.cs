@@ -12,9 +12,11 @@ namespace MicrogridApi.Validators;
 public sealed class StationScheduleRequestValidator
     : AbstractValidator<StationScheduleRequest>
 {
+
+    // Validates proposed operating hours and active days.
     public StationScheduleRequestValidator()
     {
-        // Require valid 24-hour times and unique named weekdays.
+
         RuleFor(x => x.OpenTime)
             .Must(IsValidTime)
             .WithMessage("OpenTime must use HH:mm.");
@@ -26,6 +28,10 @@ public sealed class StationScheduleRequestValidator
         RuleFor(x => x.ActiveDays)
             .Must(HasValidDays)
             .WithMessage("ActiveDays must contain unique weekday names.");
+
+        RuleFor(x => x)
+            .Must(request => ScheduleRules.DayHoursAreValid(request, out _))
+            .WithMessage("DayHours must list unique active weekdays, each with HH:mm times where CloseTime is after OpenTime.");
 
         RuleFor(x => x.CloseTime)
             .Must((request, closeTime) =>
@@ -39,7 +45,7 @@ public sealed class StationScheduleRequestValidator
                         CultureInfo.InvariantCulture, DateTimeStyles.None,
                         out var close))
                 {
-                    return true; // The format rules report invalid times.
+                    return true;
                 }
 
                 return open < close;
@@ -47,18 +53,21 @@ public sealed class StationScheduleRequestValidator
             .WithMessage("CloseTime must be later than OpenTime.");
     }
 
+
+    // Checks for a time in 24-hour HH:mm format.
     private static bool IsValidTime(string? value)
     {
-        // Accept exact times such as 08:00 and 18:30.
+
         return TimeOnly.TryParseExact(
             value, "HH:mm",
             CultureInfo.InvariantCulture, DateTimeStyles.None,
             out _);
     }
 
+    // Checks for a nonempty list of unique weekday names.
     private static bool HasValidDays(List<string>? days)
     {
-        // Accept each weekday name once, ignoring letter case.
+
         if (days is not { Count: > 0 })
         {
             return false;

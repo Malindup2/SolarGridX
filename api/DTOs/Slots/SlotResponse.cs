@@ -8,4 +8,6 @@ public record SlotResponse(
     string EndTime,
     double CapacityKwh,
     bool IsAvailable,
-    int ReservedCount);
+    int ReservedCount,
+    // The version an editor sends back as ExpectedUpdatedAt to detect someone else's change.
+    DateTime UpdatedAt);

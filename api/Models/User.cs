@@ -26,6 +26,19 @@ public class User
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    // Bumped on password change or reset; every JWT carries it, so older tokens stop working.
+    public int SecurityVersion { get; set; }
+
+    // Password recovery. Only the SHA-256 of the emailed token is stored.
+    public string? PasswordResetTokenHash { get; set; }
+    public DateTime? PasswordResetExpiresAt { get; set; }
+    public DateTime? PasswordResetRequestedAt { get; set; }
+
+    // Profile photo, validated (JPEG/PNG, at most 1 MB) and stored as uploaded.
+    public byte[]? AvatarBytes { get; set; }
+    public string? AvatarContentType { get; set; }
+    public string? AvatarVersion { get; set; }
 }
 
 public enum Role

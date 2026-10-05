@@ -1,0 +1,220 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Reservation, booking and dashboard text. -->
+<resources>
+    <!-- Status -->
+    <string name="res_status_pending">Pending</string>
+    <string name="res_status_approved">Approved</string>
+    <string name="res_status_completed">Completed</string>
+    <string name="res_status_rejected">Rejected</string>
+    <string name="res_status_cancelled">Cancelled</string>
+    <string name="res_cd_status">Status: %1$s</string>
+
+    <!-- Common -->
+    <string name="res_retry">Try again</string>
+    <string name="res_refresh">Refresh</string>
+    <string name="res_back">Back</string>
+    <string name="res_value_placeholder">—</string>
+    <string name="res_when">%1$s · %2$s</string>
+    <string name="res_queue_title">%1$s · %2$s</string>
+    <string name="res_logout">Log out</string>
+    <string name="res_keep">Keep it</string>
+    <string name="res_not_signed_in">Your session is missing its NIC. Please sign in again.</string>
+
+
+    <!-- Search -->
+    <string name="res_search_hint">Search name, NIC, station or status</string>
+    <string name="res_search_hint_prosumer">Search station, date or status</string>
+    <string name="res_no_results_title">No results for “%1$s”</string>
+    <string name="res_no_results_body">Check the spelling, or search by name, NIC, station or status.</string>
+    <string name="res_clear_search">Clear search</string>
+    <string name="res_not_found_title">We couldn\'t find that</string>
+
+    <!-- Labels -->
+    <string name="res_label_station">Station</string>
+    <string name="res_label_date">Date</string>
+    <string name="res_label_slot">Time slot</string>
+    <string name="res_label_energy">Energy</string>
+    <string name="res_label_nic">Prosumer NIC</string>
+    <string name="res_label_prosumer">Prosumer</string>
+    <string name="res_label_booked">Booked</string>
+    <string name="res_label_approved_by">Approved by</string>
+    <string name="res_label_rejected_by">Rejected by</string>
+    <string name="res_label_completed">Energy transferred</string>
+    <string name="res_label_reference">Reference</string>
+    <string name="res_label_reason">Reason</string>
+
+    <!-- Prosumer home -->
+    <string name="res_greeting">Hello, %1$s</string>
+    <string name="res_prosumer_home_subtitle">Book solar energy from your nearest station and track every booking here.</string>
+    <string name="res_stat_active">Active</string>
+    <string name="res_stat_pending">Pending</string>
+    <string name="res_stat_upcoming">Upcoming</string>
+    <string name="res_book_energy">Book energy</string>
+    <string name="res_my_bookings">My bookings</string>
+    <string name="res_next_booking">Next booking</string>
+    <string name="res_ready_title">Ready to charge?</string>
+    <string name="res_ready_body">Reserve a slot at a nearby solar station in under a minute.</string>
+    <string name="res_overview">Your bookings</string>
+    <string name="res_chart_week_title">Energy this week</string>
+    <string name="res_chart_week_total">%1$s booked across the next 7 days</string>
+    <string name="res_chart_status_title">Booking status</string>
+    <string name="res_ring_caption">kWh upcoming</string>
+    <string name="res_recent_title">Recent bookings</string>
+    <string name="res_see_all">See all</string>
+    <string name="res_view_details">View details</string>
+    <string name="res_no_upcoming">No upcoming bookings. Tap Book energy to reserve a slot.</string>
+    <string name="res_pending_account_title">Account awaiting activation</string>
+    <string name="res_pending_account_body">You can look around, but booking opens once the Backoffice team activates your account.</string>
+
+    <!-- Operator home -->
+    <string name="res_quick_scan">Scan code</string>
+    <string name="res_quick_slots">Slots</string>
+    <string name="res_quick_bookings">Bookings</string>
+    <string name="res_today_title">Today at %1$s</string>
+    <string name="res_stat_bookings_today">Bookings</string>
+    <string name="res_stat_completed_today">Completed</string>
+    <string name="res_stat_energy_today">Energy booked</string>
+    <string name="res_stat_bays_reserved">Bays reserved</string>
+    <string name="res_stat_bays_value">%1$d of %2$d</string>
+    <string name="res_next_transfer">Next transfer</string>
+    <string name="res_next_none_title">No upcoming transfers</string>
+    <string name="res_next_none_body">Approved bookings for this station appear here once they are due.</string>
+    <string name="res_starts_in">Starts in %1$s</string>
+    <string name="res_in_progress">In progress</string>
+    <string name="res_next_meta">%1$s · %2$s</string>
+    <string name="res_queue_see_all">See all %1$d</string>
+    <string name="res_op_chart_week_title">Demand, next 7 days</string>
+    <string name="res_op_chart_status_title">Reservation mix</string>
+    <string name="res_duration_minutes">%1$d min</string>
+    <string name="res_duration_hours">%1$d h %2$d min</string>
+    <plurals name="res_duration_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="res_stat_bays_none">No slots</string>
+    <string name="res_open_profile">Open your profile</string>
+    <string name="res_your_station">Your station</string>
+    <string name="res_switch_station">Stations</string>
+    <string name="res_operator_home_subtitle">Choose the station you are running today to see its queue.</string>
+    <string name="res_pick_station">Station</string>
+    <string name="res_pick_station_first">Pick a station to see its pending reservations.</string>
+    <string name="res_stat_awaiting_review">Awaiting review</string>
+    <string name="res_stat_approved_upcoming">Approved, upcoming</string>
+    <string name="res_pending_queue">Pending queue</string>
+    <string name="res_queue_empty_title">All caught up</string>
+    <string name="res_queue_empty_body">There are no pending reservations at this station.</string>
+
+    <!-- Slot picker -->
+    <string name="res_slot_picker_title">Choose a slot</string>
+    <string name="res_reschedule_title">Pick a new slot</string>
+    <string name="res_slot_picker_note">All times are Sri Lanka time. Each slot shows the most energy one booking can take and how many bays are reserved.</string>
+    <plurals name="res_bays_reserved">
+        <item quantity="one">%1$d of %2$d bay reserved</item>
+        <item quantity="other">%1$d of %2$d bays reserved</item>
+    </plurals>
+    <string name="res_slot_unavailable">Offline</string>
+    <string name="res_slot_started">Started</string>
+    <string name="res_slot_full">Full</string>
+    <string name="res_no_stations_title">No slots to book</string>
+    <string name="res_no_stations_body">No station has open slots in the next 7 days. Please check again later.</string>
+    <string name="res_no_slots_station_title">No open slots</string>
+    <string name="res_no_slots_station_body">This station has no open slots in the next 7 days. Pick another station.</string>
+    <string name="res_no_slots_title">No open slots</string>
+    <string name="res_no_slots_body">Try another day or station.</string>
+    <string name="res_reschedule_confirm_title">Move to this slot?</string>
+    <string name="res_reschedule_confirm_body">%1$s · %2$s</string>
+    <string name="res_reschedule">Reschedule</string>
+
+    <!-- Energy input -->
+    <string name="res_energy_title">How much energy?</string>
+    <string name="res_energy_subtitle">Enter the energy you want to collect from this slot.</string>
+    <string name="res_energy_hint">Energy (kWh)</string>
+    <string name="res_energy_helper">Up to %1$s per booking</string>
+    <string name="res_quick_pick">Quick pick</string>
+    <string name="res_quick_max">Max · %1$s</string>
+    <string name="res_energy_required">Enter how many kWh you need.</string>
+    <string name="res_energy_positive">Energy must be more than 0 kWh.</string>
+    <string name="res_review_booking">Review booking</string>
+
+    <!-- Confirmation -->
+    <string name="res_confirm_title">Confirm your booking</string>
+    <string name="res_confirm_subtitle">Check the details. Your booking is sent to the station operator for approval.</string>
+    <string name="res_confirm_book">Confirm booking</string>
+    <string name="res_edit">Edit</string>
+
+    <!-- Summary -->
+    <string name="res_summary_created_title">Booking requested</string>
+    <string name="res_summary_created_body">The station operator will review it. You\'ll see the decision under My bookings.</string>
+    <string name="res_summary_updated_title">Booking updated</string>
+    <string name="res_summary_updated_body">Your new energy amount has been saved.</string>
+    <string name="res_summary_rescheduled_title">Booking rescheduled</string>
+    <string name="res_summary_rescheduled_body">Your booking has moved to the new slot and is waiting for approval.</string>
+    <string name="res_summary_cancelled_title">Booking cancelled</string>
+    <string name="res_summary_cancelled_body">The battery bay has been released for other prosumers.</string>
+    <string name="res_summary_approved_title">Reservation approved</string>
+    <string name="res_summary_approved_body">The prosumer can now show their QR code at the station.</string>
+    <string name="res_summary_rejected_title">Reservation rejected</string>
+    <string name="res_summary_rejected_body">The prosumer will see your reason in their bookings.</string>
+    <string name="res_view_booking">View booking</string>
+    <string name="res_go_home">Back to home</string>
+
+    <!-- My bookings -->
+    <string name="res_tab_upcoming">Upcoming</string>
+    <string name="res_tab_history">History</string>
+    <string name="res_filter_count">%1$s · %2$d</string>
+    <string name="res_empty_upcoming_title">No upcoming bookings</string>
+    <string name="res_empty_upcoming_body">Book energy from the home screen and it will show up here.</string>
+    <string name="res_empty_history_title">No past bookings yet</string>
+    <string name="res_empty_history_body">Completed, rejected and cancelled bookings appear here.</string>
+
+    <!-- Details -->
+    <string name="res_details_title">Booking details</string>
+    <string name="res_edit_energy">Edit energy</string>
+    <string name="res_show_qr">Show QR code</string>
+    <string name="res_cancel_booking">Cancel booking</string>
+    <string name="res_cancel_confirm_title">Cancel this booking?</string>
+    <string name="res_cancel_confirm_body">Your battery bay will be released. This cannot be undone.</string>
+    <string name="res_edit_energy_title">Change energy</string>
+    <string name="res_save">Save</string>
+    <string name="res_rejection_reason">Why it was rejected</string>
+    <string name="res_completed_title">Energy transferred</string>
+    <string name="res_completed_body">%1$s collected at %2$s on %3$s.</string>
+    <string name="res_pending_note">Waiting for the station operator to approve.</string>
+    <!-- Reservation progress stepper -->
+    <string name="res_progress_title">Reservation progress</string>
+    <string name="res_progress_stage">Stage %1$d of %2$d</string>
+    <string name="res_progress_complete">Complete</string>
+    <string name="res_progress_stopped">Stopped at stage %1$d</string>
+    <string name="res_progress_a11y">Reservation progress: %1$s</string>
+    <string name="res_step_state_done">done</string>
+    <string name="res_step_state_current">current stage</string>
+    <string name="res_step_state_upcoming">not started</string>
+    <string name="res_step_state_stopped">stopped</string>
+    <string name="res_step_requested">Booking requested</string>
+    <string name="res_step_review">Operator review</string>
+    <string name="res_step_review_waiting">Waiting for the grid operator at %1$s</string>
+    <string name="res_step_review_approved">Approved by %1$s</string>
+    <string name="res_step_review_approved_plain">Approved</string>
+    <string name="res_step_rejected">Rejected</string>
+    <string name="res_step_rejected_by">Rejected by %1$s</string>
+    <string name="res_step_cancelled">Booking cancelled</string>
+    <string name="res_step_qr">QR code ready</string>
+    <string name="res_step_qr_upcoming">Issued as soon as the booking is approved</string>
+    <string name="res_step_qr_ready">Show it at %1$s on %2$s, %3$s</string>
+    <string name="res_step_qr_scanned">Scanned at %1$s</string>
+    <string name="res_step_delivered">Energy delivered</string>
+    <string name="res_step_delivered_upcoming">After the QR scan at the station</string>
+    <string name="res_step_delivered_done">%1$s · %2$s</string>
+    <string name="res_approved_note">Show your QR code at the station to collect your energy.</string>
+
+    <!-- Operator review -->
+    <string name="res_review_title">Review reservation</string>
+    <string name="res_approve">Approve</string>
+    <string name="res_reject">Reject</string>
+    <string name="res_approve_confirm_title">Approve this reservation?</string>
+    <string name="res_approve_confirm_body">A QR code is issued to the prosumer as soon as you approve.</string>
+    <string name="res_reject_title">Reject this reservation?</string>
+    <string name="res_reject_reason_hint">Reason (shown to the prosumer)</string>
+    <string name="res_reject_reason_required">Give the prosumer a reason.</string>
+    <string name="res_already_decided">This reservation has already been decided.</string>
+</resources>

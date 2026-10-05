@@ -31,6 +31,11 @@ android {
             "API_BASE_URL",
             "\"${localProperties.getProperty("API_BASE_URL", "http://10.0.2.2:5187/api/")}\""
         )
+
+        // Google Maps is optional: without a key the Stations tab shows a list only.
+        val mapsApiKey = localProperties.getProperty("MAPS_API_KEY", "")
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        buildConfigField("boolean", "MAPS_ENABLED", (mapsApiKey.isNotBlank()).toString())
     }
 
     buildFeatures {
@@ -65,6 +70,9 @@ dependencies {
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp)
     implementation(libs.okhttp.logging.interceptor)
+    implementation(libs.zxing.android.embedded)
+    implementation(libs.play.services.maps)
+    implementation(libs.play.services.location)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)

@@ -11,14 +11,16 @@ namespace MicrogridApi.Controllers;
 [Authorize]
 public class ReservationsController(
     ReservationService reservationService,
+    ReservationViewService reservationViewService,
     IValidator<CreateReservationRequest> createValidator,
     IValidator<UpdateReservationRequest> updateValidator,
     IValidator<RescheduleReservationRequest> rescheduleValidator,
     IValidator<RejectReservationRequest> rejectValidator) : ApiControllerBase
 {
-    // Creates a Pending reservation for an available slot.
+    // Creates a Pending reservation for an available slot. A Grid Operator may book on a
+    // prosumer's behalf (assisted booking); every reservation rule still applies.
     [HttpPost]
-    [Authorize(Roles = RoleNames.Prosumer)]
+    [Authorize(Roles = $"{RoleNames.Prosumer},{RoleNames.GridOperator}")]
     [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
@@ -52,6 +54,21 @@ public class ReservationsController(
         return ToResponse(result, reservations => Ok(reservations));
     }
 
+    // Current / pending / history booking views, paged. A prosumer only sees their own.
+    [HttpGet("view/{view}")]
+    [ProducesResponseType(typeof(ReservationPageResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> View(
+        string view,
+        [FromQuery] string? nic,
+        [FromQuery] string? stationId,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20)
+    {
+        var result = await reservationViewService.ViewAsync(view, nic, stationId, page, pageSize, CallerNic, CallerRole);
+        return ToResponse(result, pageResult => Ok(pageResult));
+    }
+
     // Pre-flight rule check for a slot, before committing to a booking.
     [HttpGet("validate")]
     [ProducesResponseType(typeof(ReservationValidationResponse), StatusCodes.Status200OK)]
@@ -77,7 +94,7 @@ public class ReservationsController(
 
     // Changes the energy booked on a Pending reservation (BR-02).
     [HttpPut("{id}")]
-    [Authorize(Roles = RoleNames.Prosumer)]
+    [Authorize(Roles = $"{RoleNames.Prosumer},{RoleNames.GridOperator}")]
     [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
@@ -98,7 +115,7 @@ public class ReservationsController(
 
     // Moves a Pending reservation onto a different slot (BR-01 and BR-02).
     [HttpPatch("{id}/reschedule")]
-    [Authorize(Roles = RoleNames.Prosumer)]
+    [Authorize(Roles = $"{RoleNames.Prosumer},{RoleNames.GridOperator}")]
     [ProducesResponseType(typeof(ReservationResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]

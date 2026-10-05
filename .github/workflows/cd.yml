@@ -1,0 +1,107 @@
+name: CD
+
+# Delivers a build of `main`: container images for the API and the web app go to the
+# GitHub Container Registry, and the debug APK is attached to the run. It only runs
+# when CI has passed on main, and it never reads any secret other than the built-in
+# GITHUB_TOKEN. Configuration (Mongo, JWT, QR secret, SMTP...) is supplied at deploy
+# time through environment variables, never baked into an image.
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cd-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  # Where the deployed web app finds the API. Set the repository variable VITE_API_BASE_URL
+  # (Settings > Secrets and variables > Actions > Variables); the placeholder keeps the build green.
+  VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://example.invalid/api' }}
+
+jobs:
+  images:
+    name: Publish container images
+    # Skip when CI failed; manual runs always go ahead.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: api
+            context: api
+          - name: web
+            context: web
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          # Image names must be lowercase; metadata-action lowercases the repository for us.
+          images: ${{ env.REGISTRY }}/${{ github.repository }}-${{ matrix.name }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            ${{ matrix.name == 'web' && format('VITE_API_BASE_URL={0}', env.VITE_API_BASE_URL) || '' }}
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  apk:
+    name: Build debug APK
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager "platforms;android-37.0" "build-tools;37.0.0"
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: true
+      - run: chmod +x ./gradlew
+      # local.properties is git-ignored, so this APK uses the build's default API_BASE_URL
+      # (the emulator address). Rebuild locally with your own local.properties for a phone.
+      - name: Assemble debug APK
+        run: ./gradlew :app:assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: solargridx-debug-apk
+          path: mobile/app/build/outputs/apk/debug/*.apk
+          retention-days: 14

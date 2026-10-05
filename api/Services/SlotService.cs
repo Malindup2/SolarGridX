@@ -5,27 +5,16 @@ using MicrogridApi.Repositories;
 
 namespace MicrogridApi.Services;
 
-public class SlotService(SlotRepository slotRepository, StationRepository stationRepository)
+public class SlotService(SlotRepository slotRepository, StationRepository stationRepository, ActivityService activityService)
 {
     // Slot duration is fixed at 1 hour per the current project decision.
     private static readonly TimeSpan SlotDuration = TimeSpan.FromHours(1);
 
-    // Sri Lanka is UTC+5:30. Matches the offset Member 3's StationService
-    // already uses for "current local time" comparisons (GetUpcomingSlotsAsync),
-    // so both features agree on what "today" and "now" mean near date/time
-    // boundaries rather than one using UTC and the other local time.
-    private static readonly TimeSpan SriLankaOffset = TimeSpan.FromMinutes(330);
-
+    
     private static DateTime NormalizeDate(DateTime date) =>
         DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
 
-    private static (DateTime today, TimeSpan currentTime) GetSriLankaNow()
-    {
-        var localNow = DateTimeOffset.UtcNow.ToOffset(SriLankaOffset);
-        var today = DateTime.SpecifyKind(localNow.Date, DateTimeKind.Utc);
-        var currentTime = localNow.TimeOfDay;
-        return (today, currentTime);
-    }
+    
 
     // ---------- Manual single-slot creation ----------
 
@@ -60,6 +49,11 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         };
 
         await slotRepository.CreateAsync(slot);
+
+        await activityService.RecordAsync(
+            AuditKinds.Slots, slot.Id, "SlotCreated", $"Slot {slot.SlotDate:yyyy-MM-dd} {slot.StartTime}-{slot.EndTime} created.",
+            NotificationCategory.Catalog, ActivityActions.Station, resourceId: slot.StationId);
+
         return ToResponse(slot);
     }
 
@@ -74,9 +68,11 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         }
 
         var targetDate = NormalizeDate(request.Date);
-        var (today, currentTime) = GetSriLankaNow();
+        var now = BusinessClock.Now;
+        var today = now.Date;
+        var currentTime = now.TimeOfDay;
 
-        // Reject any date strictly before today (Sri Lanka local time).
+        // Reject dates before today (Sri Lanka time).
         if (targetDate < today)
         {
             return SlotErrors.PastDateNotAllowed;
@@ -94,8 +90,10 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
             return SlotErrors.SlotsAlreadyGenerated;
         }
 
-        var openTime = ParseTime(station.OperationalSchedule.OpenTime);
-        var closeTime = ParseTime(station.OperationalSchedule.CloseTime);
+        // The hours of this weekday: a per-day override if the station has one, else its default hours.
+        var (dayOpen, dayClose) = station.OperationalSchedule.HoursFor(dayName);
+        var openTime = ParseTime(dayOpen);
+        var closeTime = ParseTime(dayClose);
         var isToday = targetDate == today;
 
         var generatedSlots = new List<EnergyBookingSlot>();
@@ -140,6 +138,12 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         }
 
         await slotRepository.CreateManyAsync(generatedSlots);
+
+        await activityService.RecordAsync(
+            AuditKinds.Stations, stationId, "SlotsGenerated",
+            $"{generatedSlots.Count} slots generated for {station.StationName}.",
+            NotificationCategory.Catalog, ActivityActions.Station);
+
         return generatedSlots.Select(ToResponse).ToList();
     }
 
@@ -167,6 +171,11 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
             return SlotErrors.SlotNotFound;
         }
 
+        if (Versioning.IsStale(request.ExpectedUpdatedAt, slot.UpdatedAt))
+        {
+            return SlotErrors.Changed;
+        }
+
         if (slot.ReservedCount > 0 && request.CapacityKwh < slot.CapacityKwh)
         {
             return SlotErrors.SlotHasReservations;
@@ -188,6 +197,11 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         slot.UpdatedAt = DateTime.UtcNow;
 
         await slotRepository.ReplaceAsync(slot);
+
+        await activityService.RecordAsync(
+            AuditKinds.Slots, slot.Id, "SlotUpdated", $"Slot {slot.SlotDate:yyyy-MM-dd} {slot.StartTime}-{slot.EndTime} updated.",
+            NotificationCategory.Catalog, ActivityActions.Station, resourceId: slot.StationId);
+
         return ToResponse(slot);
     }
 
@@ -201,6 +215,11 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
 
         await slotRepository.UpdateAvailabilityAsync(id, isAvailable);
         slot.IsAvailable = isAvailable;
+
+        await activityService.RecordAsync(
+            AuditKinds.Slots, slot.Id, isAvailable ? "SlotOnline" : "SlotOffline", $"Slot {slot.SlotDate:yyyy-MM-dd} {slot.StartTime}-{slot.EndTime} is now {(isAvailable ? "online" : "offline")}.",
+            NotificationCategory.Catalog, ActivityActions.Station, resourceId: slot.StationId);
+
         return ToResponse(slot);
     }
 
@@ -221,6 +240,11 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         }
 
         await slotRepository.DeleteAsync(id);
+
+        await activityService.RecordAsync(
+            AuditKinds.Slots, slot.Id, "SlotDeleted", $"Slot {slot.SlotDate:yyyy-MM-dd} {slot.StartTime}-{slot.EndTime} deleted.",
+            NotificationCategory.Catalog, ActivityActions.Station, resourceId: slot.StationId);
+
         return Result.Success();
     }
 
@@ -238,5 +262,6 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         slot.EndTime,
         slot.CapacityKwh,
         slot.IsAvailable,
-        slot.ReservedCount);
+        slot.ReservedCount,
+        slot.UpdatedAt);
 }

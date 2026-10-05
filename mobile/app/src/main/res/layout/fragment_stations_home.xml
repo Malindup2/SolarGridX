@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Stations tab: search, list / map toggle (map only with a Maps key), nearest first when location is allowed. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical">
+
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        style="@style/Widget.SolarGridX.Res.Toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        app:title="@string/stations_title" />
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/searchLayout"
+        style="@style/Widget.SolarGridX.TextInputLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="@dimen/res_screen_padding"
+        android:layout_marginEnd="@dimen/res_screen_padding"
+        android:hint="@string/stations_search_hint"
+        app:startIconDrawable="@drawable/ic_res_search">
+
+        <com.google.android.material.textfield.TextInputEditText
+            android:id="@+id/searchInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:imeOptions="actionSearch"
+            android:inputType="text" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="@dimen/res_screen_padding"
+        android:paddingTop="@dimen/res_space_xs"
+        android:paddingEnd="@dimen/res_space_sm">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/viewChips"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            app:selectionRequired="true"
+            app:singleLine="true"
+            app:singleSelection="true">
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipList"
+                style="@style/Widget.SolarGridX.Res.FilterPill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:checked="true"
+                android:text="@string/stations_view_list" />
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipMap"
+                style="@style/Widget.SolarGridX.Res.FilterPill"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/stations_view_map" />
+        </com.google.android.material.chip.ChipGroup>
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/locationButton"
+            style="@style/Widget.SolarGridX.Res.Button.Text"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/stations_near_me"
+            app:icon="@drawable/ic_res_pin" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/locationNote"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="@dimen/res_screen_padding"
+        android:paddingEnd="@dimen/res_screen_padding"
+        android:accessibilityLiveRegion="polite"
+        android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting"
+        android:visibility="gone" />
+
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/stationList"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:clipToPadding="false"
+            android:paddingStart="@dimen/res_screen_padding"
+            android:paddingTop="@dimen/res_space_sm"
+            android:paddingEnd="@dimen/res_screen_padding"
+            android:paddingBottom="@dimen/res_space_xxl" />
+
+        <FrameLayout
+            android:id="@+id/mapContainer"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:contentDescription="@string/stations_map_cd"
+            android:visibility="gone" />
+
+        <include
+            layout="@layout/view_state"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/res_screen_padding"
+            android:layout_marginEnd="@dimen/res_screen_padding" />
+    </FrameLayout>
+</LinearLayout>

@@ -3,6 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Operators scan the prosumer's transaction QR code. -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Approximate location sorts stations by distance; the app works without it. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
 
     <application
         android:name=".SolarGridXApplication"
@@ -15,6 +21,12 @@
         android:supportsRtl="true"
         android:usesCleartextTraffic="true"
         android:theme="@style/Theme.Solargridx">
+
+        <!-- From local.properties MAPS_API_KEY; empty means "no map", never a crash. -->
+        <meta-data
+            android:name="com.google.android.geo.API_KEY"
+            android:value="${MAPS_API_KEY}" />
+
         <activity
             android:name=".MainActivity"
             android:exported="true"

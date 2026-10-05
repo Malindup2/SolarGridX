@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Metric tile: tinted icon circle, big value, label. Include with an id and bind via bindStat(). -->
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    style="@style/Widget.SolarGridX.Res.Card"
+    android:layout_width="0dp"
+    android:layout_height="wrap_content"
+    android:layout_weight="1"
+    app:cardCornerRadius="18dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="@dimen/res_space_md">
+
+        <ImageView
+            android:id="@+id/statIcon"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="@drawable/bg_res_circle"
+            android:backgroundTint="@color/status_approved_container"
+            android:importantForAccessibility="no"
+            android:padding="6dp"
+            android:src="@drawable/ic_res_bolt"
+            app:tint="@color/color_primary" />
+
+        <TextView
+            android:id="@+id/statLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/res_space_md"
+            android:maxLines="1"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.Supporting" />
+        <TextView
+            android:id="@+id/statValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="@string/res_value_placeholder"
+            android:textAppearance="@style/TextAppearance.SolarGridX.Res.StatValue" />
+
+    </LinearLayout>
+</com.google.android.material.card.MaterialCardView>

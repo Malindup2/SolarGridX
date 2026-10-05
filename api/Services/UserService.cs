@@ -7,7 +7,7 @@ using MongoDB.Driver;
 
 namespace MicrogridApi.Services;
 
-public class UserService(UserRepository userRepository, EmailService emailService)
+public class UserService(UserRepository userRepository, EmailService emailService, ActivityService activityService)
 {
     public async Task<Result<UserResponse>> CreateAsync(CreateUserRequest request)
     {
@@ -51,6 +51,11 @@ public class UserService(UserRepository userRepository, EmailService emailServic
         }
 
         await emailService.SendAccountCreatedEmailAsync(email, user.FullName, user.Role.ToString(), request.Password);
+
+        await activityService.RecordAsync(
+            AuditKinds.Users, user.Id, "AccountCreated",
+            $"{user.Role} account created for {user.FullName}.",
+            NotificationCategory.Account, ActivityActions.User);
 
         return ToResponse(user);
     }
@@ -115,6 +120,11 @@ public class UserService(UserRepository userRepository, EmailService emailServic
                 : AuthErrors.NicAlreadyRegistered;
         }
 
+        await activityService.RecordAsync(
+            AuditKinds.Users, user.Id, "AccountUpdated",
+            $"Your account details were updated by an administrator (status {user.Status}).",
+            NotificationCategory.Account, ActivityActions.Profile, Recipients.ForUser(user.Id));
+
         return ToResponse(user);
     }
 
@@ -137,6 +147,12 @@ public class UserService(UserRepository userRepository, EmailService emailServic
         }
 
         await userRepository.DeleteAsync(user.Id);
+
+        await activityService.RecordAsync(
+            AuditKinds.Users, user.Id, "AccountDeleted",
+            $"{user.Role} account {user.Email} was deleted.",
+            NotificationCategory.Account, ActivityActions.User);
+
         return Result.Success();
     }
 

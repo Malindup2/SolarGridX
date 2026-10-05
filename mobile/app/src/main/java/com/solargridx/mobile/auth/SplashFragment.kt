@@ -41,7 +41,7 @@ class SplashFragment : Fragment(R.layout.fragment_splash) {
             if (sessionManager.isLoggedIn()) {
                 if (sessionManager.mustChangePassword()) {
                     findNavController().navigate(R.id.action_splashFragment_to_changePasswordFragment)
-                } else if (!AuthNavigator.goHome(findNavController(), sessionManager.getRole())) {
+                } else if (!AuthNavigator.goHome(findNavController(), sessionManager.getRole(), sessionManager.getStatus())) {
                     sessionManager.clear()
                     findNavController().navigate(R.id.action_splashFragment_to_loginFragment)
                 }

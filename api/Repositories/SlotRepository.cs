@@ -13,10 +13,6 @@ public class SlotRepository
         _slots = context.GetCollection<EnergyBookingSlot>("EnergyBookingSlots");
     }
 
-    // Ensures every date used for storage or comparison is an unambiguous
-    // UTC midnight value, regardless of how it arrived (JSON body, existing
-    // document, etc.). This avoids inconsistent timezone conversion by the
-    // MongoDB driver when DateTime.Kind is Unspecified.
     private static DateTime NormalizeDate(DateTime date) =>
         DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
 
@@ -56,10 +52,6 @@ public class SlotRepository
         return await _slots.Find(filter).SortBy(s => s.SlotDate).ThenBy(s => s.StartTime).ToListAsync();
     }
 
-    // Interval-overlap check: an existing slot overlaps a candidate slot when
-    // existing.Start < candidate.End AND existing.End > candidate.Start.
-    // Works correctly because times are stored as zero-padded "HH:mm" strings,
-    // which sort/compare lexically the same as they would numerically.
     public Task<bool> HasOverlapAsync(string stationId, DateTime date, string startTime, string endTime, string? excludeId = null)
     {
         var normalized = NormalizeDate(date);
@@ -94,13 +86,51 @@ public class SlotRepository
                 .Set(s => s.IsAvailable, isAvailable)
                 .Set(s => s.UpdatedAt, DateTime.UtcNow));
 
-    
-    public Task AdjustReservedCountAsync(string id, int delta) =>
-        _slots.UpdateOneAsync(
-            s => s.Id == id && s.ReservedCount >= (delta < 0 ? -delta : 0),
+    public Task DeleteAsync(string id) => _slots.DeleteOneAsync(s => s.Id == id);
+
+    // Atomically increments (positive delta) or decrements (negative delta)
+    // a slot's reserved count. Called by ReservationService when a
+    // reservation is created, rejected, cancelled, or rescheduled onto a
+    // different slot — this is the single place ReservedCount is mutated, so
+    // BR-09's delete/capacity-reduction checks in this file always see a
+    // consistent value.
+    public Task AdjustReservedCountAsync(string slotId, int delta)
+    {
+        var builder = Builders<EnergyBookingSlot>.Filter;
+        var filter = builder.Eq(s => s.Id, slotId);
+
+        // A release can never push the count below zero, so a repeated release is harmless.
+        if (delta < 0)
+        {
+            filter &= builder.Gte(s => s.ReservedCount, -delta);
+        }
+
+        return _slots.UpdateOneAsync(
+            filter,
             Builders<EnergyBookingSlot>.Update
                 .Inc(s => s.ReservedCount, delta)
                 .Set(s => s.UpdatedAt, DateTime.UtcNow));
+    }
 
-    public Task DeleteAsync(string id) => _slots.DeleteOneAsync(s => s.Id == id);
+    // Takes one battery bay in a single database operation: the check "is there a free bay?"
+    // and the increment cannot be separated, so two bookings racing for the last bay can never
+    // both succeed. Returns false when the slot is offline or already full.
+    public async Task<bool> TryReserveAsync(string slotId, int bays)
+    {
+        var builder = Builders<EnergyBookingSlot>.Filter;
+        var filter = builder.Eq(s => s.Id, slotId) & builder.Eq(s => s.IsAvailable, true);
+
+        if (bays > 0)
+        {
+            filter &= builder.Lt(s => s.ReservedCount, bays);
+        }
+
+        var result = await _slots.UpdateOneAsync(
+            filter,
+            Builders<EnergyBookingSlot>.Update
+                .Inc(s => s.ReservedCount, 1)
+                .Set(s => s.UpdatedAt, DateTime.UtcNow));
+
+        return result.ModifiedCount == 1;
+    }
 }

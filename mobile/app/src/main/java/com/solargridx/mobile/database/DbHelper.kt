@@ -18,7 +18,8 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
                 $COL_NIC TEXT,
                 $COL_DISPLAY_NAME TEXT,
                 $COL_HOME_ROUTE TEXT,
-                $COL_MUST_CHANGE_PASSWORD INTEGER NOT NULL DEFAULT 0
+                $COL_MUST_CHANGE_PASSWORD INTEGER NOT NULL DEFAULT 0,
+                $COL_STATUS TEXT
             )
             """.trimIndent()
         )
@@ -35,7 +36,8 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
         nic: String?,
         displayName: String,
         homeRoute: String,
-        mustChangePassword: Boolean
+        mustChangePassword: Boolean,
+        status: String?
     ) {
         val values = ContentValues().apply {
             put(COL_ID, SESSION_ROW_ID)
@@ -45,8 +47,14 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
             put(COL_DISPLAY_NAME, displayName)
             put(COL_HOME_ROUTE, homeRoute)
             put(COL_MUST_CHANGE_PASSWORD, if (mustChangePassword) 1 else 0)
+            put(COL_STATUS, status)
         }
         writableDatabase.replace(TABLE_SESSION, null, values)
+    }
+
+    fun updateStatus(status: String) {
+        val values = ContentValues().apply { put(COL_STATUS, status) }
+        writableDatabase.update(TABLE_SESSION, values, "$COL_ID = ?", arrayOf(SESSION_ROW_ID.toString()))
     }
 
     fun markPasswordChanged() {
@@ -66,7 +74,8 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
                 nic = cursor.getString(cursor.getColumnIndexOrThrow(COL_NIC)),
                 displayName = cursor.getString(cursor.getColumnIndexOrThrow(COL_DISPLAY_NAME)),
                 homeRoute = cursor.getString(cursor.getColumnIndexOrThrow(COL_HOME_ROUTE)),
-                mustChangePassword = cursor.getInt(cursor.getColumnIndexOrThrow(COL_MUST_CHANGE_PASSWORD)) == 1
+                mustChangePassword = cursor.getInt(cursor.getColumnIndexOrThrow(COL_MUST_CHANGE_PASSWORD)) == 1,
+                status = cursor.getString(cursor.getColumnIndexOrThrow(COL_STATUS))
             )
         }
     }
@@ -81,12 +90,15 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
         val nic: String?,
         val displayName: String,
         val homeRoute: String,
-        val mustChangePassword: Boolean
+        val mustChangePassword: Boolean,
+        /** Account status at sign-in (Pending / Active); a Pending prosumer sees the waiting screen. */
+        val status: String?
     )
 
     companion object {
         private const val DATABASE_NAME = "solargridx.db"
-        private const val DATABASE_VERSION = 2
+        // v3 adds the account status. Upgrading drops the one session row, so users sign in again once.
+        private const val DATABASE_VERSION = 3
         private const val SESSION_ROW_ID = 1
 
         private const val TABLE_SESSION = "session"
@@ -97,5 +109,6 @@ class DbHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME, null
         private const val COL_DISPLAY_NAME = "display_name"
         private const val COL_HOME_ROUTE = "home_route"
         private const val COL_MUST_CHANGE_PASSWORD = "must_change_password"
+        private const val COL_STATUS = "status"
     }
 }

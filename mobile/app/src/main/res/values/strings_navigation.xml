@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bottom navigation labels. -->
+<resources>
+    <string name="nav_home">Home</string>
+    <string name="nav_stations">Stations</string>
+    <string name="nav_bookings">Bookings</string>
+    <string name="nav_reservations">Reservations</string>
+    <string name="nav_scan">Scan</string>
+    <string name="nav_profile">Profile</string>
+
+    <!-- Profile (identity) -->
+    <string name="profile_title">Profile</string>
+    <string name="profile_member_since">Member since %1$s</string>
+    <string name="profile_account_details">Account details</string>
+    <string name="profile_personal_info">Personal info</string>
+    <string name="profile_personal_info_hint">Name, email, phone and address</string>
+    <string name="profile_change_password">Change password</string>
+    <string name="change_password_helper">At least 8 characters</string>
+    <string name="profile_phone">Phone</string>
+    <string name="profile_address">Address</string>
+    <string name="profile_email">Email</string>
+    <string name="profile_not_set">Not set</string>
+    <string name="profile_logout">Log out</string>
+    <string name="profile_danger_zone">Danger zone</string>
+    <string name="profile_deactivate">Deactivate account</string>
+    <string name="profile_deactivate_hint">Only the Backoffice team can reactivate it</string>
+    <string name="profile_deactivate_title">Deactivate your account?</string>
+    <string name="profile_deactivate_body">You will be signed out and won\'t be able to sign in or book again until the Backoffice team reactivates your account.</string>
+    <string name="profile_deactivated">Your account has been deactivated.</string>
+    <string name="profile_edit_title">Edit profile</string>
+    <string name="profile_full_name">Full name</string>
+    <string name="profile_save">Save changes</string>
+    <string name="profile_saved">Profile updated</string>
+    <string name="profile_required">This field is required.</string>
+    <string name="profile_role_operator">Grid operator</string>
+    <string name="profile_role_prosumer">Prosumer</string>
+</resources>
