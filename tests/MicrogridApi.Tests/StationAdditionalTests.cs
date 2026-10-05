@@ -270,4 +270,67 @@ public class StationAdditionalTests(ApiFixture api)
         Assert.Equal(3, updated.BatterySlotCount);
     }
 
+
+
+        [MongoFact]
+    public async Task Nearby_search_filters_and_orders_stations()
+    {
+        var admin = await AdminAsync();
+
+        async Task<SolarStationInfo> SeedAtAsync(
+            double latitude, StationStatus status = StationStatus.Active)
+        {
+            var station = await api.SeedStationAsync(status: status);
+
+            await api.Collection<SolarStationInfo>("SolarStationInfo")
+                .UpdateOneAsync(
+                    s => s.Id == station.Id,
+                    Builders<SolarStationInfo>.Update
+                        .Set(s => s.Latitude, latitude)
+                        .Set(s => s.Longitude, -100));
+
+            return station;
+        }
+
+        var nearest = await SeedAtAsync(40);
+        var further = await SeedAtAsync(40.1);
+        var outside = await SeedAtAsync(41);
+        var inactive = await SeedAtAsync(40, StationStatus.Inactive);
+
+        var response = await admin.GetAsync(
+            "/api/stations/nearby?lat=40&lng=-100&radiusKm=50");
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var stations = await response.ReadAsync<List<StationResponse>>();
+
+        var ownResults = stations
+            .Where(s => s.Id == nearest.Id || s.Id == further.Id)
+            .Select(s => s.Id)
+            .ToArray();
+
+        Assert.Equal(new[] { nearest.Id, further.Id }, ownResults);
+        Assert.DoesNotContain(stations, s => s.Id == outside.Id);
+        Assert.DoesNotContain(stations, s => s.Id == inactive.Id);
+
+        foreach (var query in new[]
+        {
+            "lat=40&lng=-100",
+            "lat=91&lng=-100&radiusKm=10",
+            "lat=40&lng=-181&radiusKm=10",
+            "lat=40&lng=-100&radiusKm=0",
+            "lat=40&lng=-100&radiusKm=50.1"
+        })
+        {
+            await (await admin.GetAsync(
+                $"/api/stations/nearby?{query}")).ShouldFailAsync(
+                    HttpStatusCode.BadRequest, "VALIDATION_FAILED");
+        }
+
+        Assert.Equal(HttpStatusCode.OK,
+            (await admin.GetAsync(
+                "/api/stations/nearby?lat=40&lng=-100&radiusKm=0.5"))
+            .StatusCode);
+    }
+
 }
