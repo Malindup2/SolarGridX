@@ -1,8 +1,9 @@
 /*
  * JwtTokenService.cs
- * Generates signed JWT access tokens containing user identity and authorization claims.
+ * Creates signed JWT access tokens carrying the user's identity, role,
+ * status, optional NIC, and security version.
  */
- 
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -19,6 +20,7 @@ public class JwtTokenService(IOptions<JwtSettings> settings)
 
     private readonly JwtSettings _settings = settings.Value;
 
+    // Builds and signs a token for the user that expires after the configured number of minutes.
     public string GenerateToken(User user)
     {
         var claims = new List<Claim>

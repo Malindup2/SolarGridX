@@ -1,6 +1,6 @@
 /*
  * LoginRequestValidator.cs
- * Checks the credentials and client information submitted for sign-in.
+ * Checks the sign-in details before the credentials are verified.
  */
 
 using FluentValidation;
@@ -10,6 +10,7 @@ namespace MicrogridApi.Validators;
 
 public class LoginRequestValidator : AbstractValidator<LoginRequest>
 {
+    // Requires a valid email address and a password.
     public LoginRequestValidator()
     {
         RuleFor(x => x.Email).NotEmpty().EmailAddress();

@@ -1,6 +1,6 @@
 /*
  * CreateUserRequestValidator.cs
- * Checks the account details and role submitted when creating a staff user.
+ * Checks the details of a new web user before it is created.
  */
 
 using FluentValidation;
@@ -10,6 +10,7 @@ namespace MicrogridApi.Validators;
 
 public class CreateUserRequestValidator : AbstractValidator<CreateUserRequest>
 {
+    // Requires name, email, an 8+ character password and a web role; the NIC is optional but must be valid.
     public CreateUserRequestValidator()
     {
         RuleFor(x => x.FullName).NotEmpty();
