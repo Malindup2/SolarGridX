@@ -1,3 +1,8 @@
+/*
+ * UpdateSlotRequestValidator.cs
+ * Checks the date, time range, and capacity when an existing slot is updated.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Slots;
 
@@ -7,6 +12,8 @@ public class UpdateSlotRequestValidator : AbstractValidator<UpdateSlotRequest>
 {
     public UpdateSlotRequestValidator()
     {
+                // Reject a missing date, an invalid time format, or a non-positive capacity.
+
         RuleFor(x => x.SlotDate).NotEmpty();
 
         RuleFor(x => x.StartTime).NotEmpty()
