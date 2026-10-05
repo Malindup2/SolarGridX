@@ -80,5 +80,43 @@ public class StationAdditionalTests(ApiFixture api)
             request.OperationalSchedule!.ActiveDays,
             saved.OperationalSchedule.ActiveDays);
     }
-    
+
+
+        [Fact]
+    public void Rejects_invalid_station_fields()
+    {
+        var validator = new CreateStationRequestValidator();
+        var valid = ValidRequest();
+
+        Assert.True(validator.Validate(valid).IsValid);
+
+        CreateStationRequest[] invalidRequests =
+        [
+            valid with { StationName = "" },
+            valid with { StationName = new string('x', 121) },
+            valid with { Location = "" },
+            valid with { Location = new string('x', 251) },
+            valid with { Latitude = null },
+            valid with { Latitude = 91 },
+            valid with { Longitude = -181 },
+            valid with { CapacityKwh = 0 },
+            valid with { CapacityKwh = -1 },
+            valid with { BatterySlotCount = 0 },
+            valid with { BatterySlotCount = -1 },
+            valid with { Type = "Other" },
+            valid with { OperationalSchedule = null }
+        ];
+
+        foreach (var request in invalidRequests)
+        {
+            Assert.False(validator.Validate(request).IsValid);
+        }
+
+        Assert.True(validator.Validate(
+            valid with { Latitude = -90, Longitude = -180 }).IsValid);
+
+        Assert.True(validator.Validate(
+            valid with { Latitude = 90, Longitude = 180 }).IsValid);
+    }
+
 }
