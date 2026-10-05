@@ -1,3 +1,8 @@
+/*
+ * ProsumerResponse.cs
+ * Defines the prosumer details returned to API clients.
+ */
+
 namespace MicrogridApi.DTOs.Prosumers;
 
 public record ProsumerResponse(
