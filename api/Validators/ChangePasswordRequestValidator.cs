@@ -1,8 +1,8 @@
 /*
  * ChangePasswordRequestValidator.cs
- * Checks a password change request before it reaches the service.
+ * Checks the current and new password fields before a password change reaches the service.
  */
-
+ 
 using FluentValidation;
 using MicrogridApi.DTOs.Auth;
 

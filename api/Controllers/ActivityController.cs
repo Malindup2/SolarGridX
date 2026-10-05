@@ -1,3 +1,8 @@
+/*
+ * ActivityController.cs
+ * Handles notification inbox, read-status, and audit-history requests.
+ */
+
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Activity;
 using MicrogridApi.Services;

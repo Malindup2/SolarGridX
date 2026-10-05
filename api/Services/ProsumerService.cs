@@ -1,8 +1,9 @@
 /*
  * ProsumerService.cs
  * Applies the prosumer account rules: NIC uniqueness (BR-06), Backoffice-only activation
- * (BR-05), own-profile access for prosumers, and the audit and notification for each change.
+ * (BR-05), own-profile access for prosumers, and audit records and notifications for changes.
  */
+
 
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Prosumers;

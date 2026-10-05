@@ -1,7 +1,7 @@
 /*
  * JwtTokenService.cs
- * Creates the signed JWT session token issued at sign-in, carrying the user's id, role,
- * status, NIC and security version.
+ * Creates signed JWT access tokens carrying the user's identity, role,
+ * status, optional NIC, and security version.
  */
 
 using System.IdentityModel.Tokens.Jwt;

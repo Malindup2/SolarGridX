@@ -1,8 +1,9 @@
 /*
  * UserService.cs
- * Manages web application users (Backoffice and Grid Operator): create, list, update and
- * delete, with the rule that nobody changes their own access (BR-24).
+ * Manages Backoffice and Grid Operator accounts: creation, listing, updates, and deletion.
+ * Prevents changes to the caller's own access and protects the last active Backoffice account.
  */
+
 
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Users;

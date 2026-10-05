@@ -1,3 +1,8 @@
+/*
+ * BookingsController.cs
+ * Handles booking searches and prosumer and grid operator dashboard requests.
+ */
+ 
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Dashboards;
 using MicrogridApi.DTOs.Reservations;

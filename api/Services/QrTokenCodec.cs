@@ -1,3 +1,8 @@
+/*
+ * QrTokenCodec.cs
+ * Encodes and decodes QR payloads and computes and compares their HMAC signatures.
+ */
+
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;

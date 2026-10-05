@@ -9,10 +9,10 @@ Sri Lanka Institute of Information Technology — Year 4, Semester 2, 2026
 |---|---|
 | **Module** | SE4040 — Enterprise Application Development |
 | **Assignment** | Assignment 1 — Group Project |
-| **Group** | *(group ID)* |
-| **Submission deadline** | 30 September 2026, 11:59 PM |
-| **Repository** | *(GitHub URL)* |
-| **Demo video** | *(YouTube / OneDrive link — max 5 minutes)* |
+| **Group** | *29* |
+| **Submission deadline** | 6 October 2026, 11:59 PM |
+| **Repository** | *https://github.com/Malindup2/SolarGridX.git* |
+| **Demo video** | *https://youtu.be/tyPiNDVHfAs?si=ORCBIg0CkaM0UEwF* |
 
 ---
 
