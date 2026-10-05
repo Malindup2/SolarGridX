@@ -333,4 +333,57 @@ public class StationAdditionalTests(ApiFixture api)
             .StatusCode);
     }
 
+
+
+        [MongoFact]
+    public async Task Availability_flag_matches_bookable_slot_rules()
+    {
+        var admin = await AdminAsync();
+
+        var cases = new[]
+        {
+            (Days: 2, Available: true, Full: false,
+                Status: StationStatus.Active, Expected: true),
+            (Days: 7, Available: true, Full: false,
+                Status: StationStatus.Active, Expected: true),
+            (Days: 8, Available: true, Full: false,
+                Status: StationStatus.Active, Expected: false),
+            (Days: -1, Available: true, Full: false,
+                Status: StationStatus.Active, Expected: false),
+            (Days: 2, Available: false, Full: false,
+                Status: StationStatus.Active, Expected: false),
+            (Days: 2, Available: true, Full: true,
+                Status: StationStatus.Active, Expected: false),
+            (Days: 2, Available: true, Full: false,
+                Status: StationStatus.Inactive, Expected: false)
+        };
+
+        foreach (var item in cases)
+        {
+            var station = await api.SeedStationAsync(status: item.Status);
+
+            var slot = await api.SeedSlotAsync(
+                station.Id,
+                BusinessClock.Today.AddDays(item.Days).AddHours(9),
+                available: item.Available);
+
+            if (item.Full)
+            {
+                await api.Collection<EnergyBookingSlot>("EnergyBookingSlots")
+                    .UpdateOneAsync(
+                        s => s.Id == slot.Id,
+                        Builders<EnergyBookingSlot>.Update.Set(
+                            s => s.ReservedCount, station.BatterySlotCount));
+            }
+
+            var saved = await FetchAsync(admin, station.Id);
+            Assert.Equal((bool?)item.Expected, saved.HasUpcomingSlots);
+        }
+
+        var withoutSlots = await api.SeedStationAsync();
+
+        Assert.Equal((bool?)false,
+            (await FetchAsync(admin, withoutSlots.Id)).HasUpcomingSlots);
+    }
+
 }
