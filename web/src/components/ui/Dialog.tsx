@@ -5,6 +5,7 @@
  */
 
 import { useEffect, useId, useLayoutEffect, useRef, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 
 interface DialogProps {
@@ -90,7 +91,7 @@ export default function Dialog({
     }
   }, [open])
 
-  return (
+  const content = (
     <AnimatePresence>
       {open && (
         <motion.div
@@ -135,4 +136,10 @@ export default function Dialog({
       )}
     </AnimatePresence>
   )
+
+  if (typeof document === 'undefined') {
+    return null
+  }
+
+  return createPortal(content, document.body)
 }
