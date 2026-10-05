@@ -30,11 +30,11 @@ mobile/.cxx/
 *.keystore
 
 # --- Docker ---
-.env
 
 # --- IDE / OS ---
 .vs/
-.vscode/
 *.user
 .DS_Store
 Thumbs.db
+config.bat
+node_modules
