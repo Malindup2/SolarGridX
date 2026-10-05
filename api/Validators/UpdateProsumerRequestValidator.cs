@@ -1,6 +1,6 @@
 /*
  * UpdateProsumerRequestValidator.cs
- * Checks the details submitted when updating a prosumer account.
+ * Checks editable prosumer details.
  */
 
 using FluentValidation;
@@ -10,6 +10,7 @@ namespace MicrogridApi.Validators;
 
 public class UpdateProsumerRequestValidator : AbstractValidator<UpdateProsumerRequest>
 {
+    // Requires a name and a valid email address.
     public UpdateProsumerRequestValidator()
     {
         RuleFor(x => x.FullName).NotEmpty();

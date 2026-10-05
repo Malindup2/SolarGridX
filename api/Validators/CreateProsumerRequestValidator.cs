@@ -1,6 +1,6 @@
 /*
  * CreateProsumerRequestValidator.cs
- * Checks the account and personal details submitted when creating a prosumer.
+ * Checks the prosumer details before a Backoffice user creates a prosumer account.
  */
  
 using FluentValidation;
@@ -10,6 +10,7 @@ namespace MicrogridApi.Validators;
 
 public class CreateProsumerRequestValidator : AbstractValidator<CreateProsumerRequest>
 {
+    // Requires a valid Sri Lankan NIC (old or new format), name, email and an 8+ character password.
     public CreateProsumerRequestValidator()
     {
         RuleFor(x => x.Nic)

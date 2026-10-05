@@ -1,8 +1,9 @@
 /*
  * ProfileService.cs
- * Applies rules for viewing and updating profiles, managing profile photos, and requesting account deactivation.
+ * Serves the signed-in user's own account: profile details, the profile photo (BR-30) and,
+ * for prosumers, closing their own account. Also defines the profile error codes.
  */
- 
+
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Users;
 using MicrogridApi.Models;
@@ -38,12 +39,14 @@ public class ProfileService(UserRepository userRepository, ProsumerService prosu
     private static readonly byte[] JpegMagic = [0xFF, 0xD8, 0xFF];
     private static readonly byte[] PngMagic = [0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A];
 
+    // Returns the caller's own profile.
     public async Task<Result<ProfileResponse>> GetAsync(string? callerId)
     {
         var user = await LoadAsync(callerId);
         return user is null ? ProfileErrors.NotFound : ToResponse(user);
     }
 
+    // Updates the caller's name, email, phone and address; the email must not belong to anyone else.
     public async Task<Result<ProfileResponse>> UpdateAsync(string? callerId, UpdateProfileRequest request)
     {
         var user = await LoadAsync(callerId);
@@ -93,6 +96,7 @@ public class ProfileService(UserRepository userRepository, ProsumerService prosu
         return result.IsSuccess ? Result.Success() : result.Error!;
     }
 
+    // Returns a user's photo bytes and content type, or AVATAR_NOT_FOUND when none is set.
     public async Task<Result<(byte[] Bytes, string ContentType)>> GetAvatarAsync(string id)
     {
         var user = ObjectId.TryParse(id, out _) ? await userRepository.FindByIdAsync(id) : null;
@@ -144,6 +148,7 @@ public class ProfileService(UserRepository userRepository, ProsumerService prosu
         return ToResponse((await LoadAsync(user.Id))!);
     }
 
+    // Clears the caller's profile photo.
     public async Task<Result<ProfileResponse>> RemoveAvatarAsync(string? callerId)
     {
         var user = await LoadAsync(callerId);
@@ -160,14 +165,17 @@ public class ProfileService(UserRepository userRepository, ProsumerService prosu
         return ToResponse((await LoadAsync(user.Id))!);
     }
 
+    // Identifies JPEG or PNG from the file's first bytes; returns null for anything else.
     public static string? DetectImageType(byte[] bytes) =>
         bytes.AsSpan().StartsWith(JpegMagic) ? "image/jpeg"
         : bytes.AsSpan().StartsWith(PngMagic) ? "image/png"
         : null;
 
+    // Loads a user without the photo bytes, or null for a missing or malformed id.
     private async Task<User?> LoadAsync(string? id) =>
         string.IsNullOrEmpty(id) || !ObjectId.TryParse(id, out _) ? null : await userRepository.FindWithoutAvatarAsync(id);
 
+    // Maps a stored user to the profile response sent to clients.
     private static ProfileResponse ToResponse(User user) => new(
         user.Id,
         user.FullName,
