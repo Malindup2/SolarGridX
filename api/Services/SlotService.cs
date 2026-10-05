@@ -1,3 +1,8 @@
+/*
+ * SlotService.cs
+ * Generates and manages booking slots against a station's schedule and capacity.
+ */
+
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Slots;
 using MicrogridApi.Models;
@@ -10,16 +15,19 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
     // Slot duration is fixed at 1 hour per the current project decision.
     private static readonly TimeSpan SlotDuration = TimeSpan.FromHours(1);
 
-    
+            // Force the date to midnight UTC so stored and compared dates always match.
+
     private static DateTime NormalizeDate(DateTime date) =>
         DateTime.SpecifyKind(date.Date, DateTimeKind.Utc);
 
     
 
-    // ---------- Manual single-slot creation ----------
+    //  Manual single-slot creation 
 
     public async Task<Result<SlotResponse>> CreateAsync(string stationId, CreateSlotRequest request)
     {
+                // Validate the station, then reject a manual slot that overlaps an existing one.
+
         var station = await stationRepository.FindByIdAsync(stationId);
         if (station is null)
         {
@@ -57,10 +65,12 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         return ToResponse(slot);
     }
 
-    // ---------- Slot generation from station schedule (signature feature) ----------
+    //  Slot generation from station schedule 
 
     public async Task<Result<List<SlotResponse>>> GenerateAsync(string stationId, GenerateSlotsRequest request)
     {
+        // generate one day of 1-hour slots from the station's
+        // schedule, rejecting past dates and skipping already-passed hours today.
         var station = await stationRepository.FindByIdAsync(stationId);
         if (station is null)
         {
@@ -147,24 +157,30 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         return generatedSlots.Select(ToResponse).ToList();
     }
 
-    // ---------- Reads ----------
+    //Reads 
 
     public async Task<List<SlotResponse>> GetByStationAsync(string stationId)
     {
+                // Return every slot for a station, mapped to its response shape.
+
         var slots = await slotRepository.FindByStationAsync(stationId);
         return slots.Select(ToResponse).ToList();
     }
 
     public async Task<List<SlotResponse>> GetAsync(DateTime? date, bool? available)
     {
+                // Return slots filtered by date and/or availability.
+
         var slots = await slotRepository.FindAsync(date, available);
         return slots.Select(ToResponse).ToList();
     }
 
-    // ---------- Update / availability / delete ----------
+    //  Update / availability / delete 
 
     public async Task<Result<SlotResponse>> UpdateAsync(string id, UpdateSlotRequest request)
     {
+        // reject stale edits, block a capacity reduction
+        // below reserved count, and reject a time range that overlaps another slot.
         var slot = await slotRepository.FindByIdAsync(id);
         if (slot is null)
         {
@@ -207,6 +223,8 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
 
     public async Task<Result<SlotResponse>> SetAvailabilityAsync(string id, bool isAvailable)
     {
+                // Toggle a single slot's availability flag and record the change.
+
         var slot = await slotRepository.FindByIdAsync(id);
         if (slot is null)
         {
@@ -223,11 +241,16 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         return ToResponse(slot);
     }
 
+            // Toggle several slots at once, e.g. for maintenance.
+
+
     public Task SetBulkAvailabilityAsync(List<string> slotIds, bool isAvailable) =>
         slotRepository.UpdateManyAvailabilityAsync(slotIds, isAvailable);
 
     public async Task<Result> DeleteAsync(string id)
     {
+                //  refuse to delete a slot that still has active reservations.
+
         var slot = await slotRepository.FindByIdAsync(id);
         if (slot is null)
         {
@@ -248,11 +271,18 @@ public class SlotService(SlotRepository slotRepository, StationRepository statio
         return Result.Success();
     }
 
-    // ---------- Helpers ----------
+    //  Helpers 
+
+            // Convert an "HH:mm" string into a TimeSpan.
+
 
     private static TimeSpan ParseTime(string time) => TimeSpan.Parse(time);
 
+            // Convert a TimeSpan back into a zero-padded "HH:mm" string.
+
     private static string FormatTime(TimeSpan time) => time.ToString(@"hh\:mm");
+    
+            // Map a stored slot document to the response returned to API clients.
 
     private static SlotResponse ToResponse(EnergyBookingSlot slot) => new(
         slot.Id,
