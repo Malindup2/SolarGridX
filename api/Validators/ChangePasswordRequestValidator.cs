@@ -1,6 +1,6 @@
 /*
  * ChangePasswordRequestValidator.cs
- * Checks the fields submitted when a signed-in user requests a password change.
+ * Checks the current and new password fields before a password change reaches the service.
  */
  
 using FluentValidation;
@@ -10,6 +10,7 @@ namespace MicrogridApi.Validators;
 
 public class ChangePasswordRequestValidator : AbstractValidator<ChangePasswordRequest>
 {
+    // Requires the current password and a new password of at least 8 characters.
     public ChangePasswordRequestValidator()
     {
         RuleFor(x => x.CurrentPassword).NotEmpty();

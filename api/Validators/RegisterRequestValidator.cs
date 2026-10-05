@@ -1,6 +1,6 @@
 /*
  * RegisterRequestValidator.cs
- * Checks the personal details and credentials submitted for prosumer self-registration.
+ * Checks a prosumer's self-registration details from the mobile app.
  */
 
 using FluentValidation;
@@ -10,6 +10,7 @@ namespace MicrogridApi.Validators;
 
 public class RegisterRequestValidator : AbstractValidator<RegisterRequest>
 {
+    // Requires a valid Sri Lankan NIC (old or new format), an 8+ character password, name and email.
     public RegisterRequestValidator()
     {
         RuleFor(x => x.Nic)

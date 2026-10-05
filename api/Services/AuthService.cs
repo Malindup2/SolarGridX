@@ -1,8 +1,10 @@
 /*
  * AuthService.cs
- * Applies authentication, registration, password-change, and sign-out rules.
+ * Signs users in (checking password, client type and account status), registers prosumers
+ * as Pending, changes passwords and revokes tokens on sign-out.
  */
- 
+
+
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Auth;
 using MicrogridApi.Models;
@@ -18,6 +20,7 @@ public class AuthService(
     EmailService emailService,
     ActivityService activityService)
 {
+    // Checks the credentials, the client rule and the account status, then issues a session token.
     public async Task<Result<LoginResponse>> LoginAsync(LoginRequest request, ClientType client)
     {
         var user = await userRepository.FindByEmailAsync(NormalizeEmail(request.Email));
@@ -45,6 +48,7 @@ public class AuthService(
         return ToLoginResponse(user);
     }
 
+    // Builds the login response: a new token plus the role, status and home route for the client.
     private LoginResponse ToLoginResponse(User user)
     {
         var token = jwtTokenService.GenerateToken(user);
@@ -59,6 +63,7 @@ public class AuthService(
             MustChangePassword: user.MustChangePassword);
     }
 
+    // Registers a prosumer as Pending (BR-06 NIC check) and tells the Backoffice they are waiting.
     public async Task<Result> RegisterAsync(RegisterRequest request)
     {
         var email = NormalizeEmail(request.Email);
@@ -146,6 +151,7 @@ public class AuthService(
         return ToLoginResponse(refreshed!);
     }
 
+    // Signs out by storing the token id as revoked until the token's own expiry.
     public async Task<Result> LogoutAsync(string? tokenId, DateTime expiresAtUtc)
     {
         if (string.IsNullOrEmpty(tokenId))
@@ -157,8 +163,10 @@ public class AuthService(
         return Result.Success();
     }
 
+    // Emails are stored and compared trimmed and in lowercase.
     private static string NormalizeEmail(string email) => email.Trim().ToLowerInvariant();
 
+    // Client rule: Backoffice on web only, Prosumer on mobile only, Grid Operator on both.
     private static bool IsRoleAllowedOn(ClientType client, Role role) => client switch
     {
         ClientType.Web => role is Role.Backoffice or Role.GridOperator,
@@ -166,6 +174,7 @@ public class AuthService(
         _ => true
     };
 
+    // The page each role lands on after signing in.
     private static string HomeRouteFor(Role role) => role switch
     {
         Role.Backoffice => "/backoffice/dashboard",
