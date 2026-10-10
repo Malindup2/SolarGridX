@@ -1,3 +1,8 @@
+/*
+ * QrIssueController.cs
+ * Handles QR issuance and retrieval HTTP requests and returns the service results.
+ */
+
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Qr;
 using MicrogridApi.Services;
@@ -17,6 +22,8 @@ public class QrIssueController(QrIssueService qrIssueService) : ApiControllerBas
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Issue(string reservationId)
     {
+                // Ask the service to sign and store a QR token for this reservation.
+
         var result = await qrIssueService.IssueAsync(reservationId);
         return ToResponse(result, response => StatusCode(StatusCodes.Status201Created, response));
     }

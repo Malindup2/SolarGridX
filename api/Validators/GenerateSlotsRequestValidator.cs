@@ -1,3 +1,8 @@
+/*
+ * GenerateSlotsRequestValidator.cs
+ * Checks that a date was supplied before slot generation runs.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Slots;
 
@@ -7,6 +12,7 @@ public class GenerateSlotsRequestValidator : AbstractValidator<GenerateSlotsRequ
 {
     public GenerateSlotsRequestValidator()
     {
+        // Reject a missing generation date.
         RuleFor(x => x.Date).NotEmpty();
     }
 }

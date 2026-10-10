@@ -1,3 +1,8 @@
+/*
+ * DashboardService.cs
+ * Prepares booking statistics and reservation summaries for prosumer and operator dashboards.
+ */
+ 
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Dashboards;
 using MicrogridApi.DTOs.Reservations;

@@ -1,3 +1,8 @@
+/*
+ * UpdateUserRequest.cs
+ * Defines the full set of web user details sent on update, including role and status.
+ */
+
 namespace MicrogridApi.DTOs.Users;
 
 public record UpdateUserRequest(

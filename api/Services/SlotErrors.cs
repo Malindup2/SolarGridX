@@ -1,3 +1,8 @@
+/*
+ * SlotErrors.cs
+ * Defines the error codes and messages used by slot management endpoints.
+ */
+
 using MicrogridApi.Common;
 
 namespace MicrogridApi.Services;

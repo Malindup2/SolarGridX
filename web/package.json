@@ -4,9 +4,9 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node init && vite",
     "typecheck": "tsc -b --noEmit",
-    "build": "tsc -b --noEmit && vite build",
+    "build": "node init && tsc -b --noEmit && vite build",
     "lint": "oxlint",
     "test": "vitest run",
     "test:watch": "vitest",

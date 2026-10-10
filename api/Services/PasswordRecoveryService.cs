@@ -1,3 +1,8 @@
+/*
+ * PasswordRecoveryService.cs
+ * Issues password-reset links and validates reset requests before updating account passwords.
+ */
+
 using System.Security.Cryptography;
 using System.Text;
 using MicrogridApi.Common;

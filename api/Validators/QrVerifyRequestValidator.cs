@@ -1,3 +1,8 @@
+/*
+ * QrVerifyRequestValidator.cs
+ * Checks the QR token and optional identifiers submitted for verification.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Qr;
 

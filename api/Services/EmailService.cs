@@ -1,3 +1,8 @@
+/*
+ * EmailService.cs
+ * Prepares and sends account and password-related emails using the configured email service.
+ */
+ 
 using MailKit.Net.Smtp;
 using MailKit.Security;
 using MicrogridApi.Configuration;

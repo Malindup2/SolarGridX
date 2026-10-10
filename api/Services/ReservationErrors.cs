@@ -1,3 +1,8 @@
+/*
+ * ReservationErrors.cs
+ * Defines validation, access, lookup, and conflict errors for reservation operations.
+ */
+
 using MicrogridApi.Common;
 
 namespace MicrogridApi.Services;

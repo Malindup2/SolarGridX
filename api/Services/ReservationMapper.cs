@@ -1,3 +1,8 @@
+/*
+ * ReservationMapper.cs
+ * Converts reservation records into the response format shared by reservation and dashboard services.
+ */
+
 using MicrogridApi.DTOs.Reservations;
 using MicrogridApi.Models;
 

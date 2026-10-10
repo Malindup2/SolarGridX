@@ -1,3 +1,10 @@
+/*
+ * UserService.cs
+ * Manages Backoffice and Grid Operator accounts: creation, listing, updates, and deletion.
+ * Prevents changes to the caller's own access and protects the last active Backoffice account.
+ */
+
+
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Users;
 using MicrogridApi.Models;
@@ -9,6 +16,7 @@ namespace MicrogridApi.Services;
 
 public class UserService(UserRepository userRepository, EmailService emailService, ActivityService activityService)
 {
+    // Creates an active web user with a temporary password and emails them the sign-in details.
     public async Task<Result<UserResponse>> CreateAsync(CreateUserRequest request)
     {
         var email = request.Email.Trim().ToLowerInvariant();
@@ -60,12 +68,14 @@ public class UserService(UserRepository userRepository, EmailService emailServic
         return ToResponse(user);
     }
 
+    // Returns all web users; prosumers are not included.
     public async Task<List<UserResponse>> ListAsync()
     {
         var users = await userRepository.ListWebUsersAsync();
         return users.Select(ToResponse).ToList();
     }
 
+    // Updates a web user's details, role and status; a caller cannot change their own access (BR-24).
     public async Task<Result<UserResponse>> UpdateAsync(string id, UpdateUserRequest request, string? callerId)
     {
         var user = await FindWebUserAsync(id);
@@ -128,6 +138,7 @@ public class UserService(UserRepository userRepository, EmailService emailServic
         return ToResponse(user);
     }
 
+    // Deletes a web user, unless it is the caller or the last active Backoffice user.
     public async Task<Result> DeleteAsync(string id, string? callerId)
     {
         var user = await FindWebUserAsync(id);
@@ -168,10 +179,12 @@ public class UserService(UserRepository userRepository, EmailService emailServic
         return user is { Role: not Role.Prosumer } ? user : null;
     }
 
+    // True when the user is the only active Backoffice account left.
     private async Task<bool> IsLastActiveBackofficeAsync(User user) =>
         user is { Role: Role.Backoffice, Status: UserStatus.Active }
         && await userRepository.CountActiveByRoleAsync(Role.Backoffice) <= 1;
 
+    // Maps a stored user to the user response sent to clients (never includes the password hash).
     private static UserResponse ToResponse(User user) => new(
         user.Id,
         user.FullName,

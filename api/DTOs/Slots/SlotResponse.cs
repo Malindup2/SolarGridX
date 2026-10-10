@@ -1,3 +1,8 @@
+/*
+ * SlotResponse.cs
+ * Defines the slot details returned to API clients.
+ */
+
 namespace MicrogridApi.DTOs.Slots;
 
 public record SlotResponse(

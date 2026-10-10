@@ -1,3 +1,8 @@
+/*
+ * SearchService.cs
+ * Searches permitted system records and returns results scoped to the caller's role.
+ */
+
 using System.Text.RegularExpressions;
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Activity;
