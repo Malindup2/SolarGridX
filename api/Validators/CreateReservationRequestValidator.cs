@@ -1,3 +1,8 @@
+/*
+ * CreateReservationRequestValidator.cs
+ * Checks the identifiers, schedule fields, and energy amount submitted when creating a reservation.
+ */
+ 
 using FluentValidation;
 using MicrogridApi.DTOs.Reservations;
 

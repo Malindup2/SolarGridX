@@ -1,3 +1,7 @@
+/*
+ * UpdateReservationRequest.cs
+ * Defines the requested energy change and optional version check for a reservation update.
+ */
 namespace MicrogridApi.DTOs.Reservations;
 
 /// <param name="ExpectedUpdatedAt">

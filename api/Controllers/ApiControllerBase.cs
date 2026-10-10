@@ -1,3 +1,8 @@
+/*
+ * ApiControllerBase.cs
+ * Provides shared caller information, request validation, and HTTP response handling.
+ */
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using FluentValidation;

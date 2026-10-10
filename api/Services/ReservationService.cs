@@ -1,3 +1,8 @@
+/*
+ * ReservationService.cs
+ * Enforces booking rules and manages reservation creation, modification, decisions, and cancellation.
+ */
+ 
 using System.Globalization;
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Reservations;

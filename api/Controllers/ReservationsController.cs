@@ -1,3 +1,8 @@
+/*
+ * ReservationsController.cs
+ * Handles reservation creation, viewing, editing, rescheduling, cancellation, and decisions.
+ */
+
 using FluentValidation;
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Reservations;

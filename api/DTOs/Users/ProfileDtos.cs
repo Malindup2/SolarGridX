@@ -1,3 +1,8 @@
+/*
+ * ProfileDtos.cs
+ * Defines the signed-in user's own profile response and the profile update request.
+ */
+
 namespace MicrogridApi.DTOs.Users;
 
 // The signed-in user's own account, for every role.

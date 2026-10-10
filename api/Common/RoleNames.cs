@@ -1,3 +1,8 @@
+/*
+ * RoleNames.cs
+ * Role names as constants, for use in [Authorize(Roles = ...)] attributes.
+ */
+
 using MicrogridApi.Models;
 
 namespace MicrogridApi.Common;

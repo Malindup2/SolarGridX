@@ -1,3 +1,8 @@
+/*
+ * CorrelationIdMiddleware.cs
+ * Assigns a server-generated correlation ID to each request for response tracking and logging.
+ */
+ 
 namespace MicrogridApi.Middleware;
 
 // Gives every request an id that is returned as X-Correlation-ID, written to every log line for

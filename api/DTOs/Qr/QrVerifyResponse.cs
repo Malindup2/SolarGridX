@@ -1,3 +1,7 @@
+/*
+ * QrVerifyResponse.cs
+ * Defines the reservation and transfer details returned after QR preview or verification.
+ */
 namespace MicrogridApi.DTOs.Qr;
 
 public record QrVerifyResponse(

@@ -1,3 +1,9 @@
+/*
+ * AuthController.cs
+ * Handles sign-in, prosumer self-registration, password change, password recovery
+ * and sign-out. Login enforces which roles may use which client (web or mobile).
+ */
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using FluentValidation;
@@ -31,6 +37,7 @@ public class AuthController(
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status403Forbidden)]
+    // Signs a user in with email and password and returns a session token.
     public async Task<IActionResult> Login(LoginRequest request, [FromHeader(Name = ClientTypes.HeaderName)] string? clientType)
     {
         var invalid = await ValidateAsync(loginValidator, request);
@@ -49,6 +56,7 @@ public class AuthController(
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    // Registers a new prosumer from the mobile app; the account starts as Pending.
     public async Task<IActionResult> Register(RegisterRequest request)
     {
         var invalid = await ValidateAsync(registerValidator, request);
@@ -67,6 +75,7 @@ public class AuthController(
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    // Changes the signed-in user's password and returns a fresh session.
     public async Task<IActionResult> ChangePassword(ChangePasswordRequest request)
     {
         var invalid = await ValidateAsync(changePasswordValidator, request);
@@ -111,6 +120,7 @@ public class AuthController(
     [EnableRateLimiting(RateLimitPolicies.Auth)]
     [ProducesResponseType(typeof(MessageResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    // Sets a new password using a valid reset link token.
     public async Task<IActionResult> ResetPassword(ResetPasswordRequest request)
     {
         var invalid = await ValidateAsync(resetValidator, request);
@@ -127,6 +137,7 @@ public class AuthController(
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status401Unauthorized)]
+    // Signs out by revoking the current token until it would have expired.
     public async Task<IActionResult> Logout()
     {
         var tokenId = User.FindFirstValue(JwtRegisteredClaimNames.Jti);

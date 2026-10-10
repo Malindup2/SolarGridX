@@ -1,3 +1,8 @@
+/*
+ * GlobalExceptionHandler.cs
+ * Logs unhandled exceptions and returns consistent API error responses.
+ */
+ 
 using MicrogridApi.Common;
 using Microsoft.AspNetCore.Diagnostics;
 using MongoDB.Driver;

@@ -1,3 +1,8 @@
+/*
+ * RejectReservationRequestValidator.cs
+ * Checks that a reservation rejection includes a valid reason.
+ */
+
 using FluentValidation;
 using MicrogridApi.DTOs.Reservations;
 

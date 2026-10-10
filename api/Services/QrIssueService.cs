@@ -1,3 +1,8 @@
+/*
+ * QrIssueService.cs
+ * Issues and retrieves signed QR transaction tokens for approved reservations.
+ */
+
 using MicrogridApi.Common;
 using MicrogridApi.Configuration;
 using MicrogridApi.DTOs.Qr;
@@ -13,6 +18,8 @@ public class QrIssueService(ReservationRepository reservationRepository, IOption
 
     public async Task<Result<QrTokenResponse>> IssueAsync(string reservationId)
     {
+        // only an Approved reservation may receive a QR code, signed
+        // with the shared HMAC secret and expiring at the slot's end time.
         if (!ObjectIds.IsValid(reservationId))
         {
             return QrErrors.ReservationNotFound;
@@ -52,6 +59,8 @@ public class QrIssueService(ReservationRepository reservationRepository, IOption
     public async Task<Result<QrTokenResponse>> GetAsync(
         string reservationId, string? callerNic, string? callerRole)
     {
+                //a prosumer may only retrieve the token for their own reservation.
+
         if (!ObjectIds.IsValid(reservationId))
         {
             return QrErrors.ReservationNotFound;
@@ -88,6 +97,8 @@ public class QrIssueService(ReservationRepository reservationRepository, IOption
 
     private static DateTime CombineDateAndTime(DateTime date, string time)
     {
+                // Slot times are stored as "HH:mm" against a UTC date.
+
         var parts = time.Split(':');
         var hour = int.Parse(parts[0], System.Globalization.CultureInfo.InvariantCulture);
         var minute = int.Parse(parts[1], System.Globalization.CultureInfo.InvariantCulture);

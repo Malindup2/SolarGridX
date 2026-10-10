@@ -1,3 +1,8 @@
+/*
+ * IdentityErrors.cs
+ * Defines the lookup, access and conflict errors for user and prosumer account operations.
+ */
+
 using MicrogridApi.Common;
 
 namespace MicrogridApi.Services;

@@ -1,3 +1,8 @@
+/*
+ * SearchExportController.cs
+ * Handles role-scoped record searches and CSV export requests.
+ */
+
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Activity;
 using MicrogridApi.Services;

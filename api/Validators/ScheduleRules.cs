@@ -1,3 +1,8 @@
+/*
+ * ScheduleRules.cs
+ * Provides shared validation for per-day station hours and their relationship to active weekdays.
+ */
+
 using System.Globalization;
 using MicrogridApi.DTOs.Stations;
 
