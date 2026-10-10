@@ -1,3 +1,8 @@
+/*
+ * ActivityQueryService.cs
+ * Applies access rules when retrieving notifications and audit history or updating notification read states.
+ */
+ 
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Activity;
 using MicrogridApi.Models;

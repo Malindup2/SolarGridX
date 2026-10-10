@@ -1,3 +1,8 @@
+/*
+ * PasswordRecoveryQueue.cs
+ * Queues password-recovery requests and processes them through a background worker.
+ */
+ 
 using System.Threading.Channels;
 
 namespace MicrogridApi.Services;

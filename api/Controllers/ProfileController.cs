@@ -1,3 +1,9 @@
+/*
+ * ProfileController.cs
+ * Handles the signed-in user's own account (/users/me) for every role: profile details,
+ * self-deactivation for prosumers, and the profile photo.
+ */
+
 using FluentValidation;
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Users;
@@ -17,6 +23,7 @@ public class ProfileController(
     [HttpGet("me")]
     [ProducesResponseType(typeof(ProfileResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    // Returns the signed-in user's own profile.
     public async Task<IActionResult> Get()
     {
         var result = await profileService.GetAsync(CallerId);
@@ -27,6 +34,7 @@ public class ProfileController(
     [ProducesResponseType(typeof(ProfileResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status409Conflict)]
+    // Validates and saves the signed-in user's own profile details.
     public async Task<IActionResult> Update(UpdateProfileRequest request)
     {
         var invalid = await ValidateAsync(updateValidator, request);
@@ -53,6 +61,7 @@ public class ProfileController(
     [HttpGet("me/avatar")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status404NotFound)]
+    // Returns the signed-in user's own profile photo.
     public Task<IActionResult> GetOwnAvatar() => AvatarAsync(CallerId ?? string.Empty);
 
     // Staff can see anyone's photo (user lists, prosumer details).
@@ -66,6 +75,7 @@ public class ProfileController(
     [RequestSizeLimit(ProfileService.MaxAvatarBytes + 64 * 1024)]
     [ProducesResponseType(typeof(ProfileResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ErrorResponse), StatusCodes.Status400BadRequest)]
+    // Uploads or replaces the signed-in user's profile photo (JPEG or PNG, BR-30).
     public async Task<IActionResult> SetAvatar(IFormFile? file)
     {
         if (file is null)
@@ -80,12 +90,14 @@ public class ProfileController(
 
     [HttpDelete("me/avatar")]
     [ProducesResponseType(typeof(ProfileResponse), StatusCodes.Status200OK)]
+    // Removes the signed-in user's profile photo.
     public async Task<IActionResult> RemoveAvatar()
     {
         var result = await profileService.RemoveAvatarAsync(CallerId);
         return ToResponse(result, profile => Ok(profile));
     }
 
+    // Sends a user's photo bytes with headers that stop caching and content sniffing.
     private async Task<IActionResult> AvatarAsync(string id)
     {
         var result = await profileService.GetAvatarAsync(id);

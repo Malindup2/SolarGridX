@@ -1,3 +1,9 @@
+/*
+ * User.cs
+ * Defines a user account stored in the Users collection (Backoffice, Grid Operator or
+ * Prosumer), with the Role and UserStatus values it can hold.
+ */
+
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 

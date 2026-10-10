@@ -9,10 +9,10 @@ Sri Lanka Institute of Information Technology — Year 4, Semester 2, 2026
 |---|---|
 | **Module** | SE4040 — Enterprise Application Development |
 | **Assignment** | Assignment 1 — Group Project |
-| **Group** | *(group ID)* |
-| **Submission deadline** | 30 September 2026, 11:59 PM |
-| **Repository** | *(GitHub URL)* |
-| **Demo video** | *(YouTube / OneDrive link — max 5 minutes)* |
+| **Group** | *29* |
+| **Submission deadline** | 6 October 2026, 11:59 PM |
+| **Repository** | *https://github.com/Malindup2/SolarGridX.git* |
+| **Demo video** | *https://youtu.be/tyPiNDVHfAs?si=ORCBIg0CkaM0UEwF* |
 
 ---
 
@@ -646,6 +646,25 @@ Point the clients at the deployed address:
 - The pool uses *No Managed Code* because ASP.NET Core does not use the .NET Framework CLR that IIS would otherwise load.
 
 ---
+
+### 8.8 Hosting the web app on IIS
+
+The web app is a static build, so IIS serves it as a second site next to the API. It calls the API at `http://localhost:8090/api`, which is baked into the build.
+
+1. **Allow the origin in the API.** Add `http://localhost:8091` to `Cors:AllowedOrigins` in `api\appsettings.Development.json`, then run `scripts\deploy-iis.bat` so the API picks it up.
+2. **Deploy.** Double-click `scripts\deploy-web-iis.bat` (it asks for administrator rights). It builds the web app against the API, writes a `web.config`, creates the pool `SolarGridX_WebPool` and the site `SolarGridX_Web` on port `8091` if they are missing, copies the build to `C:\inetpub\wwwroot\SolarGridX_Web` and checks that `/` and `/login` open the app. `scripts\deploy-web-iis.ps1 -DryRun` builds into a temporary folder without touching IIS.
+3. **Open** `http://localhost:8091`.
+4. **Google Maps key.** Add `http://localhost:8091/*` to the web key's allowed websites in Google Cloud Console, or the map stays blank.
+
+| Item | Value |
+|---|---|
+| Site | `SolarGridX_Web` |
+| Application pool | `SolarGridX_WebPool` — .NET CLR version *No Managed Code* |
+| Physical path | `C:\inetpub\wwwroot\SolarGridX_Web` |
+| Binding | `http`, port `8091` |
+| Direct links (`/login`, `/stations`) | A URL Rewrite rule in `web.config` sends them to `index.html`. If the URL Rewrite module is not installed, the script uses a custom 404 page that does the same. |
+
+After changing the web code, run `scripts\deploy-web-iis.bat` again.
 
 ## 9. Database Design
 
