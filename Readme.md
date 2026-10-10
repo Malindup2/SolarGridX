@@ -666,6 +666,17 @@ The web app is a static build, so IIS serves it as a second site next to the API
 
 After changing the web code, run `scripts\deploy-web-iis.bat` again.
 
+### 8.9 Public HTTPS access with Cloudflare tunnels (optional)
+
+Use this when a phone or a viewer is **not** on the laptop's network. The IIS sites stay the real host; a tunnel only gives each a temporary public `https://...trycloudflare.com` address. No domain is needed.
+
+1. Install the tool once: `winget install Cloudflare.cloudflared`.
+2. Make sure the API (`scripts\deploy-iis.bat`) and the web app (`scripts\deploy-web-iis.bat`) are deployed.
+3. Double-click `scripts\start-tunnels.bat`. It prints a public API address and a public web address, and the five changes they need. Keep the window open for the whole demo.
+4. Apply what it prints, in order: allow the public web address in `Cors:AllowedOrigins` and redeploy the API, rebuild the web with `scripts\deploy-web-iis.ps1 -ApiUrl <public-api>/api`, set `API_BASE_URL=<public-api>/api/` in `mobile\local.properties` and rebuild the app, and add `<public-web>/*` to the web Maps key's allowed websites.
+
+The addresses change every time the tunnels start, so repeat steps 3 and 4 before each demo. If the laptop sleeps or the window closes, the public addresses stop working. To return to localhost, deploy the web again with the default `-ApiUrl` and restore `API_BASE_URL`.
+
 ## 9. Database Design
 
 MongoDB database: **`SmartMicrogridDb`** — four domain collections, plus a small `RevokedTokens` collection used for session invalidation (9.6).
