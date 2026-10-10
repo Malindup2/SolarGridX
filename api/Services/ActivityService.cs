@@ -1,3 +1,8 @@
+/*
+ * ActivityService.cs
+ * Records business activity and prepares notifications for the relevant users and roles.
+ */
+ 
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using MicrogridApi.Models;

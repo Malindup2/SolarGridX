@@ -1,3 +1,8 @@
+/*
+ * ReservationViewService.cs
+ * Builds paginated current, pending, and historical reservation views using access rules and slot times.
+ */
+
 using System.Globalization;
 using MicrogridApi.Common;
 using MicrogridApi.DTOs.Reservations;

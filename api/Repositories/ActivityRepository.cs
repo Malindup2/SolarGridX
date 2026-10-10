@@ -1,3 +1,8 @@
+/*
+ * ActivityRepository.cs
+ * Stores and retrieves audit entries and notifications, including notification read states.
+ */
+ 
 using MicrogridApi.Configuration;
 using MicrogridApi.Models;
 using MongoDB.Driver;

@@ -1,3 +1,7 @@
+/*
+ * CreateReservationRequest.cs
+ * Defines the prosumer, station, slot, schedule, and energy details required to create a reservation.
+ */
 namespace MicrogridApi.DTOs.Reservations;
 
 public record CreateReservationRequest(
